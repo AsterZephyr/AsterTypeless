@@ -20,16 +20,17 @@
 
 ### P0 输入主链路
 
-- 完整实现 `Fn` 按下即说、松开即停
+- `Fn` 按下即说、松开即停的原型已接通
 - 明确 `tap / hold / double tap` 的交互语义
 - 完善 Input Monitoring 权限引导
 - 完善 Accessibility 权限引导
 
 ### P0 浮窗体验
 
-- 把音频电平反馈做成更像 Typeless 的实时抖动小窗口
-- 缩小浮窗信息密度，保留最关键的状态提示
-- 明确 `idle / armed / recording / processing / ready` 状态机
+- 浮窗已切成“录音时更紧凑、停下后展开”的布局
+- 音频电平反馈已升级到实时抖动原型
+- `idle / armed / recording / processing / ready` 状态机已接通原型
+- 继续往 Typeless 的浮窗质感打磨
 
 ### P1 跨 App 能力
 
@@ -51,27 +52,12 @@
 - 个人画像做成更稳定的报告区
 - 转录记录与反馈入口继续拆分
 
-## 当前本机构建问题
+## 当前本机构建状态
 
-根据 2026-03-13 本机实际命令输出，当前环境问题如下：
+2026-03-14 已验证：
 
-- `/Applications/Xcode.app` 不存在或不可用
-- `xcode-select -p` 指向 `CommandLineTools`
-- `xcodebuild -version` 无法运行，因为没有完整 Xcode
-- `swift --version` 显示为 `Apple Swift 6.2.4`
-- SDK 报错显示当前 CLT / SDK 仍有 `Swift 6.2.3` 痕迹
-- `/Library/Developer/CommandLineTools/usr/include/swift/module.modulemap`
-  和
-  `/Library/Developer/CommandLineTools/usr/include/swift/bridging.modulemap`
-  同时存在，触发 `SwiftBridging` 重复定义
-
-## 本机构建修复建议
-
-1. 安装完整 Xcode
-2. 切换 active developer directory 到 Xcode
-3. 跑 `xcodebuild -runFirstLaunch`
-4. 再确认 `swift --version` 与 SDK 版本一致
-5. 如仍异常，再清理并重装 Command Line Tools
+- `swift build` 通过
+- `xcodebuild -project TypelessMac.xcodeproj -scheme TypelessMac -configuration Debug -sdk macosx build` 通过
 
 ## 备注
 

@@ -4,36 +4,88 @@ struct FloatingBarView: View {
     @ObservedObject var model: TypelessAppModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(model.quickBar.targetAppName.isEmpty ? "Quick Dictation" : model.quickBar.targetAppName)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(AppTheme.ink)
-                    Text(model.quickBar.statusText)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(AppTheme.muted)
-                }
+        VStack(alignment: .leading, spacing: model.quickBar.isCompactLayout ? 12 : 14) {
+            header
 
-                Spacer()
+            listeningHero
 
-                StatusPill(title: model.quickBar.triggerLabel, tint: model.quickBar.isRecording ? AppTheme.warning : AppTheme.accent)
+            if !model.quickBar.isCompactLayout {
+                composer
+                actionBar
+            } else {
+                compactFooter
+            }
+        }
+        .padding(model.quickBar.isCompactLayout ? 16 : 18)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(0.92),
+                    Color(red: 0.95, green: 0.93, blue: 0.89).opacity(0.90),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            ),
+            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(AppTheme.cardBorder, lineWidth: 1)
+        )
+        .padding(12)
+        .frame(width: 404)
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(model.quickBar.targetAppName.isEmpty ? "Quick Dictation" : model.quickBar.targetAppName)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(AppTheme.ink)
+                Text(model.quickBar.statusText)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(AppTheme.muted)
+                    .lineLimit(model.quickBar.isCompactLayout ? 2 : 3)
             }
 
-            HStack(spacing: 12) {
-                AudioPulseView(level: model.quickBar.smoothedLevel, isSpeaking: model.quickBar.isSpeaking)
-                Text(model.quickBar.isRecording ? "正在捕获语音输入" : "待机中")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(model.quickBar.isRecording ? AppTheme.ink : AppTheme.muted)
-                Spacer()
-                if !model.quickBar.selectedContextPreview.isEmpty {
-                    Text(model.quickBar.selectedContextPreview)
-                        .font(.system(size: 12))
-                        .foregroundStyle(AppTheme.muted)
-                        .lineLimit(1)
-                }
+            Spacer(minLength: 12)
+
+            VStack(alignment: .trailing, spacing: 8) {
+                StatusPill(title: model.quickBar.phase.title, tint: phaseTint)
+                StatusPill(title: model.quickBar.triggerLabel, tint: model.quickBar.usesPressAndHold ? AppTheme.warning : AppTheme.accent)
+            }
+        }
+    }
+
+    private var listeningHero: some View {
+        VStack(spacing: 10) {
+            AudioPulseView(level: model.quickBar.smoothedLevel, isSpeaking: model.quickBar.isSpeaking)
+
+            Text(primaryListeningLabel)
+                .font(.system(size: model.quickBar.isCompactLayout ? 15 : 14, weight: .semibold))
+                .foregroundStyle(AppTheme.ink)
+
+            if !model.quickBar.selectedContextPreview.isEmpty {
+                Text(model.quickBar.selectedContextPreview)
+                    .font(.system(size: 12))
+                    .foregroundStyle(AppTheme.muted)
+                    .lineLimit(model.quickBar.isCompactLayout ? 2 : 3)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 10)
             }
 
+            if model.quickBar.holdDuration > 0 {
+                Text("本次按住 \(String(format: "%.1f", model.quickBar.holdDuration)) 秒")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(AppTheme.muted)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, model.quickBar.isCompactLayout ? 2 : 4)
+    }
+
+    private var composer: some View {
+        VStack(alignment: .leading, spacing: 12) {
             Picker("Mode", selection: $model.quickBar.mode) {
                 ForEach(QuickActionMode.allCases) { mode in
                     Text(mode.title).tag(mode)
@@ -53,52 +105,89 @@ struct FloatingBarView: View {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(AppTheme.cardBorder, lineWidth: 1)
                 )
-                .frame(minHeight: 108)
+                .frame(minHeight: 98)
 
-            HStack {
-                Button(model.quickBar.isRecording ? "停止" : "录音") {
-                    model.quickBar.isRecording ? model.stopRecording() : model.startRecording()
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button("运行") {
-                    model.runQuickAction()
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppTheme.accent)
-
-                Button("关闭") {
-                    model.dismissQuickBar()
-                }
-                .buttonStyle(.bordered)
-
-                Spacer()
-
-                if !model.quickBar.generatedText.isEmpty {
-                    Text("已生成结果")
+            if !model.quickBar.generatedText.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("生成结果")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(AppTheme.success)
+                    Text(model.quickBar.generatedText)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(AppTheme.ink)
+                        .lineLimit(4)
                 }
+                .padding(12)
+                .background(AppTheme.accentSoft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
         }
-        .padding(18)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color.white.opacity(0.86),
-                    Color(red: 0.95, green: 0.93, blue: 0.89).opacity(0.86),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            ),
-            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(AppTheme.cardBorder, lineWidth: 1)
-        )
-        .padding(12)
-        .frame(width: 438)
+    }
+
+    private var actionBar: some View {
+        HStack {
+            Button(model.quickBar.isRecording ? "停止" : "录音") {
+                model.quickBar.isRecording ? model.stopRecording() : model.startRecording()
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(model.quickBar.isRecording ? AppTheme.warning : AppTheme.accent)
+
+            Button("运行") {
+                model.runQuickAction()
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppTheme.accent)
+
+            Button("关闭") {
+                model.dismissQuickBar()
+            }
+            .buttonStyle(.bordered)
+
+            Spacer()
+        }
+    }
+
+    private var compactFooter: some View {
+        HStack {
+            Label(model.quickBar.mode.subtitle, systemImage: model.quickBar.isRecording ? "waveform" : "mic")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(AppTheme.muted)
+
+            Spacer()
+
+            Button("关闭") {
+                model.dismissQuickBar()
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(AppTheme.muted)
+        }
+    }
+
+    private var primaryListeningLabel: String {
+        switch model.quickBar.phase {
+        case .armed:
+            return model.quickBar.usesPressAndHold ? "按住 Fn 开始口述" : "准备开始"
+        case .recording:
+            return model.quickBar.isSpeaking ? "正在捕获你的语音" : "继续说话，浮窗会跟着声音抖动"
+        case .processing:
+            return "正在整理当前输入"
+        case .ready:
+            return model.quickBar.generatedText.isEmpty ? "可以继续编辑或直接运行" : "结果已准备好"
+        case .idle:
+            return "待机中"
+        }
+    }
+
+    private var phaseTint: Color {
+        switch model.quickBar.phase {
+        case .idle, .armed:
+            return AppTheme.accent
+        case .recording:
+            return AppTheme.warning
+        case .processing:
+            return AppTheme.muted
+        case .ready:
+            return AppTheme.success
+        }
     }
 }
-

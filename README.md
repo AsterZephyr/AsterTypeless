@@ -62,8 +62,8 @@ docs/
 - 原生 `SwiftUI` 设置页
 - 原生 `NSPanel` 浮动输入条
 - 麦克风权限检测与实时音量采样
-- 音频电平平滑值，可直接驱动“说话时抖动”的反馈条
-- `Fn` 触发监听骨架和 Input Monitoring 权限检测
+- 音频电平平滑值与更紧凑的实时抖动反馈
+- `Fn` 按下开始、松开结束的原型状态机
 - Accessibility 权限检测
 - 当前前台 App 与焦点元素上下文读取
 - 选中文本读取
@@ -74,9 +74,9 @@ docs/
 ## 当前还没做完
 
 - 真正的 `OpenAI + Deepgram` 网络调用链
-- `Fn` 长按 / 按下即说 的完整状态机
+- `Fn` 的 `tap / hold / double tap` 完整语义
 - 跨更多 macOS App 的稳定写回兼容性
-- 浮窗实时音频反馈的视觉打磨
+- 浮窗实时音频反馈继续打磨成更接近 Typeless 的形态
 - 首页更进一步收紧成 Typeless 那种更克制的原生信息架构
 
 ## 运行方式
@@ -113,16 +113,7 @@ swift build
 xcodebuild -project /Users/hxz/code/typeless-open-cleanroom/TypelessMac.xcodeproj -scheme TypelessMac -configuration Debug -sdk macosx build
 ```
 
-如果本机的 Xcode / Command Line Tools 没有配好，`swift build` 可能会失败。这是系统工具链问题，不是旧 Node 依赖问题。
-
-根据 2026-03-13 本机实际排查，当前环境已确认：
-
-- `/Applications/Xcode.app` 不存在或不可用
-- `xcode-select -p` 仍指向 `CommandLineTools`
-- `swift --version` 是 `Apple Swift 6.2.4`
-- 当前 SDK / CLT 仍有 `6.2.3` 痕迹
-- `xcodebuild -version` 无法执行
-- 直接类型检查会报 `SwiftBridging` 重复定义和 SDK / 编译器不匹配
+当前这台机器的 Xcode 环境已经在 2026-03-14 修复并验证通过。上面的两条构建命令都可以正常跑完。
 
 ## 设计原则
 
@@ -136,7 +127,7 @@ xcodebuild -project /Users/hxz/code/typeless-open-cleanroom/TypelessMac.xcodepro
 
 1. 继续打磨正式的 Xcode App target，并补 Archive / 发布链路。
 2. 把实时音频反馈做成 Typeless 风格的小体积生命体征。
-3. 把 `Fn` 触发补成按下即说、松开即停。
+3. 把 `Fn` 触发从当前原型推进到完整的 `tap / hold / double tap` 语义。
 4. 接入 `Deepgram + OpenAI` 主链路。
 5. 把首页继续压缩成更像 macOS 菜单栏工具的概览页。
 

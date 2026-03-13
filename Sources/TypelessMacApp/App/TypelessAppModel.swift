@@ -22,12 +22,7 @@ final class TypelessAppModel: ObservableObject {
         recomputeDashboard()
         refreshPermissions()
         refreshQuickBarBindings()
-
-        hotkeyBridge.startMonitoring { [weak self] in
-            Task { @MainActor in
-                self?.presentQuickBar(trigger: "Fn")
-            }
-        }
+        startHotkeyMonitoringIfPossible()
     }
 
     func refreshPermissions(promptAccessibility: Bool = false, promptInputMonitoring: Bool = false) {
@@ -37,61 +32,97 @@ final class TypelessAppModel: ObservableObject {
         permissions.microphone = audioMonitor.microphonePermission
 
         if permissions.inputMonitoring == .granted {
-            hotkeyBridge.startMonitoring { [weak self] in
-                Task { @MainActor in
-                    self?.presentQuickBar(trigger: "Fn")
-                }
-            }
+            startHotkeyMonitoringIfPossible()
+        } else {
+            hotkeyBridge.stopMonitoring()
         }
     }
 
-    func presentQuickBar(trigger: String) {
+    func presentQuickBar(trigger: String, usesPressAndHold: Bool = false) {
         let selection = accessibilityBridge.captureSelectionContext()
 
         quickBar.isPresented = true
+        quickBar.phase = .armed
         quickBar.triggerLabel = trigger
         quickBar.targetAppName = selection.focusedAppName.isEmpty ? "任意输入框" : selection.focusedAppName
         quickBar.targetBundleIdentifier = selection.bundleIdentifier
         quickBar.selectedContextPreview = selection.selectedText.isEmpty ? selection.surroundingText : selection.selectedText
-        quickBar.transcriptDraft = selection.selectedText
+        quickBar.transcriptDraft = usesPressAndHold ? "" : selection.selectedText
         quickBar.generatedText = ""
-        quickBar.statusText = trigger == "Fn" ? "已捕获目标输入框，开始说话即可。" : "已打开快速口述条。"
+        quickBar.hasDetectedSpeech = false
+        quickBar.usesPressAndHold = usesPressAndHold
+        quickBar.holdDuration = 0
+        quickBar.statusText = usesPressAndHold
+            ? "按住 Fn 说话，松开后结束本次口述。"
+            : (trigger == "Fn" ? "已捕获目标输入框，开始说话即可。" : "已打开快速口述条。")
 
         floatingBarManager.present()
     }
 
     func dismissQuickBar() {
+        quickBar.phase = .idle
         quickBar.isPresented = false
         quickBar.isRecording = false
+        quickBar.hasDetectedSpeech = false
+        quickBar.usesPressAndHold = false
+        quickBar.holdDuration = 0
         audioMonitor.stopMonitoring()
         floatingBarManager.dismiss()
     }
 
-    func startRecording() {
+    func startRecording(triggeredByPressAndHold: Bool = false) {
+        guard !quickBar.isRecording else {
+            return
+        }
+
+        if triggeredByPressAndHold {
+            quickBar.usesPressAndHold = true
+        }
+
         Task {
             let granted = await audioMonitor.startMonitoring()
             if granted {
                 quickBar.isRecording = true
-                quickBar.statusText = "正在听你说话…"
+                quickBar.phase = .recording
+                quickBar.hasDetectedSpeech = false
+                quickBar.statusText = quickBar.usesPressAndHold ? "松开 Fn 即可结束本次口述。" : "正在听你说话…"
+                floatingBarManager.present()
             } else {
                 refreshPermissions()
+                quickBar.phase = .armed
                 quickBar.statusText = "麦克风权限不可用，请先开启权限。"
+                floatingBarManager.present()
             }
         }
     }
 
-    func stopRecording() {
+    func stopRecording(fromPressAndHoldRelease: Bool = false) {
+        let hadSpeech = quickBar.hasDetectedSpeech
+        let holdDuration = audioMonitor.elapsedSeconds
         audioMonitor.stopMonitoring()
         quickBar.isRecording = false
-        quickBar.statusText = quickBar.transcriptDraft.isEmpty ? "录音结束，可以直接运行。" : "已停止录音，可以继续编辑文本。"
+        quickBar.holdDuration = holdDuration
+
+        if fromPressAndHoldRelease && !hadSpeech && quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            dismissQuickBar()
+            return
+        }
+
+        quickBar.phase = .ready
+        quickBar.statusText = fromPressAndHoldRelease
+            ? (hadSpeech ? "已结束本次口述。当前还是本地原型，可继续编辑或点击运行。" : "没有检测到明显语音，你可以继续手动输入。")
+            : (quickBar.transcriptDraft.isEmpty ? "录音结束，可以直接运行。" : "已停止录音，可以继续编辑文本。")
+        floatingBarManager.present()
     }
 
     func runQuickAction() {
+        quickBar.phase = .processing
         if quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             quickBar.transcriptDraft = inferredDraft()
         }
 
         quickBar.generatedText = generateOutput()
+        quickBar.phase = .ready
         quickBar.statusText = "已生成结果，正在准备写回。"
 
         _ = accessibilityBridge.insert(
@@ -142,8 +173,47 @@ final class TypelessAppModel: ObservableObject {
                 self.quickBar.liveLevel = level
                 self.quickBar.smoothedLevel = smoothedLevel
                 self.quickBar.isSpeaking = isSpeaking
+                if isSpeaking {
+                    self.quickBar.hasDetectedSpeech = true
+                }
             }
             .store(in: &cancellables)
+    }
+
+    private func startHotkeyMonitoringIfPossible() {
+        hotkeyBridge.startMonitoring(
+            handlers: .init(
+                onPress: { [weak self] in
+                    Task { @MainActor in
+                        self?.handleFnPress()
+                    }
+                },
+                onRelease: { [weak self] elapsed in
+                    Task { @MainActor in
+                        self?.handleFnRelease(elapsed: elapsed)
+                    }
+                }
+            )
+        )
+    }
+
+    private func handleFnPress() {
+        presentQuickBar(trigger: "Fn", usesPressAndHold: true)
+        startRecording(triggeredByPressAndHold: true)
+    }
+
+    private func handleFnRelease(elapsed: TimeInterval) {
+        quickBar.holdDuration = elapsed
+
+        guard quickBar.usesPressAndHold else {
+            return
+        }
+
+        if quickBar.isRecording {
+            stopRecording(fromPressAndHoldRelease: true)
+        } else if quickBar.isPresented && quickBar.phase == .armed {
+            dismissQuickBar()
+        }
     }
 
     private func recomputeDashboard() {

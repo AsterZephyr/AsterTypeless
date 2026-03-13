@@ -69,6 +69,29 @@ enum TranscriptFeedback: String, Codable, CaseIterable {
     }
 }
 
+enum QuickBarPhase: String, Codable {
+    case idle
+    case armed
+    case recording
+    case processing
+    case ready
+
+    var title: String {
+        switch self {
+        case .idle:
+            return "待机"
+        case .armed:
+            return "已就绪"
+        case .recording:
+            return "录音中"
+        case .processing:
+            return "处理中"
+        case .ready:
+            return "可确认"
+        }
+    }
+}
+
 struct RuntimeSettings: Codable {
     var primaryTrigger: String = "Fn"
     var fallbackShortcut: String = "Control + Option + Space"
@@ -130,11 +153,13 @@ struct PersonaReport {
 
 struct QuickBarState {
     var mode: QuickActionMode = .dictate
+    var phase: QuickBarPhase = .idle
     var isPresented: Bool = false
     var isRecording: Bool = false
     var liveLevel: Double = 0
     var smoothedLevel: Double = 0
     var isSpeaking: Bool = false
+    var hasDetectedSpeech: Bool = false
     var transcriptDraft: String = ""
     var generatedText: String = ""
     var statusText: String = "按 Fn 或点击按钮开始。"
@@ -142,6 +167,15 @@ struct QuickBarState {
     var targetBundleIdentifier: String = ""
     var selectedContextPreview: String = ""
     var triggerLabel: String = "Fn"
+    var usesPressAndHold: Bool = false
+    var holdDuration: Double = 0
+
+    var isCompactLayout: Bool {
+        usesPressAndHold
+            && generatedText.isEmpty
+            && transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && (phase == .armed || phase == .recording || phase == .processing)
+    }
 }
 
 extension DictationSession {
