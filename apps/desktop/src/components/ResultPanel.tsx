@@ -7,13 +7,26 @@ type ResultPanelProps = {
   onOpenDocs: () => void
 }
 
+function formatDelivery(kind: VoiceFlowResponse['delivery']['kind']) {
+  switch (kind) {
+    case 'insert-after-cursor':
+      return 'Insert after cursor'
+    case 'replace-selection':
+      return 'Replace selection'
+    case 'copy-only':
+      return 'Copy only'
+    default:
+      return kind
+  }
+}
+
 export function ResultPanel({ result, lastError, onCopy, onOpenDocs }: ResultPanelProps) {
   return (
     <aside className="result-panel">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Delivery</p>
-          <h2>Polished output</h2>
+          <p className="eyebrow">Output</p>
+          <h2>Ready to paste</h2>
         </div>
         <button className="ghost-button" type="button" onClick={onOpenDocs}>
           Docs
@@ -27,13 +40,20 @@ export function ResultPanel({ result, lastError, onCopy, onOpenDocs }: ResultPan
           <>
             <div className="result-meta">
               <span className="status-pill success">{result.debug.provider}</span>
-              <span>{result.delivery.kind}</span>
-              <span>{result.latencyMs} ms</span>
+              <span className="status-pill muted">{formatDelivery(result.delivery.kind)}</span>
+              <span className="status-pill muted">{result.latencyMs} ms</span>
             </div>
-            <pre className="result-text">{result.refinedText}</pre>
-            <button className="primary-button" type="button" onClick={onCopy}>
-              Copy output
-            </button>
+            <div className="result-surface">
+              <pre className="result-text">{result.refinedText}</pre>
+            </div>
+            <div className="result-actions">
+              <button className="primary-button" type="button" onClick={onCopy}>
+                Copy output
+              </button>
+              <button className="ghost-button" type="button" onClick={onOpenDocs}>
+                Open docs
+              </button>
+            </div>
             <dl className="debug-grid">
               <div>
                 <dt>Transcript source</dt>
@@ -51,15 +71,11 @@ export function ResultPanel({ result, lastError, onCopy, onOpenDocs }: ResultPan
           </>
         ) : (
           <div className="empty-card spacious">
-            <p>The gateway response will land here.</p>
-            <span>
-              Dictation, rewrite, translate, and ask mode all share the same clean-room
-              contract.
-            </span>
+            <p>The polished result will appear here.</p>
+            <span>Run any voice flow to preview provider output, delivery mode, and debug context.</span>
           </div>
         )}
       </div>
     </aside>
   )
 }
-

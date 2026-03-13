@@ -1,17 +1,33 @@
 :root {
+  --bg: #efe8dc;
+  --bg-deep: #e6dccd;
+  --panel: rgba(255, 253, 249, 0.94);
+  --panel-strong: #fffdf9;
+  --panel-muted: rgba(113, 101, 84, 0.06);
+  --border: rgba(79, 66, 49, 0.1);
+  --border-strong: rgba(79, 66, 49, 0.12);
+  --ink: #1e1b17;
+  --muted: #6f675d;
+  --muted-strong: #857b6f;
+  --accent: #195dff;
+  --accent-strong: #1247c8;
+  --accent-soft: rgba(25, 93, 255, 0.08);
+  --success: #2f8f5b;
+  --danger: #bc4f34;
+  --shadow-card: 0 20px 60px rgba(103, 78, 44, 0.08);
   font-family:
     'Avenir Next',
+    'IBM Plex Sans',
     'Segoe UI Variable',
-    'SF Pro Text',
     'Helvetica Neue',
     sans-serif;
   line-height: 1.5;
   font-weight: 500;
-  color: #f5fbff;
+  color: var(--ink);
   background:
-    radial-gradient(circle at top left, rgba(53, 133, 255, 0.22), transparent 28%),
-    radial-gradient(circle at top right, rgba(0, 224, 193, 0.12), transparent 24%),
-    linear-gradient(180deg, #07111f 0%, #050b14 100%);
+    radial-gradient(circle at top left, rgba(25, 93, 255, 0.08), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(180, 122, 67, 0.12), transparent 30%),
+    linear-gradient(180deg, #f7f3ed 0%, var(--bg) 54%, var(--bg-deep) 100%);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -42,4 +58,8 @@ select {
 
 a {
   color: inherit;
+}
+
+::selection {
+  background: rgba(25, 93, 255, 0.14);
 }

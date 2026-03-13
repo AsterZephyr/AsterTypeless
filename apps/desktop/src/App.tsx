@@ -152,7 +152,7 @@ function App() {
         <header className="workspace-header">
           <div>
             <p className="eyebrow">Open-source desktop MVP</p>
-            <h2>Voice keyboard with your own API gateway</h2>
+            <h2>Clean-room voice keyboard with local runtime</h2>
           </div>
           <div className="header-runtime">
             <span className="status-pill">

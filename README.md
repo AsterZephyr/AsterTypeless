@@ -7,7 +7,7 @@
 - Electron + React + Vite 桌面端壳子
 - Typeless 风格的三栏工作区 UI
 - 麦克风录音和本地音频缓存
-- 本地历史记录持久化
+- 本地历史记录持久化（SQLite）
 - Electron IPC 直连 voice flow
 - 可切换 `mock` / `proxy` provider
 - 标准化的 `voice_flow` 请求与响应契约
@@ -144,7 +144,7 @@ UPSTREAM_API_KEY=your-token
 - 共享 schema
 - 本地 mock provider
 - 自接 API 的 proxy provider
-- 本地历史记录
+- 本地历史记录与旧 JSON 迁移到 SQLite
 
 还没接入：
 
@@ -153,7 +153,6 @@ UPSTREAM_API_KEY=your-token
 - 当前焦点输入框插入文本
 - 选中文本捕获
 - 真正的 STT / LLM provider 适配器
-- SQLite 历史库
 
 ## 下一步建议
 

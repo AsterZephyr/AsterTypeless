@@ -1,6 +1,6 @@
 import { app, BrowserWindow, clipboard, ipcMain, nativeTheme, shell } from 'electron'
+import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
-import fs from 'node:fs/promises'
 import fsSync from 'node:fs'
 import path from 'node:path'
 
@@ -22,38 +22,93 @@ const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 let mainWindow: BrowserWindow | null = null
+let historyDb: DatabaseSync | null = null
 
-nativeTheme.themeSource = 'dark'
+nativeTheme.themeSource = 'light'
 
-function getHistoryFilePath() {
+function getHistoryDatabasePath() {
+  return path.join(app.getPath('userData'), 'voice-history.db')
+}
+
+function getLegacyHistoryFilePath() {
   return path.join(app.getPath('userData'), 'voice-history.json')
 }
 
 async function readHistory(): Promise<DesktopHistoryItem[]> {
-  try {
-    const content = await fs.readFile(getHistoryFilePath(), 'utf8')
-    const parsed = JSON.parse(content)
-    return Array.isArray(parsed)
-      ? parsed
-          .map((item) => DesktopHistoryItemSchema.safeParse(item))
-          .filter((result) => result.success)
-          .map((result) => result.data)
-      : []
-  } catch {
-    return []
-  }
-}
+  const db = getHistoryDb()
+  const rows = db
+    .prepare(
+      `
+        SELECT
+          id,
+          created_at AS createdAt,
+          mode,
+          focused_app_name AS focusedAppName,
+          input_preview AS inputPreview,
+          refined_text AS refinedText,
+          provider,
+          latency_ms AS latencyMs
+        FROM history
+        ORDER BY created_at DESC, rowid DESC
+        LIMIT 30
+      `,
+    )
+    .all()
 
-async function writeHistory(items: DesktopHistoryItem[]) {
-  await fs.mkdir(app.getPath('userData'), { recursive: true })
-  await fs.writeFile(getHistoryFilePath(), JSON.stringify(items, null, 2), 'utf8')
+  return rows
+    .map((row) => DesktopHistoryItemSchema.safeParse(row))
+    .filter((result) => result.success)
+    .map((result) => result.data)
 }
 
 async function saveHistory(item: DesktopHistoryItem) {
-  const existing = await readHistory()
-  const next = [item, ...existing.filter((entry) => entry.id !== item.id)].slice(0, 30)
-  await writeHistory(next)
-  return next
+  const db = getHistoryDb()
+
+  db.prepare(
+    `
+      INSERT INTO history (
+        id,
+        created_at,
+        mode,
+        focused_app_name,
+        input_preview,
+        refined_text,
+        provider,
+        latency_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        created_at = excluded.created_at,
+        mode = excluded.mode,
+        focused_app_name = excluded.focused_app_name,
+        input_preview = excluded.input_preview,
+        refined_text = excluded.refined_text,
+        provider = excluded.provider,
+        latency_ms = excluded.latency_ms
+    `,
+  ).run(
+    item.id,
+    item.createdAt,
+    item.mode,
+    item.focusedAppName,
+    item.inputPreview,
+    item.refinedText,
+    item.provider,
+    item.latencyMs,
+  )
+
+  db.prepare(
+    `
+      DELETE FROM history
+      WHERE id NOT IN (
+        SELECT id
+        FROM history
+        ORDER BY created_at DESC, rowid DESC
+        LIMIT 30
+      )
+    `,
+  ).run()
+
+  return readHistory()
 }
 
 function loadWorkspaceEnv(envPath: string) {
@@ -88,13 +143,112 @@ function createVoiceFlowService() {
   return new VoiceFlowService(resolveVoiceGatewayConfig(process.env))
 }
 
+function getHistoryDb() {
+  if (historyDb) {
+    return historyDb
+  }
+
+  fsSync.mkdirSync(app.getPath('userData'), { recursive: true })
+
+  historyDb = new DatabaseSync(getHistoryDatabasePath())
+  historyDb.exec(`
+    CREATE TABLE IF NOT EXISTS history (
+      id TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      focused_app_name TEXT NOT NULL,
+      input_preview TEXT NOT NULL,
+      refined_text TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      latency_ms INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_history_created_at
+    ON history(created_at DESC);
+  `)
+
+  migrateLegacyHistory(historyDb)
+
+  return historyDb
+}
+
+function migrateLegacyHistory(db: DatabaseSync) {
+  const row = db.prepare('SELECT COUNT(*) AS count FROM history').get() as { count: number }
+  if (row.count > 0) {
+    return
+  }
+
+  const legacyPath = getLegacyHistoryFilePath()
+  if (!fsSync.existsSync(legacyPath)) {
+    return
+  }
+
+  try {
+    const raw = fsSync.readFileSync(legacyPath, 'utf8')
+    const parsed = JSON.parse(raw)
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return
+    }
+
+    const items = parsed
+      .map((item) => DesktopHistoryItemSchema.safeParse(item))
+      .filter((result) => result.success)
+      .map((result) => result.data)
+
+    if (items.length === 0) {
+      return
+    }
+
+    db.exec('BEGIN')
+
+    const insert = db.prepare(
+      `
+        INSERT OR REPLACE INTO history (
+          id,
+          created_at,
+          mode,
+          focused_app_name,
+          input_preview,
+          refined_text,
+          provider,
+          latency_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+    )
+
+    for (const item of items) {
+      insert.run(
+        item.id,
+        item.createdAt,
+        item.mode,
+        item.focusedAppName,
+        item.inputPreview,
+        item.refinedText,
+        item.provider,
+        item.latencyMs,
+      )
+    }
+
+    db.exec('COMMIT')
+    fsSync.renameSync(legacyPath, path.join(app.getPath('userData'), 'voice-history.legacy.json'))
+  } catch (error) {
+    try {
+      db.exec('ROLLBACK')
+    } catch {
+      // Ignore rollback failure when migration never opened a transaction.
+    }
+    console.warn('Failed to migrate legacy history store:', error)
+  }
+}
+
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1480,
     height: 940,
     minWidth: 1180,
     minHeight: 760,
-    backgroundColor: '#07111f',
+    backgroundColor: '#f6f1e8',
     title: 'Typeless Open',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
@@ -167,6 +321,9 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  historyDb?.close()
+  historyDb = null
+
   if (process.platform !== 'darwin') {
     app.quit()
     mainWindow = null

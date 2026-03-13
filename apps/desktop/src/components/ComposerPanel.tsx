@@ -26,20 +26,24 @@ type ComposerPanelProps = {
   onSubmit: () => void
 }
 
-const modeCopy: Record<VoiceMode, { title: string; detail: string }> = {
+const modeCopy: Record<VoiceMode, { label: string; title: string; detail: string }> = {
   dictate: {
+    label: 'Dictate',
     title: 'Speak it like you mean it',
     detail: 'Polish dictation into something you can paste into any input box.',
   },
   rewrite: {
+    label: 'Rewrite',
     title: 'Rewrite the selected text',
     detail: 'Use selected context to tighten tone, clarity, and structure.',
   },
   translate: {
+    label: 'Translate',
     title: 'Translate with context',
     detail: 'Keep your intent, but deliver it in the target language.',
   },
   ask: {
+    label: 'Ask',
     title: 'Ask about what is on screen',
     detail: 'Treat nearby context as source material and return a direct answer.',
   },
@@ -77,36 +81,42 @@ export function ComposerPanel({
   onSubmit,
 }: ComposerPanelProps) {
   const copy = modeCopy[mode]
+  const modes = Object.entries(modeCopy) as [VoiceMode, (typeof modeCopy)[VoiceMode]][]
 
   return (
     <section className="composer-panel">
       <div className="hero-card">
-        <div>
+        <div className="hero-copy-block">
           <p className="eyebrow">Typeless Open</p>
-          <h1>{copy.title}</h1>
+          <h1>Speak, polish, paste.</h1>
           <p className="hero-copy">{copy.detail}</p>
         </div>
-        <div className="hero-badges">
-          <span className="status-pill">{serverLabel}</span>
-          <span className="status-pill muted">Context-aware</span>
-          <span className="status-pill muted">Clean-room build</span>
+        <div className="hero-side">
+          <span className="status-pill accent">{serverLabel}</span>
+          <p className="hero-note">
+            Local history stays on device. Proxy mode only forwards the current request.
+          </p>
         </div>
       </div>
 
-      <div className="composer-grid">
-        <div className="field-card">
-          <label className="field-label" htmlFor="mode">
-            Voice flow mode
-          </label>
-          <select id="mode" value={mode} onChange={(event) => onModeChange(event.target.value as VoiceMode)}>
-            <option value="dictate">Dictate</option>
-            <option value="rewrite">Rewrite</option>
-            <option value="translate">Translate</option>
-            <option value="ask">Ask</option>
-          </select>
-        </div>
+      <div className="mode-strip" aria-label="Voice flow mode" role="tablist">
+        {modes.map(([value, item]) => (
+          <button
+            key={value}
+            aria-selected={mode === value}
+            className={`mode-button ${mode === value ? 'active' : ''}`}
+            role="tab"
+            type="button"
+            onClick={() => onModeChange(value)}
+          >
+            <span>{item.label}</span>
+            <small>{item.title}</small>
+          </button>
+        ))}
+      </div>
 
-        <div className="field-card">
+      <div className="composer-grid">
+        <div className="field-card compact">
           <label className="field-label" htmlFor="app-name">
             Focused app
           </label>
@@ -116,9 +126,10 @@ export function ComposerPanel({
             onChange={(event) => onFocusedAppNameChange(event.target.value)}
             placeholder="Slack, Notion, Linear, Gmail..."
           />
+          <p className="field-hint">Later this will come from the native accessibility bridge.</p>
         </div>
 
-        <div className="field-card">
+        <div className="field-card compact">
           <label className="field-label" htmlFor="target-language">
             Target language
           </label>
@@ -128,6 +139,7 @@ export function ComposerPanel({
             onChange={(event) => onTargetLanguageChange(event.target.value)}
             placeholder="English"
           />
+          <p className="field-hint">Used by translate mode and multilingual rewrite flows.</p>
         </div>
 
         <div className="field-card wide">
@@ -143,11 +155,12 @@ export function ComposerPanel({
             id="selected-text"
             value={selectedText}
             onChange={(event) => onSelectedTextChange(event.target.value)}
-            placeholder="What the user selected or what the native accessibility layer captured."
+            placeholder="Selected text from the current app, or a copied draft you want to rewrite."
           />
+          <p className="field-hint">Clipboard is the current fallback until native selection capture lands.</p>
         </div>
 
-        <div className="field-card wide">
+        <div className="field-card">
           <label className="field-label" htmlFor="surrounding-text">
             Nearby visible text
           </label>
@@ -157,9 +170,10 @@ export function ComposerPanel({
             onChange={(event) => onSurroundingTextChange(event.target.value)}
             placeholder="Optional surrounding context from the active window."
           />
+          <p className="field-hint">Helps ask mode and context-aware dictation stay on topic.</p>
         </div>
 
-        <div className="field-card wide">
+        <div className="field-card">
           <label className="field-label" htmlFor="transcript-hint">
             Transcript hint
           </label>
@@ -167,20 +181,24 @@ export function ComposerPanel({
             id="transcript-hint"
             value={transcriptHint}
             onChange={(event) => onTranscriptHintChange(event.target.value)}
-            placeholder="Use this to test the gateway even before the native transcription path is wired up."
+            placeholder="Use this to test the flow even before the real STT provider is wired in."
           />
+          <p className="field-hint">Useful for fast prompt iteration without recording every time.</p>
         </div>
       </div>
 
       <div className="transport-card">
-        <div>
-          <p className="field-label">Input transport</p>
+        <div className="transport-copy">
+          <p className="field-label">Capture</p>
           <div className="transport-meta">
             <span className={`status-pill ${isRecording ? 'danger' : 'muted'}`}>
               {isRecording ? `Recording ${formatDuration(durationMs)}` : 'Ready'}
             </span>
             {hasRecordedAudio ? <span className="status-pill success">Audio attached</span> : null}
           </div>
+          <p className="transport-note">
+            Start with transcript hints now, then swap in a real STT provider and native insertion.
+          </p>
           {recordError ? <p className="transport-error">{recordError}</p> : null}
         </div>
 
@@ -207,4 +225,3 @@ export function ComposerPanel({
     </section>
   )
 }
-
