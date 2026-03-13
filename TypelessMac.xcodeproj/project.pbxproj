@@ -1,0 +1,415 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		016DB7B1B1D617B3B7442ADC /* FloatingBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864518070570ED4FA179796C /* FloatingBarView.swift */; };
+		2ABB2B25FC3E4F3F60E342E2 /* DomainModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDE0C4AEF416A4F3C69C13C9 /* DomainModels.swift */; };
+		323B1ACA3A03E5F38D4CFB4E /* FloatingBarWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA90D5E5828B46C18865DA2A /* FloatingBarWindowManager.swift */; };
+		417882D5868C47795B2BA05F /* TypelessMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1886BB5582B5DDB1A17957BC /* TypelessMacApp.swift */; };
+		42A172C9E7D8F944F9A819C9 /* HotkeyBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 389268788FC8102FB30779A8 /* HotkeyBridge.swift */; };
+		551B2EAFA00E4F3DE2679115 /* AudioInputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F8755D2EC27DECF2FDA6CB /* AudioInputMonitor.swift */; };
+		56EDAD3599F85E3922E9178C /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB47CCC8A31C6C1851B2A256 /* HomeView.swift */; };
+		694C506F6CB73B728F4A5D73 /* AudioPulseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 304835409B5E6F730FEB05BE /* AudioPulseView.swift */; };
+		8AB75AF22E03CEC99DBCEE27 /* TypelessAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5020804DF69552289A104BEF /* TypelessAppModel.swift */; };
+		92F7ABD0134EA2621B082DBB /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5209A9320EEBF5E4EE4AABD9 /* SettingsView.swift */; };
+		AD94F339CE8993A242682A53 /* TranscriptStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C78BE1F6D6BF578B4EB81B9B /* TranscriptStore.swift */; };
+		C9ED4561320AAB3C3C7F5894 /* DashboardCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55DCAABA42D24F9B93E796D3 /* DashboardCards.swift */; };
+		CA083B9CD88A5AD5DD7EE8F0 /* AccessibilityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A692E8428135CF0C443C0E71 /* AccessibilityBridge.swift */; };
+		D44AC7E60B7B987FC8C3B2F9 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1FDBCBA3584166CF79C8FFE /* AppTheme.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		01F8755D2EC27DECF2FDA6CB /* AudioInputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioInputMonitor.swift; sourceTree = "<group>"; };
+		1886BB5582B5DDB1A17957BC /* TypelessMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypelessMacApp.swift; sourceTree = "<group>"; };
+		28F631B31A211262FEF42A9A /* TypelessMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TypelessMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		304835409B5E6F730FEB05BE /* AudioPulseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPulseView.swift; sourceTree = "<group>"; };
+		389268788FC8102FB30779A8 /* HotkeyBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyBridge.swift; sourceTree = "<group>"; };
+		5020804DF69552289A104BEF /* TypelessAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypelessAppModel.swift; sourceTree = "<group>"; };
+		5209A9320EEBF5E4EE4AABD9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		55DCAABA42D24F9B93E796D3 /* DashboardCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCards.swift; sourceTree = "<group>"; };
+		864518070570ED4FA179796C /* FloatingBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingBarView.swift; sourceTree = "<group>"; };
+		A692E8428135CF0C443C0E71 /* AccessibilityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityBridge.swift; sourceTree = "<group>"; };
+		AB47CCC8A31C6C1851B2A256 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		BA90D5E5828B46C18865DA2A /* FloatingBarWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingBarWindowManager.swift; sourceTree = "<group>"; };
+		BDE0C4AEF416A4F3C69C13C9 /* DomainModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainModels.swift; sourceTree = "<group>"; };
+		C78BE1F6D6BF578B4EB81B9B /* TranscriptStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptStore.swift; sourceTree = "<group>"; };
+		E1FDBCBA3584166CF79C8FFE /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		022459EE626E347FB77DF751 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				55DCAABA42D24F9B93E796D3 /* DashboardCards.swift */,
+				AB47CCC8A31C6C1851B2A256 /* HomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		1DB637C71B6DD4F70B913BE4 = {
+			isa = PBXGroup;
+			children = (
+				871F5AE8B05BB285C5390BAD /* TypelessMacApp */,
+				BD7F0732DBA00303E837E427 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		381D472991DB024AFE611185 /* FloatingBar */ = {
+			isa = PBXGroup;
+			children = (
+				304835409B5E6F730FEB05BE /* AudioPulseView.swift */,
+				864518070570ED4FA179796C /* FloatingBarView.swift */,
+				BA90D5E5828B46C18865DA2A /* FloatingBarWindowManager.swift */,
+			);
+			path = FloatingBar;
+			sourceTree = "<group>";
+		};
+		40B9EE5C6B2E9E9B8BE7551A /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				381D472991DB024AFE611185 /* FloatingBar */,
+				022459EE626E347FB77DF751 /* Home */,
+				9F15C6C9AC6F57AF7E7B2992 /* Settings */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		42823A0AFEE163B88B733F60 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A692E8428135CF0C443C0E71 /* AccessibilityBridge.swift */,
+				01F8755D2EC27DECF2FDA6CB /* AudioInputMonitor.swift */,
+				389268788FC8102FB30779A8 /* HotkeyBridge.swift */,
+				C78BE1F6D6BF578B4EB81B9B /* TranscriptStore.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		63CD01316C249CEB2067BA96 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				5020804DF69552289A104BEF /* TypelessAppModel.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		871F5AE8B05BB285C5390BAD /* TypelessMacApp */ = {
+			isa = PBXGroup;
+			children = (
+				1886BB5582B5DDB1A17957BC /* TypelessMacApp.swift */,
+				63CD01316C249CEB2067BA96 /* App */,
+				40B9EE5C6B2E9E9B8BE7551A /* Features */,
+				D21C3D7C3CE20217EEEDAB61 /* Models */,
+				42823A0AFEE163B88B733F60 /* Services */,
+				CE46BDDD3CBEEF8E14D630F9 /* Support */,
+			);
+			name = TypelessMacApp;
+			path = Sources/TypelessMacApp;
+			sourceTree = "<group>";
+		};
+		9F15C6C9AC6F57AF7E7B2992 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				5209A9320EEBF5E4EE4AABD9 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		BD7F0732DBA00303E837E427 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				28F631B31A211262FEF42A9A /* TypelessMac.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CE46BDDD3CBEEF8E14D630F9 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				E1FDBCBA3584166CF79C8FFE /* AppTheme.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+		D21C3D7C3CE20217EEEDAB61 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				BDE0C4AEF416A4F3C69C13C9 /* DomainModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C2D63B47643041FB16BD3D72 /* TypelessMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2007B97C18CAE3FFFF2D6060 /* Build configuration list for PBXNativeTarget "TypelessMac" */;
+			buildPhases = (
+				7D70A2E3415A52B391B570A6 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TypelessMac;
+			packageProductDependencies = (
+			);
+			productName = TypelessMac;
+			productReference = 28F631B31A211262FEF42A9A /* TypelessMac.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		005FC48C1B60171B96CE3E68 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					C2D63B47643041FB16BD3D72 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = D7B81E2DD4554AE96F047E83 /* Build configuration list for PBXProject "TypelessMac" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 1DB637C71B6DD4F70B913BE4;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = BD7F0732DBA00303E837E427 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C2D63B47643041FB16BD3D72 /* TypelessMac */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		7D70A2E3415A52B391B570A6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA083B9CD88A5AD5DD7EE8F0 /* AccessibilityBridge.swift in Sources */,
+				D44AC7E60B7B987FC8C3B2F9 /* AppTheme.swift in Sources */,
+				551B2EAFA00E4F3DE2679115 /* AudioInputMonitor.swift in Sources */,
+				694C506F6CB73B728F4A5D73 /* AudioPulseView.swift in Sources */,
+				C9ED4561320AAB3C3C7F5894 /* DashboardCards.swift in Sources */,
+				2ABB2B25FC3E4F3F60E342E2 /* DomainModels.swift in Sources */,
+				016DB7B1B1D617B3B7442ADC /* FloatingBarView.swift in Sources */,
+				323B1ACA3A03E5F38D4CFB4E /* FloatingBarWindowManager.swift in Sources */,
+				56EDAD3599F85E3922E9178C /* HomeView.swift in Sources */,
+				42A172C9E7D8F944F9A819C9 /* HotkeyBridge.swift in Sources */,
+				92F7ABD0134EA2621B082DBB /* SettingsView.swift in Sources */,
+				AD94F339CE8993A242682A53 /* TranscriptStore.swift in Sources */,
+				8AB75AF22E03CEC99DBCEE27 /* TypelessAppModel.swift in Sources */,
+				417882D5868C47795B2BA05F /* TypelessMacApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		921277B0CF0868896D5961D0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/Config/TypelessMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Config/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.asterzephyr.typelessmac;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		9C8E20EB7EE6224A7A740DBC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = TypelessMac;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		A46E08457F250C4EC57FA2BC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = TypelessMac;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		D4CBD96FD3A3509044D55EA4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/Config/TypelessMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Config/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.asterzephyr.typelessmac;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2007B97C18CAE3FFFF2D6060 /* Build configuration list for PBXNativeTarget "TypelessMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D4CBD96FD3A3509044D55EA4 /* Debug */,
+				921277B0CF0868896D5961D0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D7B81E2DD4554AE96F047E83 /* Build configuration list for PBXProject "TypelessMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9C8E20EB7EE6224A7A740DBC /* Debug */,
+				A46E08457F250C4EC57FA2BC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 005FC48C1B60171B96CE3E68 /* Project object */;
+}

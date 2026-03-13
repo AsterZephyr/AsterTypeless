@@ -75,6 +75,7 @@
 工程壳相关文件：
 
 - [project.yml](/Users/hxz/code/typeless-open-cleanroom/project.yml)
+- [TypelessMac.xcodeproj](/Users/hxz/code/typeless-open-cleanroom/TypelessMac.xcodeproj)
 - [Info.plist](/Users/hxz/code/typeless-open-cleanroom/App/Config/Info.plist)
 - [TypelessMac.entitlements](/Users/hxz/code/typeless-open-cleanroom/App/Config/TypelessMac.entitlements)
 - [generate_xcode_project.sh](/Users/hxz/code/typeless-open-cleanroom/Scripts/generate_xcode_project.sh)
@@ -84,6 +85,7 @@
 - 承接从原型到正式 App target 的迁移
 - 管理 bundle id、权限文案、资源和签名入口
 - 为后续 Xcode Archive、notarization 和发布留接口
+- 当前已验证 Debug 构建可通过
 
 ## 当前状态机
 

@@ -63,8 +63,10 @@ final class AudioInputMonitor: ObservableObject {
             try engine.start()
             startDate = .now
             timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-                guard let self, let startDate = self.startDate else { return }
-                self.elapsedSeconds = Date().timeIntervalSince(startDate)
+                Task { @MainActor [weak self] in
+                    guard let self, let startDate = self.startDate else { return }
+                    self.elapsedSeconds = Date().timeIntervalSince(startDate)
+                }
             }
             return true
         } catch {
@@ -113,4 +115,3 @@ final class AudioInputMonitor: ObservableObject {
         }
     }
 }
-

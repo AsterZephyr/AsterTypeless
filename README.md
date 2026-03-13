@@ -83,24 +83,34 @@ docs/
 
 ### 1. 用 Xcode 打开
 
-最推荐直接在 Xcode 中打开根目录下的 [Package.swift](/Users/hxz/code/typeless-open-cleanroom/Package.swift)。
+现在最推荐直接打开 [TypelessMac.xcodeproj](/Users/hxz/code/typeless-open-cleanroom/TypelessMac.xcodeproj)。
 
-当前的 `Package.swift` 更像原型入口。下一步会迁成正式的 Xcode macOS App target。
+[Package.swift](/Users/hxz/code/typeless-open-cleanroom/Package.swift) 仍然保留，主要用于快速本地验证和轻量编译。
 
 仓库里已经补了 App target 所需的外围件：
 
 - [project.yml](/Users/hxz/code/typeless-open-cleanroom/project.yml)
+- [TypelessMac.xcodeproj](/Users/hxz/code/typeless-open-cleanroom/TypelessMac.xcodeproj)
 - [Info.plist](/Users/hxz/code/typeless-open-cleanroom/App/Config/Info.plist)
 - [TypelessMac.entitlements](/Users/hxz/code/typeless-open-cleanroom/App/Config/TypelessMac.entitlements)
 - [generate_xcode_project.sh](/Users/hxz/code/typeless-open-cleanroom/Scripts/generate_xcode_project.sh)
 
-等你本机 Xcode 恢复后，可以选择继续手工建 target，或者先安装 `xcodegen` 再用脚本生成工程壳。
+本机在 2026-03-14 已经验证通过：
+
+- `swift build`
+- `xcodebuild -project TypelessMac.xcodeproj -scheme TypelessMac -configuration Debug -sdk macosx build`
 
 ### 2. 命令行构建
 
 ```bash
 cd /Users/hxz/code/typeless-open-cleanroom
 swift build
+```
+
+或者直接走 Xcode 工程：
+
+```bash
+xcodebuild -project /Users/hxz/code/typeless-open-cleanroom/TypelessMac.xcodeproj -scheme TypelessMac -configuration Debug -sdk macosx build
 ```
 
 如果本机的 Xcode / Command Line Tools 没有配好，`swift build` 可能会失败。这是系统工具链问题，不是旧 Node 依赖问题。
@@ -124,7 +134,7 @@ swift build
 
 ## 后续技术路线
 
-1. 把工程从 `Swift Package` 原型迁到 `Xcode macOS App target`。
+1. 继续打磨正式的 Xcode App target，并补 Archive / 发布链路。
 2. 把实时音频反馈做成 Typeless 风格的小体积生命体征。
 3. 把 `Fn` 触发补成按下即说、松开即停。
 4. 接入 `Deepgram + OpenAI` 主链路。
