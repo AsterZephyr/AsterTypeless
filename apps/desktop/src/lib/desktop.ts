@@ -1,4 +1,5 @@
 import type {
+  DesktopCapturedContext,
   DesktopHistoryItem,
   DesktopInsertTextRequest,
   DesktopInsertTextResult,
@@ -15,11 +16,16 @@ type DesktopBridge = {
   getVoiceRuntime: () => Promise<VoiceGatewayRuntime>
   getNativeStatus: () => Promise<DesktopNativeStatus>
   promptAccessibilityPermission: () => Promise<DesktopNativeStatus>
+  promptListenEventAccess: () => Promise<DesktopNativeStatus>
   runVoiceFlow: (input: DesktopVoiceFlowRequest) => Promise<VoiceFlowResponse>
   showMainWindow: () => Promise<boolean>
   toggleFloatingWindow: () => Promise<boolean>
   insertText: (input: DesktopInsertTextRequest) => Promise<DesktopInsertTextResult>
   readSelectionContext: () => Promise<DesktopSelectionSnapshot>
+  getLastCapturedContext: () => Promise<DesktopCapturedContext>
+  onCapturedContext: (
+    listener: (context: DesktopCapturedContext) => void,
+  ) => () => void
   copyToClipboard: (text: string) => Promise<boolean>
   listHistory: () => Promise<DesktopHistoryItem[]>
   saveHistory: (item: DesktopHistoryItem) => Promise<DesktopHistoryItem[]>
@@ -48,6 +54,10 @@ const noopBridge: DesktopBridge = {
       helperPath: '',
       accessibilityTrusted: false,
       accessibilityPermissionPrompted: false,
+      listenEventAccess: false,
+      listenEventAccessPrompted: false,
+      fnTriggerEnabled: false,
+      triggerSource: 'shortcut',
       focusedAppName: '',
       focusedBundleId: '',
       lastError: '',
@@ -59,6 +69,25 @@ const noopBridge: DesktopBridge = {
       helperPath: '',
       accessibilityTrusted: false,
       accessibilityPermissionPrompted: false,
+      listenEventAccess: false,
+      listenEventAccessPrompted: false,
+      fnTriggerEnabled: false,
+      triggerSource: 'shortcut',
+      focusedAppName: '',
+      focusedBundleId: '',
+      lastError: '',
+    }
+  },
+  async promptListenEventAccess() {
+    return {
+      helperAvailable: false,
+      helperPath: '',
+      accessibilityTrusted: false,
+      accessibilityPermissionPrompted: false,
+      listenEventAccess: false,
+      listenEventAccessPrompted: false,
+      fnTriggerEnabled: false,
+      triggerSource: 'shortcut',
       focusedAppName: '',
       focusedBundleId: '',
       lastError: '',
@@ -109,6 +138,19 @@ const noopBridge: DesktopBridge = {
       source: 'clipboard',
       lastError: '',
     }
+  },
+  async getLastCapturedContext() {
+    return {
+      triggerSource: 'manual',
+      focusedAppName: '',
+      focusedBundleId: '',
+      selectedText: '',
+      surroundingText: '',
+      capturedAt: new Date(0).toISOString(),
+    }
+  },
+  onCapturedContext(_listener) {
+    return () => {}
   },
   async copyToClipboard(text) {
     await navigator.clipboard.writeText(text)

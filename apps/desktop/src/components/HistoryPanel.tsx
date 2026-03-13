@@ -10,7 +10,7 @@ function formatMode(mode: DesktopHistoryItem['mode']) {
 }
 
 export function HistoryPanel({ history, onReuse }: HistoryPanelProps) {
-  const recentHistory = history.slice(0, 6)
+  const recentHistory = history.slice(0, 4)
 
   return (
     <aside className="history-panel">
@@ -19,14 +19,14 @@ export function HistoryPanel({ history, onReuse }: HistoryPanelProps) {
           <p className="eyebrow">History</p>
           <h2>Recent</h2>
         </div>
-        <span className="status-pill muted">{history.length} items</span>
+        <span className="status-pill muted">{history.length}</span>
       </div>
 
       <div className="history-list">
-        {history.length === 0 ? (
+        {recentHistory.length === 0 ? (
           <div className="empty-card">
             <p>No local history yet.</p>
-            <span>Each run is stored on device so you can quickly reuse an older draft.</span>
+            <span>Each run stays on device so you can quickly reuse a good draft.</span>
           </div>
         ) : null}
 
@@ -39,7 +39,7 @@ export function HistoryPanel({ history, onReuse }: HistoryPanelProps) {
           >
             <div className="history-meta">
               <span className="history-mode">{formatMode(item.mode)}</span>
-              <span>{new Date(item.createdAt).toLocaleTimeString()}</span>
+              <span>{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
             <strong>{item.focusedAppName}</strong>
             <p>{item.inputPreview}</p>

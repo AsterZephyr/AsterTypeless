@@ -1,9 +1,13 @@
 import type { VoiceFlowResponse, VoiceMode } from '@typeless-open/shared'
+import { useEffect, useRef } from 'react'
 
 type FloatingPanelProps = {
   mode: VoiceMode
+  focusedAppName: string
   transcriptHint: string
   serverLabel: string
+  nativeLabel: string
+  triggerLabel: string
   isRecording: boolean
   durationMs: number
   hasRecordedAudio: boolean
@@ -34,8 +38,11 @@ function formatDuration(durationMs: number) {
 
 export function FloatingPanel({
   mode,
+  focusedAppName,
   transcriptHint,
   serverLabel,
+  nativeLabel,
+  triggerLabel,
   isRecording,
   durationMs,
   hasRecordedAudio,
@@ -51,25 +58,31 @@ export function FloatingPanel({
   onOpenMain,
 }: FloatingPanelProps) {
   const modes = Object.entries(modeLabels) as [VoiceMode, string][]
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+
+  useEffect(() => {
+    textareaRef.current?.focus()
+    textareaRef.current?.select()
+  }, [focusedAppName, mode])
 
   return (
     <div className="floating-shell">
       <div className="floating-header">
-        <div>
-          <p className="eyebrow">Quick Input</p>
-          <h2>Voice prompt</h2>
+        <div className="floating-copy">
+          <p className="eyebrow">Quick bar</p>
+          <h2>{focusedAppName || 'Anywhere input'}</h2>
         </div>
-        <button className="ghost-button" type="button" onClick={onOpenMain}>
-          Open workspace
+        <button className="ghost-button mini" type="button" onClick={onOpenMain}>
+          Open app
         </button>
       </div>
 
       <div className="floating-status">
         <span className="status-pill accent">{serverLabel}</span>
         <span className={`status-pill ${isRecording ? 'danger' : 'muted'}`}>
-          {isRecording ? `Recording ${formatDuration(durationMs)}` : 'Ready'}
+          {isRecording ? `Recording ${formatDuration(durationMs)}` : triggerLabel}
         </span>
-        {hasRecordedAudio ? <span className="status-pill success">Audio attached</span> : null}
+        {hasRecordedAudio ? <span className="status-pill success">Audio</span> : null}
       </div>
 
       <div className="floating-modes" role="tablist" aria-label="Quick mode switch">
@@ -88,10 +101,11 @@ export function FloatingPanel({
       </div>
 
       <textarea
+        ref={textareaRef}
         className="floating-textarea"
         value={transcriptHint}
         onChange={(event) => onTranscriptHintChange(event.target.value)}
-        placeholder="Type a draft, or start speaking."
+        placeholder="Type or speak. Press Run to push it back into the last app."
       />
 
       {recordError ? <p className="transport-error">{recordError}</p> : null}
@@ -103,13 +117,13 @@ export function FloatingPanel({
             Stop
           </button>
         ) : (
-          <button className="primary-button" type="button" onClick={onStartRecording}>
+          <button className="ghost-button" type="button" onClick={onStartRecording}>
             Record
           </button>
         )}
 
         <button className="launch-button" type="button" onClick={onSubmit} disabled={isSubmitting}>
-          {isSubmitting ? 'Running...' : 'Run'}
+          {isSubmitting ? 'Running…' : 'Run'}
         </button>
       </div>
 
@@ -119,9 +133,7 @@ export function FloatingPanel({
           <p>{result.refinedText}</p>
         </div>
       ) : (
-        <p className="floating-note">
-          Use the global shortcut to summon this bar anywhere, then type or speak into it.
-        </p>
+        <p className="floating-note">{nativeLabel}. Use Fn or the shortcut to summon this bar.</p>
       )}
     </div>
   )

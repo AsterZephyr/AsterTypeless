@@ -63,9 +63,22 @@ export const DesktopNativeStatusSchema = z.object({
   helperPath: z.string().default(''),
   accessibilityTrusted: z.boolean(),
   accessibilityPermissionPrompted: z.boolean().default(false),
+  listenEventAccess: z.boolean().default(false),
+  listenEventAccessPrompted: z.boolean().default(false),
+  fnTriggerEnabled: z.boolean().default(false),
+  triggerSource: z.enum(['fn', 'shortcut']).default('shortcut'),
   focusedAppName: z.string().default(''),
   focusedBundleId: z.string().default(''),
   lastError: z.string().default(''),
+})
+
+export const DesktopCapturedContextSchema = z.object({
+  triggerSource: z.enum(['fn', 'shortcut', 'manual']).default('manual'),
+  focusedAppName: z.string().default(''),
+  focusedBundleId: z.string().default(''),
+  selectedText: z.string().default(''),
+  surroundingText: z.string().default(''),
+  capturedAt: z.string(),
 })
 
 export const DesktopSelectionSnapshotSchema = z.object({
@@ -124,6 +137,7 @@ export type VoiceFlowResponse = z.infer<typeof VoiceFlowResponseSchema>
 export type DesktopHistoryItem = z.infer<typeof DesktopHistoryItemSchema>
 export type DesktopRuntimeInfo = z.infer<typeof DesktopRuntimeInfoSchema>
 export type DesktopNativeStatus = z.infer<typeof DesktopNativeStatusSchema>
+export type DesktopCapturedContext = z.infer<typeof DesktopCapturedContextSchema>
 export type DesktopSelectionSnapshot = z.infer<typeof DesktopSelectionSnapshotSchema>
 export type DesktopInsertTextRequest = z.infer<typeof DesktopInsertTextRequestSchema>
 export type DesktopInsertTextResult = z.infer<typeof DesktopInsertTextResultSchema>

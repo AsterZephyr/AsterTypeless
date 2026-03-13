@@ -9,6 +9,7 @@ type ComposerPanelProps = {
   targetLanguage: string
   serverLabel: string
   nativeStatus: DesktopNativeStatus | null
+  triggerLabel: string
   isRecording: boolean
   durationMs: number
   hasRecordedAudio: boolean
@@ -23,32 +24,29 @@ type ComposerPanelProps = {
   onReadSelection: () => void
   onRefreshNativeStatus: () => void
   onPromptAccessibilityPermission: () => void
+  onPromptListenEventAccess: () => void
   onStartRecording: () => void
   onStopRecording: () => void
   onClearAudio: () => void
   onSubmit: () => void
 }
 
-const modeCopy: Record<VoiceMode, { label: string; title: string; detail: string }> = {
+const modeCopy: Record<VoiceMode, { label: string; description: string }> = {
   dictate: {
     label: 'Dictate',
-    title: 'Speech to text',
-    detail: 'Polish spoken text into something ready to send.',
+    description: 'Say it naturally, get clean text back.',
   },
   rewrite: {
     label: 'Rewrite',
-    title: 'Tighten text',
-    detail: 'Use selected context to tighten tone, clarity, and structure.',
+    description: 'Use the current selection as the source.',
   },
   translate: {
     label: 'Translate',
-    title: 'Translate context',
-    detail: 'Keep intent while changing language.',
+    description: 'Preserve intent and switch language cleanly.',
   },
   ask: {
     label: 'Ask',
-    title: 'Ask from context',
-    detail: 'Treat nearby context as source material and answer directly.',
+    description: 'Treat nearby text as source material.',
   },
 }
 
@@ -67,6 +65,7 @@ export function ComposerPanel({
   targetLanguage,
   serverLabel,
   nativeStatus,
+  triggerLabel,
   isRecording,
   durationMs,
   hasRecordedAudio,
@@ -81,73 +80,40 @@ export function ComposerPanel({
   onReadSelection,
   onRefreshNativeStatus,
   onPromptAccessibilityPermission,
+  onPromptListenEventAccess,
   onStartRecording,
   onStopRecording,
   onClearAudio,
   onSubmit,
 }: ComposerPanelProps) {
-  const copy = modeCopy[mode]
+  const currentMode = modeCopy[mode]
   const modes = Object.entries(modeCopy) as [VoiceMode, (typeof modeCopy)[VoiceMode]][]
-  const nativeStatusClassName = nativeStatus
-    ? nativeStatus.accessibilityTrusted
-      ? 'success'
-      : nativeStatus.helperAvailable
-        ? 'muted'
-        : 'danger'
-    : 'muted'
-  const nativeError = nativeStatus?.lastError.trim() ?? ''
-  const nativeSummary = nativeStatus
-    ? nativeStatus.accessibilityTrusted
-      ? 'Accessibility connected'
-      : nativeStatus.helperAvailable
-        ? 'Accessibility permission required'
-        : 'Native helper unavailable'
-    : 'Checking native bridge'
-  const nativeDetail = nativeStatus
-    ? nativeStatus.focusedAppName
-      ? `Frontmost app: ${nativeStatus.focusedAppName}`
-      : nativeError
-        ? nativeError
-      : nativeStatus.helperAvailable
-        ? 'Grant accessibility access so the app can inspect the focused window.'
-        : 'The native helper only builds on macOS with Swift tools available.'
-    : 'The desktop shell is checking the native bridge now.'
+  const nativeReady = Boolean(nativeStatus?.accessibilityTrusted)
+  const nativeSummary = nativeReady
+    ? 'Selection and direct insertion are ready.'
+    : nativeStatus?.helperAvailable
+      ? 'Enable Accessibility to read and write into the focused field.'
+      : 'Native helper is unavailable, so the app will stay in safe fallback mode.'
+  const fnSummary = nativeStatus?.fnTriggerEnabled
+    ? 'Fn can summon the quick bar globally.'
+    : nativeStatus?.listenEventAccess
+      ? 'Fn permission is present. The watcher will take over when it is active.'
+      : 'Enable Input Monitoring if you want a real Fn trigger instead of only the shortcut.'
 
   return (
     <section className="composer-panel">
-      <div className="composer-overview">
-        <div>
+      <div className="composer-toolbar">
+        <div className="toolbar-copy">
           <p className="eyebrow">Compose</p>
-          <h1>{copy.label}</h1>
-          <p className="composer-summary">{copy.detail}</p>
+          <h1>Voice keyboard</h1>
+          <p className="composer-summary">{currentMode.description}</p>
         </div>
         <div className="composer-meta">
           <span className="status-pill accent">{serverLabel}</span>
+          <span className={`status-pill ${nativeStatus?.fnTriggerEnabled ? 'success' : 'muted'}`}>
+            {triggerLabel}
+          </span>
           <span className="status-pill muted">{focusedAppName || 'Any app'}</span>
-        </div>
-      </div>
-
-      <div className="native-status-card">
-        <div className="native-status-copy">
-          <div className="native-status-header">
-            <p className="field-label">Native bridge</p>
-            <span className={`status-pill ${nativeStatusClassName}`}>{nativeSummary}</span>
-          </div>
-          <p className="native-status-detail">{nativeDetail}</p>
-          <p className="field-hint">Selection capture and direct insertion depend on this bridge.</p>
-        </div>
-        <div className="native-status-actions">
-          <button className="ghost-button" type="button" onClick={onRefreshNativeStatus}>
-            Refresh
-          </button>
-          <button
-            className="ghost-button"
-            type="button"
-            onClick={onPromptAccessibilityPermission}
-            disabled={nativeStatus?.accessibilityTrusted}
-          >
-            {nativeStatus?.accessibilityTrusted ? 'Enabled' : 'Enable access'}
-          </button>
         </div>
       </div>
 
@@ -162,28 +128,117 @@ export function ComposerPanel({
             onClick={() => onModeChange(value)}
           >
             <span>{item.label}</span>
-            <small>{item.title}</small>
+            <small>{item.description}</small>
           </button>
         ))}
       </div>
 
-      <div className="composer-grid">
+      <div className="native-strip">
+        <div className="native-cluster">
+          <div className="native-line">
+            <span className={`status-pill ${nativeReady ? 'success' : 'muted'}`}>
+              {nativeReady ? 'Accessibility ready' : 'Accessibility needed'}
+            </span>
+            <span className={`status-pill ${nativeStatus?.fnTriggerEnabled ? 'success' : 'muted'}`}>
+              {triggerLabel}
+            </span>
+          </div>
+          <p className="native-status-detail">{nativeSummary}</p>
+          <p className="field-hint">{fnSummary}</p>
+        </div>
+        <div className="native-actions">
+          <button className="ghost-button" type="button" onClick={onReadSelection}>
+            Capture
+          </button>
+          <button className="ghost-button" type="button" onClick={onRefreshNativeStatus}>
+            Refresh
+          </button>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={onPromptAccessibilityPermission}
+            disabled={nativeStatus?.accessibilityTrusted}
+          >
+            {nativeStatus?.accessibilityTrusted ? 'AX enabled' : 'Enable AX'}
+          </button>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={onPromptListenEventAccess}
+            disabled={nativeStatus?.listenEventAccess}
+          >
+            {nativeStatus?.listenEventAccess ? 'Fn enabled' : 'Enable Fn'}
+          </button>
+        </div>
+      </div>
+
+      <div className="composer-layout">
+        <div className="field-card primary-field">
+          <div className="field-label-row">
+            <label className="field-label" htmlFor="transcript-hint">
+              Prompt or transcript
+            </label>
+            <span className="field-badge">{modeCopy[mode].label}</span>
+          </div>
+          <textarea
+            id="transcript-hint"
+            value={transcriptHint}
+            onChange={(event) => onTranscriptHintChange(event.target.value)}
+            placeholder="Type a rough thought, or record and let the flow clean it up."
+          />
+          <p className="field-hint">
+            This is the main working area. In floating mode it is what you type into directly.
+          </p>
+        </div>
+
+        <div className="composer-side">
+          <div className="field-card side-field">
+            <div className="field-label-row">
+              <label className="field-label" htmlFor="selected-text">
+                Selected text
+              </label>
+              <button className="ghost-button mini" type="button" onClick={onReadSelection}>
+                Refresh
+              </button>
+            </div>
+            <textarea
+              id="selected-text"
+              value={selectedText}
+              onChange={(event) => onSelectedTextChange(event.target.value)}
+              placeholder="Selection from the target app."
+            />
+          </div>
+
+          <div className="field-card side-field">
+            <label className="field-label" htmlFor="surrounding-text">
+              Nearby context
+            </label>
+            <textarea
+              id="surrounding-text"
+              value={surroundingText}
+              onChange={(event) => onSurroundingTextChange(event.target.value)}
+              placeholder="Optional nearby text from the active window."
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="inline-fields">
         <div className="field-card compact">
           <label className="field-label" htmlFor="app-name">
-            Focused app
+            Target app
           </label>
           <input
             id="app-name"
             value={focusedAppName}
             onChange={(event) => onFocusedAppNameChange(event.target.value)}
-            placeholder="Slack, Notion, Linear, Gmail..."
+            placeholder="Slack, Notion, Mail..."
           />
-          <p className="field-hint">Usually filled from the native bridge.</p>
         </div>
 
         <div className="field-card compact">
           <label className="field-label" htmlFor="target-language">
-            Target language
+            Language
           </label>
           <input
             id="target-language"
@@ -191,86 +246,45 @@ export function ComposerPanel({
             onChange={(event) => onTargetLanguageChange(event.target.value)}
             placeholder="English"
           />
-          <p className="field-hint">Used in translate mode.</p>
-        </div>
-
-        <div className="field-card wide">
-          <div className="field-label-row">
-            <label className="field-label" htmlFor="selected-text">
-              Selected text
-            </label>
-            <button className="ghost-button" type="button" onClick={onReadSelection}>
-              Capture
-            </button>
-          </div>
-          <textarea
-            id="selected-text"
-            value={selectedText}
-            onChange={(event) => onSelectedTextChange(event.target.value)}
-            placeholder="Selected text from the current app, or a copied draft you want to rewrite."
-          />
-          <p className="field-hint">
-            Native capture first, clipboard fallback if unavailable.
-          </p>
-        </div>
-
-        <div className="field-card">
-          <label className="field-label" htmlFor="surrounding-text">
-            Nearby visible text
-          </label>
-          <textarea
-            id="surrounding-text"
-            value={surroundingText}
-            onChange={(event) => onSurroundingTextChange(event.target.value)}
-            placeholder="Optional surrounding context from the active window."
-          />
-          <p className="field-hint">Optional nearby context for ask and rewrite.</p>
-        </div>
-
-        <div className="field-card">
-          <label className="field-label" htmlFor="transcript-hint">
-            Transcript hint
-          </label>
-          <textarea
-            id="transcript-hint"
-            value={transcriptHint}
-            onChange={(event) => onTranscriptHintChange(event.target.value)}
-            placeholder="Use this to test the flow even before the real STT provider is wired in."
-          />
-          <p className="field-hint">You can type here instead of recording.</p>
         </div>
       </div>
 
-      <div className="transport-card">
+      <div className="transport-card compact-transport">
         <div className="transport-copy">
-          <p className="field-label">Capture</p>
           <div className="transport-meta">
             <span className={`status-pill ${isRecording ? 'danger' : 'muted'}`}>
-              {isRecording ? `Recording ${formatDuration(durationMs)}` : 'Ready'}
+              {isRecording ? `Recording ${formatDuration(durationMs)}` : 'Idle'}
             </span>
-            {hasRecordedAudio ? <span className="status-pill success">Audio attached</span> : null}
+            {hasRecordedAudio ? <span className="status-pill success">Audio ready</span> : null}
           </div>
-          <p className="transport-note">Record audio or type directly, then run the flow.</p>
+          <p className="transport-note">
+            Use recording when you want the full Typeless feel. Use typing when you are iterating on prompts.
+          </p>
           {recordError ? <p className="transport-error">{recordError}</p> : null}
         </div>
 
         <div className="transport-actions">
           {isRecording ? (
             <button className="primary-button" type="button" onClick={onStopRecording}>
-              Stop recording
+              Stop
             </button>
           ) : (
             <button className="primary-button" type="button" onClick={onStartRecording}>
-              Start recording
+              Record
             </button>
           )}
 
-          <button className="ghost-button" type="button" onClick={onClearAudio}>
-            Clear audio
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={onClearAudio}
+            disabled={!hasRecordedAudio}
+          >
+            Clear
           </button>
 
           <button className="launch-button" type="button" onClick={onSubmit} disabled={isSubmitting}>
-            {isSubmitting ? 'Running voice flow...' : 'Run voice flow'}
+            {isSubmitting ? 'Running…' : 'Run flow'}
           </button>
         </div>
       </div>

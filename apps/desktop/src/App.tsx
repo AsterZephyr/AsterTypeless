@@ -1,4 +1,5 @@
 import {
+  type DesktopCapturedContext,
   createHistoryPreview,
   type DesktopHistoryItem,
   type DesktopInsertTextResult,
@@ -46,14 +47,37 @@ function App() {
   const recorder = useVoiceRecorder()
   const deferredResult = useDeferredValue(result)
 
+  function applyCapturedContext(context: DesktopCapturedContext) {
+    startTransition(() => {
+      if (context.triggerSource !== 'manual') {
+        setResult(null)
+        setLastError(null)
+      }
+      if (context.focusedAppName) {
+        setFocusedAppName(context.focusedAppName)
+      }
+      if (context.focusedBundleId) {
+        setTargetBundleId(context.focusedBundleId)
+      }
+      if (context.selectedText) {
+        setSelectedText(context.selectedText)
+      }
+      if (context.surroundingText) {
+        setSurroundingText(context.surroundingText)
+      }
+      setInsertResult(null)
+    })
+  }
+
   useEffect(() => {
     let isActive = true
 
     async function hydrateShell() {
-      const [runtime, savedHistory, nextNativeStatus] = await Promise.all([
+      const [runtime, savedHistory, nextNativeStatus, capturedContext] = await Promise.all([
         desktopBridge.getRuntimeInfo(),
         desktopBridge.listHistory(),
         desktopBridge.getNativeStatus(),
+        desktopBridge.getLastCapturedContext(),
       ])
 
       if (!isActive) return
@@ -62,11 +86,21 @@ function App() {
         setRuntimeInfo(runtime)
         setHistory(savedHistory)
         setNativeStatus(nextNativeStatus)
-        if (nextNativeStatus.focusedAppName) {
+        if (capturedContext.focusedAppName) {
+          setFocusedAppName(capturedContext.focusedAppName)
+        } else if (nextNativeStatus.focusedAppName) {
           setFocusedAppName(nextNativeStatus.focusedAppName)
         }
-        if (nextNativeStatus.focusedBundleId) {
+        if (capturedContext.focusedBundleId) {
+          setTargetBundleId(capturedContext.focusedBundleId)
+        } else if (nextNativeStatus.focusedBundleId) {
           setTargetBundleId(nextNativeStatus.focusedBundleId)
+        }
+        if (capturedContext.selectedText) {
+          setSelectedText(capturedContext.selectedText)
+        }
+        if (capturedContext.surroundingText) {
+          setSurroundingText(capturedContext.surroundingText)
         }
       })
 
@@ -82,9 +116,14 @@ function App() {
     }
 
     void hydrateShell()
+    const unsubscribe = desktopBridge.onCapturedContext((context) => {
+      if (!isActive) return
+      applyCapturedContext(context)
+    })
 
     return () => {
       isActive = false
+      unsubscribe()
     }
   }, [])
 
@@ -156,6 +195,25 @@ function App() {
     }
   }
 
+  async function handlePromptListenEventAccess() {
+    setLastError(null)
+
+    try {
+      const nextNativeStatus = await desktopBridge.promptListenEventAccess()
+      startTransition(() => {
+        setNativeStatus(nextNativeStatus)
+      })
+
+      if (!nextNativeStatus.listenEventAccess && nextNativeStatus.lastError) {
+        setLastError(nextNativeStatus.lastError)
+      }
+    } catch (error) {
+      setLastError(
+        error instanceof Error ? error.message : 'Unable to prompt for input monitoring access',
+      )
+    }
+  }
+
   async function handleSubmit() {
     setIsSubmitting(true)
     setLastError(null)
@@ -195,6 +253,23 @@ function App() {
         setResult(nextResult)
         setInsertResult(null)
       })
+
+      if (surface === 'floating' && targetBundleId && nextResult.delivery.kind !== 'copy-only') {
+        const nextInsertResult = await desktopBridge.insertText({
+          text: nextResult.refinedText,
+          preferredBundleId: targetBundleId,
+        })
+
+        startTransition(() => {
+          setInsertResult(nextInsertResult)
+        })
+
+        if (nextInsertResult.ok) {
+          await desktopBridge.toggleFloatingWindow()
+        } else if (nextInsertResult.lastError) {
+          setLastError(nextInsertResult.lastError)
+        }
+      }
 
       const savedHistory = await desktopBridge.saveHistory(historyItem)
       startTransition(() => {
@@ -254,11 +329,18 @@ function App() {
     : 'voice runtime unavailable'
   const nativeLabel = nativeStatus
     ? nativeStatus.accessibilityTrusted
-      ? 'Accessibility ready'
+      ? 'Bridge ready'
       : nativeStatus.helperAvailable
         ? 'Accessibility needed'
         : 'Native helper unavailable'
     : 'Checking native bridge'
+  const triggerLabel = nativeStatus
+    ? nativeStatus.fnTriggerEnabled
+      ? 'Fn ready'
+      : nativeStatus.listenEventAccess
+        ? 'Fn watcher starting'
+        : 'Shortcut fallback'
+    : 'Checking trigger'
   const insertionLabel = insertResult?.ok
     ? `${insertResult.method} into ${insertResult.focusedAppName || 'target app'}`
     : targetBundleId
@@ -269,8 +351,11 @@ function App() {
     return (
       <FloatingPanel
         mode={mode}
+        focusedAppName={focusedAppName}
         transcriptHint={transcriptHint}
         serverLabel={serverLabel}
+        nativeLabel={nativeLabel}
+        triggerLabel={triggerLabel}
         isRecording={recorder.isRecording}
         durationMs={recorder.durationMs}
         hasRecordedAudio={Boolean(recorder.audioBlob)}
@@ -311,8 +396,8 @@ function App() {
             >
               {nativeLabel}
             </span>
-            <span className="status-pill muted">
-              {runtimeInfo ? runtimeInfo.platform : 'unknown platform'}
+            <span className={`status-pill ${nativeStatus?.fnTriggerEnabled ? 'success' : 'muted'}`}>
+              {triggerLabel}
             </span>
           </div>
         </header>
@@ -327,6 +412,7 @@ function App() {
             targetLanguage={targetLanguage}
             serverLabel={serverLabel}
             nativeStatus={nativeStatus}
+            triggerLabel={triggerLabel}
             isRecording={recorder.isRecording}
             durationMs={recorder.durationMs}
             hasRecordedAudio={Boolean(recorder.audioBlob)}
@@ -341,6 +427,7 @@ function App() {
             onReadSelection={handleReadSelectionContext}
             onRefreshNativeStatus={handleRefreshNativeStatus}
             onPromptAccessibilityPermission={handlePromptAccessibilityPermission}
+            onPromptListenEventAccess={handlePromptListenEventAccess}
             onStartRecording={recorder.startRecording}
             onStopRecording={recorder.stopRecording}
             onClearAudio={recorder.clearRecording}

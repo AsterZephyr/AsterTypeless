@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process'
+import { execFile, spawn, type ChildProcess } from 'node:child_process'
 import fsSync from 'node:fs'
 import path from 'node:path'
 import { promisify } from 'node:util'
@@ -12,8 +12,28 @@ import {
 
 const execFileAsync = promisify(execFile)
 
-type NativeHelperCommand = 'status' | 'prompt-accessibility' | 'read-selection' | 'insert-text'
+type NativeHelperCommand =
+  | 'status'
+  | 'prompt-accessibility'
+  | 'prompt-listen-events'
+  | 'read-selection'
+  | 'insert-text'
 type NativeHelperStrategy = 'swift' | 'objc'
+
+export type NativeFnMonitorEvent =
+  | {
+      type: 'ready'
+      listenEventAccess: boolean
+      lastError: string
+    }
+  | {
+      type: 'fn-press'
+    }
+  | {
+      type: 'error'
+      listenEventAccess: boolean
+      lastError: string
+    }
 
 interface NativeHelperBuildState {
   strategy: NativeHelperStrategy
@@ -56,6 +76,16 @@ export class NativeHelperBridge {
     )
   }
 
+  async promptListenEventAccess() {
+    return this.run(
+      'prompt-listen-events',
+      (value) => DesktopNativeStatusSchema.parse(value),
+      this.fallbackStatus(false),
+      (helperAvailable, helperPath, lastError) =>
+        this.fallbackStatus(helperAvailable, helperPath, lastError),
+    )
+  }
+
   async readSelection() {
     return this.run(
       'read-selection',
@@ -78,6 +108,73 @@ export class NativeHelperBridge {
     )
   }
 
+  async startFnWatcher(onEvent: (event: NativeFnMonitorEvent) => void): Promise<ChildProcess | null> {
+    const binaryPath = await this.ensureBuilt()
+
+    if (!binaryPath) {
+      onEvent({
+        type: 'error',
+        listenEventAccess: false,
+        lastError: this.lastBuildError || 'Native helper is unavailable.',
+      })
+      return null
+    }
+
+    const child = spawn(binaryPath, ['watch-fn'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+
+    let stdoutBuffer = ''
+    let stderrBuffer = ''
+
+    child.stdout.setEncoding('utf8')
+    child.stdout.on('data', (chunk) => {
+      stdoutBuffer += chunk
+
+      let newlineIndex = stdoutBuffer.indexOf('\n')
+      while (newlineIndex !== -1) {
+        const line = stdoutBuffer.slice(0, newlineIndex).trim()
+        stdoutBuffer = stdoutBuffer.slice(newlineIndex + 1)
+
+        if (line) {
+          this.handleFnMonitorLine(line, onEvent)
+        }
+
+        newlineIndex = stdoutBuffer.indexOf('\n')
+      }
+    })
+
+    child.stderr.setEncoding('utf8')
+    child.stderr.on('data', (chunk) => {
+      stderrBuffer += chunk
+    })
+
+    child.on('error', (error) => {
+      onEvent({
+        type: 'error',
+        listenEventAccess: false,
+        lastError: this.normalizeError(error),
+      })
+    })
+
+    child.on('exit', () => {
+      const message = stderrBuffer
+        .split('\n')
+        .map((line) => line.trim())
+        .find(Boolean)
+
+      if (message) {
+        onEvent({
+          type: 'error',
+          listenEventAccess: false,
+          lastError: message,
+        })
+      }
+    })
+
+    return child
+  }
+
   private getSourcePath() {
     return path.join(this.appRoot, 'native', 'TypelessNativeHelper.swift')
   }
@@ -97,6 +194,21 @@ export class NativeHelperBridge {
   private getBuildTargets(binaryPath: string): NativeHelperBuildTarget[] {
     const targets: NativeHelperBuildTarget[] = [
       {
+        strategy: 'objc',
+        sourcePath: this.getObjcSourcePath(),
+        compileCommand: '/usr/bin/clang',
+        compileArgs: [
+          '-fobjc-arc',
+          '-framework',
+          'AppKit',
+          '-framework',
+          'ApplicationServices',
+          this.getObjcSourcePath(),
+          '-o',
+          binaryPath,
+        ],
+      },
+      {
         strategy: 'swift',
         sourcePath: this.getSourcePath(),
         compileCommand: '/usr/bin/xcrun',
@@ -108,21 +220,6 @@ export class NativeHelperBridge {
           '-framework',
           'ApplicationServices',
           this.getSourcePath(),
-          '-o',
-          binaryPath,
-        ],
-      },
-      {
-        strategy: 'objc',
-        sourcePath: this.getObjcSourcePath(),
-        compileCommand: '/usr/bin/clang',
-        compileArgs: [
-          '-fobjc-arc',
-          '-framework',
-          'AppKit',
-          '-framework',
-          'ApplicationServices',
-          this.getObjcSourcePath(),
           '-o',
           binaryPath,
         ],
@@ -246,6 +343,10 @@ export class NativeHelperBridge {
       helperPath,
       accessibilityTrusted: false,
       accessibilityPermissionPrompted: false,
+      listenEventAccess: false,
+      listenEventAccessPrompted: false,
+      fnTriggerEnabled: false,
+      triggerSource: 'shortcut',
       focusedAppName: '',
       focusedBundleId: '',
       lastError: lastError || this.lastBuildError,
@@ -297,5 +398,55 @@ export class NativeHelperBridge {
       .find((line) => Boolean(line) && !line.startsWith('/'))
 
     return message || 'Unable to build or run the macOS native helper.'
+  }
+
+  private handleFnMonitorLine(line: string, onEvent: (event: NativeFnMonitorEvent) => void) {
+    try {
+      const parsed = JSON.parse(line)
+
+      if (parsed?.type === 'fn-press') {
+        onEvent({ type: 'fn-press' })
+        return
+      }
+
+      if (parsed?.type === 'ready') {
+        const status = DesktopNativeStatusSchema.parse({
+          helperAvailable: true,
+          helperPath: '',
+          accessibilityTrusted: false,
+          accessibilityPermissionPrompted: false,
+          ...parsed,
+        })
+
+        onEvent({
+          type: 'ready',
+          listenEventAccess: status.listenEventAccess,
+          lastError: status.lastError,
+        })
+        return
+      }
+
+      if (parsed?.type === 'error') {
+        const status = DesktopNativeStatusSchema.parse({
+          helperAvailable: true,
+          helperPath: '',
+          accessibilityTrusted: false,
+          accessibilityPermissionPrompted: false,
+          ...parsed,
+        })
+
+        onEvent({
+          type: 'error',
+          listenEventAccess: status.listenEventAccess,
+          lastError: status.lastError,
+        })
+      }
+    } catch {
+      onEvent({
+        type: 'error',
+        listenEventAccess: false,
+        lastError: line,
+      })
+    }
   }
 }

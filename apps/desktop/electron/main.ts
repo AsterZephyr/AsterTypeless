@@ -1,3 +1,4 @@
+import type { ChildProcess } from 'node:child_process'
 import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, nativeTheme, screen, shell } from 'electron'
 import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
@@ -5,6 +6,7 @@ import fsSync from 'node:fs'
 import path from 'node:path'
 
 import {
+  DesktopCapturedContextSchema,
   DesktopInsertTextRequestSchema,
   DesktopInsertTextResultSchema,
   DesktopHistoryItemSchema,
@@ -12,7 +14,9 @@ import {
   DesktopRuntimeInfoSchema,
   DesktopSelectionSnapshotSchema,
   DesktopVoiceFlowRequestSchema,
+  type DesktopCapturedContext,
   type DesktopHistoryItem,
+  type DesktopNativeStatus,
 } from '@typeless-open/shared'
 import { VoiceFlowService, resolveVoiceGatewayConfig } from '@typeless-open/voice-flow'
 import { NativeHelperBridge } from './native-helper'
@@ -30,9 +34,52 @@ let mainWindow: BrowserWindow | null = null
 let floatingWindow: BrowserWindow | null = null
 let historyDb: DatabaseSync | null = null
 let nativeHelperBridge: NativeHelperBridge | null = null
+let fnWatcherProcess: ChildProcess | null = null
+let fnWatcherEnabled = false
+let fnWatcherLastError = ''
+let lastCapturedContext = emptyCapturedContext()
 const globalShortcutAccelerator = process.env.GLOBAL_SHORTCUT || 'CommandOrControl+Shift+;'
 
 nativeTheme.themeSource = 'light'
+
+function emptyNativeStatus() {
+  return DesktopNativeStatusSchema.parse({
+    helperAvailable: false,
+    helperPath: '',
+    accessibilityTrusted: false,
+    accessibilityPermissionPrompted: false,
+    listenEventAccess: false,
+    listenEventAccessPrompted: false,
+    fnTriggerEnabled: false,
+    triggerSource: 'shortcut',
+    focusedAppName: '',
+    focusedBundleId: '',
+    lastError: '',
+  })
+}
+
+function emptySelectionSnapshot() {
+  return DesktopSelectionSnapshotSchema.parse({
+    available: false,
+    selectedText: '',
+    surroundingText: '',
+    focusedAppName: '',
+    focusedBundleId: '',
+    source: 'unavailable',
+    lastError: '',
+  })
+}
+
+function emptyCapturedContext(triggerSource: DesktopCapturedContext['triggerSource'] = 'manual') {
+  return DesktopCapturedContextSchema.parse({
+    triggerSource,
+    focusedAppName: '',
+    focusedBundleId: '',
+    selectedText: '',
+    surroundingText: '',
+    capturedAt: new Date(0).toISOString(),
+  })
+}
 
 function getHistoryDatabasePath() {
   return path.join(app.getPath('userData'), 'voice-history.db')
@@ -151,6 +198,74 @@ function createVoiceFlowService() {
   return new VoiceFlowService(resolveVoiceGatewayConfig(process.env))
 }
 
+async function resolveNativeStatus(): Promise<DesktopNativeStatus> {
+  const baseStatus = nativeHelperBridge ? await nativeHelperBridge.getStatus() : emptyNativeStatus()
+
+  return DesktopNativeStatusSchema.parse({
+    ...baseStatus,
+    fnTriggerEnabled: baseStatus.listenEventAccess && fnWatcherEnabled,
+    triggerSource: baseStatus.listenEventAccess && fnWatcherEnabled ? 'fn' : 'shortcut',
+    lastError: baseStatus.lastError || fnWatcherLastError,
+  })
+}
+
+async function readSelectionWithFallback() {
+  const nativeSnapshot = nativeHelperBridge
+    ? await nativeHelperBridge.readSelection()
+    : emptySelectionSnapshot()
+
+  if (
+    nativeSnapshot.available ||
+    nativeSnapshot.selectedText ||
+    nativeSnapshot.surroundingText
+  ) {
+    return nativeSnapshot
+  }
+
+  const clipboardText = clipboard.readText().trim()
+  if (!clipboardText) {
+    return nativeSnapshot
+  }
+
+  return DesktopSelectionSnapshotSchema.parse({
+    ...nativeSnapshot,
+    available: true,
+    selectedText: clipboardText,
+    source: 'clipboard',
+  })
+}
+
+function publishCapturedContext(context: DesktopCapturedContext) {
+  lastCapturedContext = context
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('desktop:context:captured', context)
+  }
+
+  if (floatingWindow && !floatingWindow.isDestroyed()) {
+    floatingWindow.webContents.send('desktop:context:captured', context)
+  }
+}
+
+async function captureContext(triggerSource: DesktopCapturedContext['triggerSource']) {
+  const [nativeStatus, selection] = await Promise.all([
+    resolveNativeStatus(),
+    readSelectionWithFallback(),
+  ])
+
+  const context = DesktopCapturedContextSchema.parse({
+    triggerSource,
+    focusedAppName: selection.focusedAppName || nativeStatus.focusedAppName,
+    focusedBundleId: selection.focusedBundleId || nativeStatus.focusedBundleId,
+    selectedText: selection.selectedText,
+    surroundingText: selection.surroundingText,
+    capturedAt: new Date().toISOString(),
+  })
+
+  publishCapturedContext(context)
+  return context
+}
+
 function getHistoryDb() {
   if (historyDb) {
     return historyDb
@@ -252,11 +367,11 @@ function migrateLegacyHistory(db: DatabaseSync) {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 1480,
-    height: 940,
-    minWidth: 1180,
-    minHeight: 760,
-    backgroundColor: '#f6f1e8',
+    width: 1088,
+    height: 760,
+    minWidth: 940,
+    minHeight: 660,
+    backgroundColor: '#f4efe6',
     title: 'Typeless Open',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
@@ -277,10 +392,10 @@ function createFloatingWindow() {
   const { width, x, y } = display.workArea
 
   floatingWindow = new BrowserWindow({
-    width: 560,
-    height: 360,
-    x: Math.round(x + width / 2 - 280),
-    y: Math.round(y + 72),
+    width: 468,
+    height: 268,
+    x: Math.round(x + width / 2 - 234),
+    y: Math.round(y + 56),
     show: false,
     resizable: false,
     minimizable: false,
@@ -325,6 +440,39 @@ function loadWindowSurface(targetWindow: BrowserWindow, surface: 'main' | 'float
   })
 }
 
+async function startFnWatcher() {
+  stopFnWatcher()
+
+  if (!nativeHelperBridge) {
+    return
+  }
+
+  fnWatcherProcess = await nativeHelperBridge.startFnWatcher((event) => {
+    if (event.type === 'ready') {
+      fnWatcherEnabled = event.listenEventAccess
+      fnWatcherLastError = event.lastError
+      return
+    }
+
+    if (event.type === 'fn-press') {
+      void showFloatingWindow('fn')
+      return
+    }
+
+    fnWatcherEnabled = false
+    fnWatcherLastError = event.lastError
+  })
+}
+
+function stopFnWatcher() {
+  if (fnWatcherProcess && !fnWatcherProcess.killed) {
+    fnWatcherProcess.kill()
+  }
+
+  fnWatcherProcess = null
+  fnWatcherEnabled = false
+}
+
 function showMainWindow() {
   if (!mainWindow) return false
 
@@ -337,7 +485,23 @@ function showMainWindow() {
   return true
 }
 
-function toggleFloatingWindow() {
+async function showFloatingWindow(triggerSource: DesktopCapturedContext['triggerSource']) {
+  if (!floatingWindow) {
+    createFloatingWindow()
+  }
+
+  if (!floatingWindow) {
+    return false
+  }
+
+  await captureContext(triggerSource)
+
+  floatingWindow.show()
+  floatingWindow.focus()
+  return true
+}
+
+async function toggleFloatingWindow(triggerSource: DesktopCapturedContext['triggerSource']) {
   if (!floatingWindow) {
     createFloatingWindow()
   }
@@ -351,15 +515,13 @@ function toggleFloatingWindow() {
     return false
   }
 
-  floatingWindow.show()
-  floatingWindow.focus()
-  return true
+  return showFloatingWindow(triggerSource)
 }
 
 function registerGlobalShortcuts() {
   globalShortcut.unregisterAll()
   globalShortcut.register(globalShortcutAccelerator, () => {
-    toggleFloatingWindow()
+    void toggleFloatingWindow('shortcut')
   })
 }
 
@@ -368,6 +530,7 @@ app.whenReady().then(() => {
   createMainWindow()
   createFloatingWindow()
   registerGlobalShortcuts()
+  void startFnWatcher()
 
   ipcMain.handle('desktop:get-runtime-info', async () => {
     return DesktopRuntimeInfoSchema.parse({
@@ -380,35 +543,23 @@ app.whenReady().then(() => {
   ipcMain.handle('desktop:voice-flow:get-runtime', async () => {
     return createVoiceFlowService().getRuntime()
   })
-  ipcMain.handle('desktop:native:get-status', async () => {
-    if (!nativeHelperBridge) {
-      return DesktopNativeStatusSchema.parse({
-        helperAvailable: false,
-        helperPath: '',
-        accessibilityTrusted: false,
-        accessibilityPermissionPrompted: false,
-        focusedAppName: '',
-        focusedBundleId: '',
-        lastError: '',
-      })
-    }
-
-    return nativeHelperBridge.getStatus()
-  })
+  ipcMain.handle('desktop:native:get-status', async () => resolveNativeStatus())
   ipcMain.handle('desktop:native:prompt-accessibility', async () => {
     if (!nativeHelperBridge) {
-      return DesktopNativeStatusSchema.parse({
-        helperAvailable: false,
-        helperPath: '',
-        accessibilityTrusted: false,
-        accessibilityPermissionPrompted: false,
-        focusedAppName: '',
-        focusedBundleId: '',
-        lastError: '',
-      })
+      return emptyNativeStatus()
     }
 
-    return nativeHelperBridge.promptAccessibilityPermission()
+    await nativeHelperBridge.promptAccessibilityPermission()
+    return resolveNativeStatus()
+  })
+  ipcMain.handle('desktop:native:prompt-listen-events', async () => {
+    if (!nativeHelperBridge) {
+      return emptyNativeStatus()
+    }
+
+    await nativeHelperBridge.promptListenEventAccess()
+    await startFnWatcher()
+    return resolveNativeStatus()
   })
   ipcMain.handle('desktop:voice-flow:run', async (_event, rawInput: unknown) => {
     const input = DesktopVoiceFlowRequestSchema.parse(rawInput)
@@ -426,7 +577,7 @@ app.whenReady().then(() => {
     })
   })
   ipcMain.handle('desktop:window:show-main', async () => showMainWindow())
-  ipcMain.handle('desktop:window:toggle-floating', async () => toggleFloatingWindow())
+  ipcMain.handle('desktop:window:toggle-floating', async () => toggleFloatingWindow('shortcut'))
   ipcMain.handle('desktop:insert-text', async (_event, rawInput: unknown) => {
     const input = DesktopInsertTextRequestSchema.parse(rawInput)
 
@@ -443,38 +594,21 @@ app.whenReady().then(() => {
     return nativeHelperBridge.insertText(input)
   })
   ipcMain.handle('desktop:selection:read-context', async () => {
-    const nativeSnapshot = nativeHelperBridge
-      ? await nativeHelperBridge.readSelection()
-      : DesktopSelectionSnapshotSchema.parse({
-          available: false,
-          selectedText: '',
-          surroundingText: '',
-          focusedAppName: '',
-          focusedBundleId: '',
-          source: 'unavailable',
-          lastError: '',
-        })
+    const snapshot = await readSelectionWithFallback()
+    publishCapturedContext(
+      DesktopCapturedContextSchema.parse({
+        triggerSource: 'manual',
+        focusedAppName: snapshot.focusedAppName,
+        focusedBundleId: snapshot.focusedBundleId,
+        selectedText: snapshot.selectedText,
+        surroundingText: snapshot.surroundingText,
+        capturedAt: new Date().toISOString(),
+      }),
+    )
 
-    if (
-      nativeSnapshot.available ||
-      nativeSnapshot.selectedText ||
-      nativeSnapshot.surroundingText
-    ) {
-      return nativeSnapshot
-    }
-
-    const clipboardText = clipboard.readText().trim()
-    if (!clipboardText) {
-      return nativeSnapshot
-    }
-
-    return DesktopSelectionSnapshotSchema.parse({
-      ...nativeSnapshot,
-      available: true,
-      selectedText: clipboardText,
-      source: 'clipboard',
-    })
+    return snapshot
   })
+  ipcMain.handle('desktop:context:get-last-captured', async () => lastCapturedContext)
   ipcMain.handle('desktop:clipboard:copy', async (_event, text: string) => {
     clipboard.writeText(text)
     return true
@@ -507,5 +641,6 @@ app.on('window-all-closed', () => {
 })
 
 app.on('will-quit', () => {
+  stopFnWatcher()
   globalShortcut.unregisterAll()
 })

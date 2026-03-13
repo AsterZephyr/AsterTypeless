@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 import type {
+  DesktopCapturedContext,
   DesktopHistoryItem,
   DesktopInsertTextRequest,
   DesktopInsertTextResult,
@@ -25,6 +26,9 @@ const desktopApi = {
   promptAccessibilityPermission() {
     return ipcRenderer.invoke('desktop:native:prompt-accessibility') as Promise<DesktopNativeStatus>
   },
+  promptListenEventAccess() {
+    return ipcRenderer.invoke('desktop:native:prompt-listen-events') as Promise<DesktopNativeStatus>
+  },
   runVoiceFlow(input: DesktopVoiceFlowRequest) {
     return ipcRenderer.invoke('desktop:voice-flow:run', input) as Promise<VoiceFlowResponse>
   },
@@ -39,6 +43,19 @@ const desktopApi = {
   },
   readSelectionContext() {
     return ipcRenderer.invoke('desktop:selection:read-context') as Promise<DesktopSelectionSnapshot>
+  },
+  getLastCapturedContext() {
+    return ipcRenderer.invoke('desktop:context:get-last-captured') as Promise<DesktopCapturedContext>
+  },
+  onCapturedContext(listener: (context: DesktopCapturedContext) => void) {
+    const handler = (_event: Electron.IpcRendererEvent, context: DesktopCapturedContext) => {
+      listener(context)
+    }
+
+    ipcRenderer.on('desktop:context:captured', handler)
+    return () => {
+      ipcRenderer.removeListener('desktop:context:captured', handler)
+    }
   },
   copyToClipboard(text: string) {
     return ipcRenderer.invoke('desktop:clipboard:copy', text) as Promise<boolean>

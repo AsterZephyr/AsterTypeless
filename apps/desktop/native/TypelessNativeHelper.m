@@ -1,6 +1,15 @@
 #import <AppKit/AppKit.h>
 #import <ApplicationServices/ApplicationServices.h>
 #import <CoreGraphics/CoreGraphics.h>
+#import <unistd.h>
+
+static const CFTimeInterval kFnTapMaximumDuration = 0.35;
+static const CGKeyCode kFnVirtualKeyCode = 63;
+
+static CFMachPortRef gFnEventTap = NULL;
+static BOOL gFnIsDown = NO;
+static BOOL gFnChorded = NO;
+static CFAbsoluteTime gFnDownTimestamp = 0;
 
 static NSDictionary<NSString *, NSString *> *FrontmostAppInfo(void) {
     NSRunningApplication *app = NSWorkspace.sharedWorkspace.frontmostApplication;
@@ -10,6 +19,22 @@ static NSDictionary<NSString *, NSString *> *FrontmostAppInfo(void) {
     };
 }
 
+static BOOL CanListenEventAccess(void) {
+    if (@available(macOS 10.15, *)) {
+        return CGPreflightListenEventAccess();
+    }
+
+    return YES;
+}
+
+static BOOL RequestListenEventAccess(void) {
+    if (@available(macOS 10.15, *)) {
+        return CGRequestListenEventAccess();
+    }
+
+    return YES;
+}
+
 static BOOL IsAccessibilityTrusted(BOOL prompt) {
     NSDictionary *options = @{
         (__bridge NSString *)kAXTrustedCheckOptionPrompt: @(prompt),
@@ -17,13 +42,28 @@ static BOOL IsAccessibilityTrusted(BOOL prompt) {
     return AXIsProcessTrustedWithOptions((__bridge CFDictionaryRef)options);
 }
 
+static NSData *JSONDataForPayload(NSDictionary *payload) {
+    return [NSJSONSerialization dataWithJSONObject:payload options:0 error:nil];
+}
+
 static void EmitJSON(NSDictionary *payload) {
-    NSData *data = [NSJSONSerialization dataWithJSONObject:payload options:0 error:nil];
+    NSData *data = JSONDataForPayload(payload);
     if (data.length == 0) {
         return;
     }
 
     fwrite(data.bytes, 1, data.length, stdout);
+}
+
+static void EmitJSONLine(NSDictionary *payload) {
+    NSData *data = JSONDataForPayload(payload);
+    if (data.length == 0) {
+        return;
+    }
+
+    fwrite(data.bytes, 1, data.length, stdout);
+    fputc('\n', stdout);
+    fflush(stdout);
 }
 
 static id CopyAttributeValue(AXUIElementRef element, CFStringRef attribute) {
@@ -156,13 +196,20 @@ static NSString *SurroundingText(NSString *value, BOOL hasRange, CFRange range) 
     return [value substringToIndex:end];
 }
 
-static NSDictionary *BuildStatus(NSString *helperPath, BOOL prompt) {
+static NSDictionary *BuildStatus(NSString *helperPath, BOOL promptAccessibility, BOOL promptListenEvents) {
     NSDictionary *appInfo = FrontmostAppInfo();
+    BOOL accessibilityTrusted = IsAccessibilityTrusted(promptAccessibility);
+    BOOL listenEventAccess = promptListenEvents ? RequestListenEventAccess() : CanListenEventAccess();
+
     return @{
         @"helperAvailable": @YES,
         @"helperPath": helperPath ?: @"",
-        @"accessibilityTrusted": @(IsAccessibilityTrusted(prompt)),
-        @"accessibilityPermissionPrompted": @(prompt),
+        @"accessibilityTrusted": @(accessibilityTrusted),
+        @"accessibilityPermissionPrompted": @(promptAccessibility),
+        @"listenEventAccess": @(listenEventAccess),
+        @"listenEventAccessPrompted": @(promptListenEvents),
+        @"fnTriggerEnabled": @NO,
+        @"triggerSource": @"shortcut",
         @"focusedAppName": appInfo[@"name"] ?: @"",
         @"focusedBundleId": appInfo[@"bundleId"] ?: @"",
         @"lastError": @"",
@@ -353,6 +400,117 @@ static NSDictionary *BuildInsertTextResult(NSString *encodedText, NSString *pref
     return InsertTextViaPasteboard(text, appInfo);
 }
 
+static CGEventRef FnTapCallback(
+    CGEventTapProxy proxy,
+    CGEventType type,
+    CGEventRef event,
+    void *userInfo
+) {
+    (void)proxy;
+    (void)userInfo;
+
+    if (type == kCGEventTapDisabledByTimeout || type == kCGEventTapDisabledByUserInput) {
+        if (gFnEventTap != NULL) {
+            CGEventTapEnable(gFnEventTap, true);
+        }
+        return event;
+    }
+
+    CGEventFlags flags = CGEventGetFlags(event);
+    BOOL fnActive = (flags & kCGEventFlagMaskSecondaryFn) != 0;
+    BOOL hasOtherModifiers =
+        (flags & (kCGEventFlagMaskCommand | kCGEventFlagMaskControl |
+                  kCGEventFlagMaskShift | kCGEventFlagMaskAlternate |
+                  kCGEventFlagMaskAlphaShift)) != 0;
+
+    if (type == kCGEventFlagsChanged) {
+        CGKeyCode keyCode = (CGKeyCode)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+        if (keyCode != kFnVirtualKeyCode) {
+            return event;
+        }
+
+        if (fnActive && !gFnIsDown) {
+            gFnIsDown = YES;
+            gFnChorded = hasOtherModifiers;
+            gFnDownTimestamp = CFAbsoluteTimeGetCurrent();
+            return event;
+        }
+
+        if (!fnActive && gFnIsDown) {
+            CFAbsoluteTime duration = CFAbsoluteTimeGetCurrent() - gFnDownTimestamp;
+            BOOL shouldTrigger = !gFnChorded && duration <= kFnTapMaximumDuration;
+            gFnIsDown = NO;
+            gFnChorded = NO;
+            gFnDownTimestamp = 0;
+
+            if (shouldTrigger) {
+                EmitJSONLine(@{ @"type": @"fn-press" });
+            }
+        }
+
+        return event;
+    }
+
+    if (gFnIsDown && (type == kCGEventKeyDown || type == kCGEventKeyUp)) {
+        gFnChorded = YES;
+    }
+
+    return event;
+}
+
+static int RunFnWatcher(void) {
+    setvbuf(stdout, NULL, _IOLBF, 0);
+
+    if (!CanListenEventAccess()) {
+        EmitJSONLine(@{
+            @"type": @"error",
+            @"listenEventAccess": @NO,
+            @"lastError": @"Input Monitoring permission is required to watch the Fn key.",
+        });
+        return 1;
+    }
+
+    CGEventMask mask = CGEventMaskBit(kCGEventFlagsChanged) |
+        CGEventMaskBit(kCGEventKeyDown) |
+        CGEventMaskBit(kCGEventKeyUp);
+
+    gFnEventTap = CGEventTapCreate(
+        kCGSessionEventTap,
+        kCGHeadInsertEventTap,
+        kCGEventTapOptionListenOnly,
+        mask,
+        FnTapCallback,
+        NULL
+    );
+
+    if (gFnEventTap == NULL) {
+        EmitJSONLine(@{
+            @"type": @"error",
+            @"listenEventAccess": @(CanListenEventAccess()),
+            @"lastError": @"Unable to create a global event tap for Fn listening.",
+        });
+        return 1;
+    }
+
+    CFRunLoopSourceRef runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, gFnEventTap, 0);
+    CGEventTapEnable(gFnEventTap, true);
+    CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
+
+    EmitJSONLine(@{
+        @"type": @"ready",
+        @"listenEventAccess": @YES,
+        @"lastError": @"",
+    });
+
+    CFRunLoopRun();
+
+    CFRunLoopRemoveSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
+    CFRelease(runLoopSource);
+    CFRelease(gFnEventTap);
+    gFnEventTap = NULL;
+    return 0;
+}
+
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
         NSString *command = argc > 1 ? [NSString stringWithUTF8String:argv[1]] : @"status";
@@ -361,12 +519,17 @@ int main(int argc, const char * argv[]) {
         NSString *preferredBundleId = argc > 3 ? [NSString stringWithUTF8String:argv[3]] : @"";
 
         if ([command isEqualToString:@"status"]) {
-            EmitJSON(BuildStatus(helperPath, NO));
+            EmitJSON(BuildStatus(helperPath, NO, NO));
             return 0;
         }
 
         if ([command isEqualToString:@"prompt-accessibility"]) {
-            EmitJSON(BuildStatus(helperPath, YES));
+            EmitJSON(BuildStatus(helperPath, YES, NO));
+            return 0;
+        }
+
+        if ([command isEqualToString:@"prompt-listen-events"]) {
+            EmitJSON(BuildStatus(helperPath, NO, YES));
             return 0;
         }
 
@@ -380,11 +543,19 @@ int main(int argc, const char * argv[]) {
             return 0;
         }
 
+        if ([command isEqualToString:@"watch-fn"]) {
+            return RunFnWatcher();
+        }
+
         EmitJSON(@{
             @"helperAvailable": @NO,
             @"helperPath": @"",
             @"accessibilityTrusted": @NO,
             @"accessibilityPermissionPrompted": @NO,
+            @"listenEventAccess": @NO,
+            @"listenEventAccessPrompted": @NO,
+            @"fnTriggerEnabled": @NO,
+            @"triggerSource": @"shortcut",
             @"focusedAppName": @"",
             @"focusedBundleId": @"",
             @"lastError": @"Unknown native helper command.",
