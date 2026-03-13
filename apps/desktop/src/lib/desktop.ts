@@ -1,5 +1,6 @@
 import type {
   DesktopHistoryItem,
+  DesktopNativeStatus,
   DesktopRuntimeInfo,
   DesktopVoiceFlowRequest,
   VoiceFlowResponse,
@@ -9,6 +10,8 @@ import type {
 type DesktopBridge = {
   getRuntimeInfo: () => Promise<DesktopRuntimeInfo>
   getVoiceRuntime: () => Promise<VoiceGatewayRuntime>
+  getNativeStatus: () => Promise<DesktopNativeStatus>
+  promptAccessibilityPermission: () => Promise<DesktopNativeStatus>
   runVoiceFlow: (input: DesktopVoiceFlowRequest) => Promise<VoiceFlowResponse>
   showMainWindow: () => Promise<boolean>
   toggleFloatingWindow: () => Promise<boolean>
@@ -33,6 +36,28 @@ const noopBridge: DesktopBridge = {
       provider: 'mock',
       transport: 'ipc',
       upstreamConfigured: false,
+    }
+  },
+  async getNativeStatus() {
+    return {
+      helperAvailable: false,
+      helperPath: '',
+      accessibilityTrusted: false,
+      accessibilityPermissionPrompted: false,
+      focusedAppName: '',
+      focusedBundleId: '',
+      lastError: '',
+    }
+  },
+  async promptAccessibilityPermission() {
+    return {
+      helperAvailable: false,
+      helperPath: '',
+      accessibilityTrusted: false,
+      accessibilityPermissionPrompted: false,
+      focusedAppName: '',
+      focusedBundleId: '',
+      lastError: '',
     }
   },
   async runVoiceFlow(input) {

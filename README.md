@@ -10,6 +10,7 @@
 - 本地历史记录持久化（SQLite）
 - Electron IPC 直连 voice flow
 - 全局快捷键唤起的浮层输入条
+- macOS native helper 状态探测骨架
 - 可切换 `mock` / `proxy` provider
 - 标准化的 `voice_flow` 请求与响应契约
 
@@ -88,6 +89,13 @@ UPSTREAM_API_KEY=your-token
 - 按下后会弹出一个全局浮层输入条，适合快速打字或录音
 - `Fn` 单键唤起还没接入；这一步需要补 macOS 原生事件监听层，而不是只靠 Electron 的 `globalShortcut`
 
+### macOS native helper
+
+- 当前已经接通一个 Swift helper 骨架，用来读取辅助功能权限状态和当前前台 App
+- 界面里会显示 native bridge 状态，并能触发一次辅助功能权限申请
+- 如果本机的 Swift toolchain 和 Command Line Tools / Xcode SDK 不匹配，helper 会降级为 unavailable，并把原因回显到界面
+- 这一步还没有实现“读取选中文本”和“把结果插回当前输入框”
+
 ## 上游接口契约
 
 桌面端默认通过 IPC 调主进程里的 voice flow runtime。
@@ -154,10 +162,10 @@ UPSTREAM_API_KEY=your-token
 - 自接 API 的 proxy provider
 - 本地历史记录与旧 JSON 迁移到 SQLite
 - 全局快捷键触发的浮层输入条
+- macOS native helper 权限状态与前台 App 探测骨架
 
 还没接入：
 
-- macOS 原生 Accessibility 桥
 - `Fn` 单键唤起
 - 当前焦点输入框插入文本
 - 选中文本捕获
@@ -166,8 +174,8 @@ UPSTREAM_API_KEY=your-token
 ## 下一步建议
 
 1. 先补一个真实 provider 适配器，比如 OpenAI 兼容网关或你自己的内部服务。
-2. 再做 macOS 原生层，把“获取选中文本”和“插回当前输入框”补上。
-3. 然后把历史存储从 JSON 升级到 SQLite。
+2. 再把 macOS 原生层往前推，把“获取选中文本”和“插回当前输入框”补上。
+3. 最后接 `Fn` 或长按修饰键这类更接近 Typeless 的唤起方式。
 
 ## 参考
 

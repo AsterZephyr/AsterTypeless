@@ -1,6 +1,7 @@
 import {
   createHistoryPreview,
   type DesktopHistoryItem,
+  type DesktopNativeStatus,
   type DesktopRuntimeInfo,
   type VoiceGatewayRuntime,
   type VoiceFlowResponse,
@@ -34,6 +35,7 @@ function App() {
   const [targetLanguage, setTargetLanguage] = useState('English')
   const [runtimeInfo, setRuntimeInfo] = useState<DesktopRuntimeInfo | null>(null)
   const [voiceRuntime, setVoiceRuntime] = useState<VoiceGatewayRuntime | null>(null)
+  const [nativeStatus, setNativeStatus] = useState<DesktopNativeStatus | null>(null)
   const [history, setHistory] = useState<DesktopHistoryItem[]>([])
   const [result, setResult] = useState<VoiceFlowResponse | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -45,9 +47,10 @@ function App() {
     let isActive = true
 
     async function hydrateShell() {
-      const [runtime, savedHistory] = await Promise.all([
+      const [runtime, savedHistory, nextNativeStatus] = await Promise.all([
         desktopBridge.getRuntimeInfo(),
         desktopBridge.listHistory(),
+        desktopBridge.getNativeStatus(),
       ])
 
       if (!isActive) return
@@ -55,6 +58,10 @@ function App() {
       startTransition(() => {
         setRuntimeInfo(runtime)
         setHistory(savedHistory)
+        setNativeStatus(nextNativeStatus)
+        if (nextNativeStatus.focusedAppName) {
+          setFocusedAppName(nextNativeStatus.focusedAppName)
+        }
       })
 
       try {
@@ -78,6 +85,40 @@ function App() {
   async function handleReadClipboard() {
     const text = await desktopBridge.readSelectionFallback()
     setSelectedText(text)
+  }
+
+  async function handleRefreshNativeStatus() {
+    setLastError(null)
+
+    try {
+      const nextNativeStatus = await desktopBridge.getNativeStatus()
+      startTransition(() => {
+        setNativeStatus(nextNativeStatus)
+        if (nextNativeStatus.focusedAppName) {
+          setFocusedAppName(nextNativeStatus.focusedAppName)
+        }
+      })
+    } catch (error) {
+      setLastError(error instanceof Error ? error.message : 'Unable to read native helper status')
+    }
+  }
+
+  async function handlePromptAccessibilityPermission() {
+    setLastError(null)
+
+    try {
+      const nextNativeStatus = await desktopBridge.promptAccessibilityPermission()
+      startTransition(() => {
+        setNativeStatus(nextNativeStatus)
+        if (nextNativeStatus.focusedAppName) {
+          setFocusedAppName(nextNativeStatus.focusedAppName)
+        }
+      })
+    } catch (error) {
+      setLastError(
+        error instanceof Error ? error.message : 'Unable to prompt for accessibility permission',
+      )
+    }
   }
 
   async function handleSubmit() {
@@ -152,6 +193,13 @@ function App() {
   const serverLabel = voiceRuntime
     ? `${voiceRuntime.provider} via ${voiceRuntime.transport.toUpperCase()}`
     : 'voice runtime unavailable'
+  const nativeLabel = nativeStatus
+    ? nativeStatus.accessibilityTrusted
+      ? 'Accessibility ready'
+      : nativeStatus.helperAvailable
+        ? 'Accessibility needed'
+        : 'Native helper unavailable'
+    : 'Checking native bridge'
 
   if (surface === 'floating') {
     return (
@@ -190,6 +238,17 @@ function App() {
             <span className="status-pill">
               {runtimeInfo ? `${runtimeInfo.appName} ${runtimeInfo.appVersion}` : 'Booting shell'}
             </span>
+            <span
+              className={`status-pill ${
+                nativeStatus?.accessibilityTrusted
+                  ? 'success'
+                  : nativeStatus?.helperAvailable
+                    ? 'muted'
+                    : 'danger'
+              }`}
+            >
+              {nativeLabel}
+            </span>
             <span className="status-pill muted">
               {runtimeInfo ? runtimeInfo.platform : 'unknown platform'}
             </span>
@@ -204,6 +263,7 @@ function App() {
           transcriptHint={transcriptHint}
           targetLanguage={targetLanguage}
           serverLabel={serverLabel}
+          nativeStatus={nativeStatus}
           isRecording={recorder.isRecording}
           durationMs={recorder.durationMs}
           hasRecordedAudio={Boolean(recorder.audioBlob)}
@@ -216,6 +276,8 @@ function App() {
           onTranscriptHintChange={setTranscriptHint}
           onTargetLanguageChange={setTargetLanguage}
           onReadClipboard={handleReadClipboard}
+          onRefreshNativeStatus={handleRefreshNativeStatus}
+          onPromptAccessibilityPermission={handlePromptAccessibilityPermission}
           onStartRecording={recorder.startRecording}
           onStopRecording={recorder.stopRecording}
           onClearAudio={recorder.clearRecording}

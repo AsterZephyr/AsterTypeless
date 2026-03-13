@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 import type {
   DesktopHistoryItem,
+  DesktopNativeStatus,
   DesktopRuntimeInfo,
   DesktopVoiceFlowRequest,
   VoiceFlowResponse,
@@ -14,6 +15,12 @@ const desktopApi = {
   },
   getVoiceRuntime() {
     return ipcRenderer.invoke('desktop:voice-flow:get-runtime') as Promise<VoiceGatewayRuntime>
+  },
+  getNativeStatus() {
+    return ipcRenderer.invoke('desktop:native:get-status') as Promise<DesktopNativeStatus>
+  },
+  promptAccessibilityPermission() {
+    return ipcRenderer.invoke('desktop:native:prompt-accessibility') as Promise<DesktopNativeStatus>
   },
   runVoiceFlow(input: DesktopVoiceFlowRequest) {
     return ipcRenderer.invoke('desktop:voice-flow:run', input) as Promise<VoiceFlowResponse>

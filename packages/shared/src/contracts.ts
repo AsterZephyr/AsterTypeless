@@ -58,6 +58,16 @@ export const DesktopRuntimeInfoSchema = z.object({
   userDataPath: z.string(),
 })
 
+export const DesktopNativeStatusSchema = z.object({
+  helperAvailable: z.boolean(),
+  helperPath: z.string().default(''),
+  accessibilityTrusted: z.boolean(),
+  accessibilityPermissionPrompted: z.boolean().default(false),
+  focusedAppName: z.string().default(''),
+  focusedBundleId: z.string().default(''),
+  lastError: z.string().default(''),
+})
+
 export const HealthResponseSchema = z.object({
   ok: z.literal(true),
   provider: z.string(),
@@ -90,6 +100,7 @@ export type VoiceRequestMetadata = z.infer<typeof VoiceRequestMetadataSchema>
 export type VoiceFlowResponse = z.infer<typeof VoiceFlowResponseSchema>
 export type DesktopHistoryItem = z.infer<typeof DesktopHistoryItemSchema>
 export type DesktopRuntimeInfo = z.infer<typeof DesktopRuntimeInfoSchema>
+export type DesktopNativeStatus = z.infer<typeof DesktopNativeStatusSchema>
 export type HealthResponse = z.infer<typeof HealthResponseSchema>
 export type VoiceGatewayRuntime = z.infer<typeof VoiceGatewayRuntimeSchema>
 export type DesktopVoiceFlowRequest = z.infer<typeof DesktopVoiceFlowRequestSchema>

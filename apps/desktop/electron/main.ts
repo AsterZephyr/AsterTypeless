@@ -6,11 +6,13 @@ import path from 'node:path'
 
 import {
   DesktopHistoryItemSchema,
+  DesktopNativeStatusSchema,
   DesktopRuntimeInfoSchema,
   DesktopVoiceFlowRequestSchema,
   type DesktopHistoryItem,
 } from '@typeless-open/shared'
 import { VoiceFlowService, resolveVoiceGatewayConfig } from '@typeless-open/voice-flow'
+import { NativeHelperBridge } from './native-helper'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -24,6 +26,7 @@ const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 let mainWindow: BrowserWindow | null = null
 let floatingWindow: BrowserWindow | null = null
 let historyDb: DatabaseSync | null = null
+let nativeHelperBridge: NativeHelperBridge | null = null
 const globalShortcutAccelerator = process.env.GLOBAL_SHORTCUT || 'CommandOrControl+Shift+;'
 
 nativeTheme.themeSource = 'light'
@@ -358,6 +361,7 @@ function registerGlobalShortcuts() {
 }
 
 app.whenReady().then(() => {
+  nativeHelperBridge = new NativeHelperBridge(process.env.APP_ROOT, app.getPath('userData'))
   createMainWindow()
   createFloatingWindow()
   registerGlobalShortcuts()
@@ -372,6 +376,36 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('desktop:voice-flow:get-runtime', async () => {
     return createVoiceFlowService().getRuntime()
+  })
+  ipcMain.handle('desktop:native:get-status', async () => {
+    if (!nativeHelperBridge) {
+      return DesktopNativeStatusSchema.parse({
+        helperAvailable: false,
+        helperPath: '',
+        accessibilityTrusted: false,
+        accessibilityPermissionPrompted: false,
+        focusedAppName: '',
+        focusedBundleId: '',
+        lastError: '',
+      })
+    }
+
+    return nativeHelperBridge.getStatus()
+  })
+  ipcMain.handle('desktop:native:prompt-accessibility', async () => {
+    if (!nativeHelperBridge) {
+      return DesktopNativeStatusSchema.parse({
+        helperAvailable: false,
+        helperPath: '',
+        accessibilityTrusted: false,
+        accessibilityPermissionPrompted: false,
+        focusedAppName: '',
+        focusedBundleId: '',
+        lastError: '',
+      })
+    }
+
+    return nativeHelperBridge.promptAccessibilityPermission()
   })
   ipcMain.handle('desktop:voice-flow:run', async (_event, rawInput: unknown) => {
     const input = DesktopVoiceFlowRequestSchema.parse(rawInput)

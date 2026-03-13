@@ -2,6 +2,7 @@
 
 import type {
   DesktopHistoryItem,
+  DesktopNativeStatus,
   DesktopRuntimeInfo,
   DesktopVoiceFlowRequest,
   VoiceFlowResponse,
@@ -11,6 +12,8 @@ import type {
 interface DesktopBridge {
   getRuntimeInfo: () => Promise<DesktopRuntimeInfo>
   getVoiceRuntime: () => Promise<VoiceGatewayRuntime>
+  getNativeStatus: () => Promise<DesktopNativeStatus>
+  promptAccessibilityPermission: () => Promise<DesktopNativeStatus>
   runVoiceFlow: (input: DesktopVoiceFlowRequest) => Promise<VoiceFlowResponse>
   showMainWindow: () => Promise<boolean>
   toggleFloatingWindow: () => Promise<boolean>

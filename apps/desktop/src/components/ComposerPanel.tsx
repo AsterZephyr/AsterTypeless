@@ -1,4 +1,4 @@
-import type { VoiceMode } from '@typeless-open/shared'
+import type { DesktopNativeStatus, VoiceMode } from '@typeless-open/shared'
 
 type ComposerPanelProps = {
   mode: VoiceMode
@@ -8,6 +8,7 @@ type ComposerPanelProps = {
   transcriptHint: string
   targetLanguage: string
   serverLabel: string
+  nativeStatus: DesktopNativeStatus | null
   isRecording: boolean
   durationMs: number
   hasRecordedAudio: boolean
@@ -20,6 +21,8 @@ type ComposerPanelProps = {
   onTranscriptHintChange: (value: string) => void
   onTargetLanguageChange: (value: string) => void
   onReadClipboard: () => void
+  onRefreshNativeStatus: () => void
+  onPromptAccessibilityPermission: () => void
   onStartRecording: () => void
   onStopRecording: () => void
   onClearAudio: () => void
@@ -63,6 +66,7 @@ export function ComposerPanel({
   transcriptHint,
   targetLanguage,
   serverLabel,
+  nativeStatus,
   isRecording,
   durationMs,
   hasRecordedAudio,
@@ -75,6 +79,8 @@ export function ComposerPanel({
   onTranscriptHintChange,
   onTargetLanguageChange,
   onReadClipboard,
+  onRefreshNativeStatus,
+  onPromptAccessibilityPermission,
   onStartRecording,
   onStopRecording,
   onClearAudio,
@@ -82,6 +88,30 @@ export function ComposerPanel({
 }: ComposerPanelProps) {
   const copy = modeCopy[mode]
   const modes = Object.entries(modeCopy) as [VoiceMode, (typeof modeCopy)[VoiceMode]][]
+  const nativeStatusClassName = nativeStatus
+    ? nativeStatus.accessibilityTrusted
+      ? 'success'
+      : nativeStatus.helperAvailable
+        ? 'muted'
+        : 'danger'
+    : 'muted'
+  const nativeError = nativeStatus?.lastError.trim() ?? ''
+  const nativeSummary = nativeStatus
+    ? nativeStatus.accessibilityTrusted
+      ? 'Accessibility connected'
+      : nativeStatus.helperAvailable
+        ? 'Accessibility permission required'
+        : 'Native helper unavailable'
+    : 'Checking native bridge'
+  const nativeDetail = nativeStatus
+    ? nativeStatus.focusedAppName
+      ? `Frontmost app: ${nativeStatus.focusedAppName}`
+      : nativeError
+        ? nativeError
+      : nativeStatus.helperAvailable
+        ? 'Grant accessibility access so the app can inspect the focused window.'
+        : 'The native helper only builds on macOS with Swift tools available.'
+    : 'The desktop shell is checking the native bridge now.'
 
   return (
     <section className="composer-panel">
@@ -96,6 +126,33 @@ export function ComposerPanel({
           <p className="hero-note">
             Local history stays on device. Proxy mode only forwards the current request.
           </p>
+        </div>
+      </div>
+
+      <div className="native-status-card">
+        <div className="native-status-copy">
+          <div className="native-status-header">
+            <p className="field-label">Native bridge</p>
+            <span className={`status-pill ${nativeStatusClassName}`}>{nativeSummary}</span>
+          </div>
+          <p className="native-status-detail">{nativeDetail}</p>
+          <p className="field-hint">
+            This is the path toward Typeless-style focus awareness, selection capture, and direct
+            insertion back into the current app.
+          </p>
+        </div>
+        <div className="native-status-actions">
+          <button className="ghost-button" type="button" onClick={onRefreshNativeStatus}>
+            Refresh native status
+          </button>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={onPromptAccessibilityPermission}
+            disabled={nativeStatus?.accessibilityTrusted}
+          >
+            {nativeStatus?.accessibilityTrusted ? 'Accessibility enabled' : 'Enable accessibility'}
+          </button>
         </div>
       </div>
 

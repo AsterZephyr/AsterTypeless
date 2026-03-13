@@ -180,6 +180,45 @@ h2 {
   gap: 16px;
 }
 
+.native-status-card {
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 238, 228, 0.94)),
+    var(--panel);
+  padding: 18px 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.native-status-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.native-status-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.native-status-detail {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+.native-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .mode-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -380,6 +419,12 @@ button:focus-visible {
   background: rgba(255, 255, 255, 0.64);
   border-color: var(--border);
   color: var(--ink);
+}
+
+.ghost-button:disabled {
+  opacity: 0.7;
+  cursor: default;
+  transform: none;
 }
 
 .result-card {
@@ -617,6 +662,7 @@ button:focus-visible {
   }
 
   .hero-card,
+  .native-status-card,
   .transport-card,
   .panel-header,
   .workspace-header,
@@ -637,6 +683,7 @@ button:focus-visible {
   }
 
   .floating-header,
+  .native-status-actions,
   .floating-actions {
     flex-direction: column;
     align-items: stretch;
