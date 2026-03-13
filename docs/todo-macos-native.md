@@ -14,6 +14,7 @@
 - 已补 `Info.plist` 骨架
 - 已补 `.entitlements` 骨架
 - 已补 `project.yml` 和生成脚本
+- 已补 `MenuBarExtra + 单主窗 + Settings` 的 scene 结构
 - 配置正式 App Icon、bundle identifier、权限文案
 - Debug 构建已通过
 - 跑通 Archive 和后续发布链路
