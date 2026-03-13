@@ -240,6 +240,44 @@ struct InsertionCompatibilityOverview {
     )
 }
 
+enum ReadinessLevel: String, Codable {
+    case ready
+    case attention
+    case blocked
+
+    var title: String {
+        switch self {
+        case .ready:
+            return "已就绪"
+        case .attention:
+            return "待完善"
+        case .blocked:
+            return "阻塞"
+        }
+    }
+}
+
+struct ReadinessItem: Identifiable, Codable {
+    var id: UUID = UUID()
+    var title: String
+    var detail: String
+    var level: ReadinessLevel
+}
+
+struct ReadinessReport {
+    var headline: String
+    var summary: String
+    var items: [ReadinessItem]
+    var overallLevel: ReadinessLevel
+
+    static let placeholder = ReadinessReport(
+        headline: "正在检查当前运行状态",
+        summary: "AsterTypeless 会在这里汇总权限、provider 和跨 App 能力的就绪度。",
+        items: [],
+        overallLevel: .attention
+    )
+}
+
 struct DictationSession: Codable, Identifiable {
     var id: UUID = UUID()
     var createdAt: Date

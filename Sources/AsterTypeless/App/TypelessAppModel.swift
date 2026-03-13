@@ -13,6 +13,7 @@ final class TypelessAppModel: ObservableObject {
     @Published var providerRuntime = ProviderRuntimeStatus.mockOnly
     @Published var insertionAttempts: [InsertionAttempt] = []
     @Published var insertionOverview = InsertionCompatibilityOverview.empty
+    @Published var readinessReport = ReadinessReport.placeholder
 
     private let transcriptStore = TranscriptStore()
     private let insertionCompatibilityStore = InsertionCompatibilityStore()
@@ -38,6 +39,7 @@ final class TypelessAppModel: ObservableObject {
         permissions.inputMonitoring = hotkeyBridge.inputMonitoringPermission(prompt: promptInputMonitoring)
         audioMonitor.refreshPermissionState()
         permissions.microphone = audioMonitor.microphonePermission
+        refreshReadiness()
 
         if permissions.inputMonitoring == .granted {
             startHotkeyMonitoringIfPossible()
@@ -193,6 +195,7 @@ final class TypelessAppModel: ObservableObject {
     func refreshRuntimeConfiguration() {
         providerRuntime = runtimeConfigService.loadStatus()
         settings.providerDisplayName = "\(providerRuntime.preferredProvider) · \(providerRuntime.executionMode.title)"
+        refreshReadiness()
     }
 
     private func refreshQuickBarBindings() {
@@ -388,6 +391,8 @@ final class TypelessAppModel: ObservableObject {
             clipboardFallbacks: clipboardFallbacks,
             failures: failures
         )
+
+        refreshReadiness()
     }
 
     private func inferredDraft() -> String {
@@ -396,6 +401,83 @@ final class TypelessAppModel: ObservableObject {
         }
 
         return "请根据当前上下文生成一版更自然、更适合发送的文本。"
+    }
+
+    private func refreshReadiness() {
+        let permissionItems = [
+            readinessItem(
+                title: "辅助功能",
+                detail: permissions.accessibility == .granted ? "当前可以读取选中文本并尝试直接写回输入框。" : "未开启时无法稳定读取焦点输入框，也无法做 Typeless 式直写。",
+                state: permissions.accessibility
+            ),
+            readinessItem(
+                title: "麦克风",
+                detail: permissions.microphone == .granted ? "录音和音频抖动反馈都可正常工作。" : "未开启时只能停留在浮窗原型，不能真正口述。",
+                state: permissions.microphone
+            ),
+            readinessItem(
+                title: "Fn 监听",
+                detail: permissions.inputMonitoring == .granted ? "可以继续打磨 tap / hold / double tap 语义。" : "未开启时只能依赖回退快捷键，Fn 原生体验不会生效。",
+                state: permissions.inputMonitoring
+            ),
+        ]
+
+        let providerItem = ReadinessItem(
+            title: "Provider 链路",
+            detail: providerRuntime.executionMode.detail,
+            level: providerRuntime.executionMode == .providerReady ? .ready : .attention
+        )
+
+        let insertionItem = ReadinessItem(
+            title: "跨 App 写回",
+            detail: insertionOverview.testedApps == 0
+                ? "还没有真实兼容性样本，接下来要开始验证 Cursor、VS Code、Slack、Notion 和浏览器输入框。"
+                : "已积累 \(insertionOverview.testedApps) 个 App 的样本，其中 \(insertionOverview.directWrites) 次 AX 直写，\(insertionOverview.clipboardFallbacks) 次剪贴板回退。",
+            level: insertionOverview.testedApps == 0 ? .attention : (insertionOverview.failures == 0 ? .ready : .attention)
+        )
+
+        let items = permissionItems + [providerItem, insertionItem]
+        let blockedCount = items.filter { $0.level == .blocked }.count
+        let attentionCount = items.filter { $0.level == .attention }.count
+
+        let overallLevel: ReadinessLevel
+        let headline: String
+        let summary: String
+
+        if blockedCount > 0 {
+            overallLevel = .blocked
+            headline = "离 Typeless 体验还差关键权限"
+            summary = "先把权限和系统桥接打通，浮窗、Fn 和跨 App 直写才会真正像一个 macOS 输入工具。"
+        } else if attentionCount > 0 {
+            overallLevel = .attention
+            headline = "主链路已可演进，但还有待补齐"
+            summary = "原生交互骨架已经在路上，下一步重点是补 provider 联调和兼容性样本，而不是继续堆大页面。"
+        } else {
+            overallLevel = .ready
+            headline = "当前已经具备完整联调前提"
+            summary = "权限、provider 和跨 App 样本都已具备，接下来可以直接打通真实语音链路。"
+        }
+
+        readinessReport = ReadinessReport(
+            headline: headline,
+            summary: summary,
+            items: items,
+            overallLevel: overallLevel
+        )
+    }
+
+    private func readinessItem(title: String, detail: String, state: PermissionState) -> ReadinessItem {
+        let level: ReadinessLevel
+        switch state {
+        case .granted:
+            level = .ready
+        case .required:
+            level = .blocked
+        case .unavailable:
+            level = .attention
+        }
+
+        return ReadinessItem(title: title, detail: detail, level: level)
     }
 
     private var cancellables: Set<AnyCancellable> = []

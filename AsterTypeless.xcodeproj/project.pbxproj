@@ -16,6 +16,7 @@
 		5C991554FFF2E30FBABB06A5 /* HotkeyBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A335BA5E01388AF947CD101 /* HotkeyBridge.swift */; };
 		7843888A8CE65FBABB601EB4 /* FloatingBarWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EE51ED17F52EA893FAAAC1F /* FloatingBarWindowManager.swift */; };
 		7FD79375165137FD2FB6C0D0 /* DashboardCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = F98B4F6E54A115184E3A6215 /* DashboardCards.swift */; };
+		8088DE34C2718C3F0292759F /* ReadinessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58998E7BCB1803DF74F4B63B /* ReadinessCard.swift */; };
 		8C66399758678834025233A7 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A21A5054947174236DE1BA /* AppTheme.swift */; };
 		8C7931E7980AE5B1755F9721 /* InsertionCompatibilityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 584274AFFE82B4111F0BF3E1 /* InsertionCompatibilityStore.swift */; };
 		98DFA6006020C0760672CFB9 /* AsterTypelessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 877B19E49DD1C651B7E12897 /* AsterTypelessApp.swift */; };
@@ -33,6 +34,7 @@
 		0EE51ED17F52EA893FAAAC1F /* FloatingBarWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingBarWindowManager.swift; sourceTree = "<group>"; };
 		4E57B3142E0BC8FBB29A3F5F /* AccessibilityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityBridge.swift; sourceTree = "<group>"; };
 		584274AFFE82B4111F0BF3E1 /* InsertionCompatibilityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsertionCompatibilityStore.swift; sourceTree = "<group>"; };
+		58998E7BCB1803DF74F4B63B /* ReadinessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessCard.swift; sourceTree = "<group>"; };
 		5E006B1620B4F22747E5E989 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		651B5574B8EDD5286F40DB25 /* FloatingBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingBarView.swift; sourceTree = "<group>"; };
 		86A6631D8F7944AC7AA418F0 /* AudioInputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioInputMonitor.swift; sourceTree = "<group>"; };
@@ -77,6 +79,7 @@
 			children = (
 				F98B4F6E54A115184E3A6215 /* DashboardCards.swift */,
 				5E006B1620B4F22747E5E989 /* HomeView.swift */,
+				58998E7BCB1803DF74F4B63B /* ReadinessCard.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -225,6 +228,7 @@
 				5C991554FFF2E30FBABB06A5 /* HotkeyBridge.swift in Sources */,
 				8C7931E7980AE5B1755F9721 /* InsertionCompatibilityStore.swift in Sources */,
 				C3CC0F3241A36EB6721E9362 /* QuickActionEngine.swift in Sources */,
+				8088DE34C2718C3F0292759F /* ReadinessCard.swift in Sources */,
 				070A0B87069F3A0C849D9E94 /* RuntimeConfigService.swift in Sources */,
 				258F71B73BF583999A7DD2C8 /* SettingsView.swift in Sources */,
 				570911DC84B7D9840A4FEFF5 /* TranscriptStore.swift in Sources */,

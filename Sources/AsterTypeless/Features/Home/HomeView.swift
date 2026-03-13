@@ -7,6 +7,7 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 header
+                ReadinessCard(report: model.readinessReport)
 
                 HStack(alignment: .top, spacing: 16) {
                     SettingsSummaryCard(model: model)
@@ -75,4 +76,3 @@ struct HomeView: View {
         }
     }
 }
-

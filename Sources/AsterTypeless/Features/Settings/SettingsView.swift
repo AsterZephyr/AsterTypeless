@@ -73,6 +73,30 @@ struct SettingsView: View {
                     Text(model.permissions.inputMonitoring.label)
                 }
             }
+
+            Section("主链路体检") {
+                HStack {
+                    Text("当前结论")
+                    Spacer()
+                    Text(model.readinessReport.headline)
+                        .multilineTextAlignment(.trailing)
+                }
+
+                ForEach(model.readinessReport.items) { item in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(item.title)
+                            Spacer()
+                            Text(item.level.title)
+                                .foregroundStyle(color(for: item.level))
+                        }
+                        Text(item.detail)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
         }
         .formStyle(.grouped)
         .padding(20)
@@ -86,6 +110,17 @@ struct SettingsView: View {
             Spacer()
             Text(configured ? "已配置" : "未配置")
                 .foregroundStyle(configured ? AppTheme.success : AppTheme.warning)
+        }
+    }
+
+    private func color(for level: ReadinessLevel) -> Color {
+        switch level {
+        case .ready:
+            return AppTheme.success
+        case .attention:
+            return AppTheme.warning
+        case .blocked:
+            return AppTheme.accent
         }
     }
 }
