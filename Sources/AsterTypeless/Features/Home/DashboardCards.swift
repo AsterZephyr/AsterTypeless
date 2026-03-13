@@ -125,7 +125,7 @@ struct PersonaReportCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("个人画像")
+            Text("Personalization")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(AppTheme.accent)
             Text(report.title)
@@ -134,6 +134,20 @@ struct PersonaReportCard: View {
             Text(report.summary)
                 .font(.system(size: 14))
                 .foregroundStyle(AppTheme.muted)
+
+            HStack(spacing: 12) {
+                PersonaSummaryTile(title: "当前状态", value: report.personalizationState)
+                PersonaSummaryTile(title: "推荐语气", value: report.tonePreset)
+            }
+
+            if !report.focusApps.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("高频场景")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(AppTheme.muted)
+                    FlowTagCloud(tags: report.focusApps)
+                }
+            }
 
             FlowTagCloud(tags: report.traits)
 
@@ -147,6 +161,25 @@ struct PersonaReportCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface()
+    }
+}
+
+private struct PersonaSummaryTile: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(AppTheme.muted)
+            Text(value)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AppTheme.ink)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color.white.opacity(0.56), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 

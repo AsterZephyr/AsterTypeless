@@ -403,10 +403,22 @@ final class TypelessAppModel: ObservableObject {
             .sorted { $0.value.count > $1.value.count }
             .prefix(3)
             .map(\.key)
+        let tonePreset: String
+
+        if editedCount > acceptedCount {
+            tonePreset = "Detailed"
+        } else if overview.averageWordsPerMinute > 110 {
+            tonePreset = "Concise"
+        } else {
+            tonePreset = "Balanced"
+        }
 
         personaReport = PersonaReport(
-            title: "你的口述画像",
+            title: "你的 Personalization 摘要",
             summary: "你更偏向把口语先快速说出来，再让系统整理成更克制、更像文字的输出，常见场景集中在 \(dominantApps.joined(separator: "、"))。",
+            personalizationState: sessions.isEmpty ? "等待真实样本" : "本地画像已启用",
+            tonePreset: tonePreset,
+            focusApps: dominantApps,
             traits: [
                 acceptedCount >= editedCount ? "偏好一次成稿" : "偏好再润色",
                 overview.averageWordsPerMinute > 110 ? "语速较快" : "语速平稳",

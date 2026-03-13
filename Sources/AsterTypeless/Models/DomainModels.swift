@@ -303,12 +303,18 @@ struct DictationOverview {
 struct PersonaReport {
     var title: String
     var summary: String
+    var personalizationState: String
+    var tonePreset: String
+    var focusApps: [String]
     var traits: [String]
     var suggestions: [String]
 
     static let placeholder = PersonaReport(
         title: "尚未生成画像",
         summary: "当你开始积累真实口述记录后，这里会逐步形成你的表达习惯与提效建议。",
+        personalizationState: "等待样本",
+        tonePreset: "Balanced",
+        focusApps: [],
         traits: ["等待数据"],
         suggestions: ["先开始几次真实口述，后续再生成长期画像。"]
     )
