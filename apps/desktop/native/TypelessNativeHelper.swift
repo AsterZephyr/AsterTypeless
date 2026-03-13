@@ -138,7 +138,7 @@ func activatePreferredApp(bundleId: String) -> (name: String, bundleId: String) 
     }
 
     let runningApp = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first
-    runningApp?.activate(options: [.activateIgnoringOtherApps])
+    _ = runningApp?.activate(options: [])
     usleep(220_000)
     return frontmostAppInfo()
 }

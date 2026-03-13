@@ -93,11 +93,11 @@ UPSTREAM_API_KEY=your-token
 
 ### macOS native helper
 
-- 当前已经接通一个 Swift helper 骨架，用来读取辅助功能权限状态、当前前台 App、选中文本，并尝试把结果写回目标 App
+- 当前已经接通原生 helper，用来读取辅助功能权限状态、当前前台 App、选中文本，并尝试把结果写回目标 App
 - 界面里会显示 native bridge 状态，并能触发一次辅助功能权限申请
 - “Use selection” 会优先尝试原生选中内容读取，失败时回落到剪贴板
 - “Insert into app” 会优先尝试直接修改焦点输入框的值，失败时回落到粘贴板粘贴
-- 如果本机的 Swift toolchain 和 Command Line Tools / Xcode SDK 不匹配，helper 会降级为 unavailable，并把原因回显到界面
+- 构建时会优先尝试 Swift helper；如果本机的 Swift toolchain 和 Command Line Tools / Xcode SDK 不匹配，会自动回落到 Objective-C helper
 - 这一步还没有做完跨所有 App 的稳定兼容性验证
 
 ## 上游接口契约

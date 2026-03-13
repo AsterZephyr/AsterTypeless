@@ -13,6 +13,19 @@ import {
 const execFileAsync = promisify(execFile)
 
 type NativeHelperCommand = 'status' | 'prompt-accessibility' | 'read-selection' | 'insert-text'
+type NativeHelperStrategy = 'swift' | 'objc'
+
+interface NativeHelperBuildState {
+  strategy: NativeHelperStrategy
+  sourceMtimes: Partial<Record<NativeHelperStrategy, number>>
+}
+
+interface NativeHelperBuildTarget {
+  strategy: NativeHelperStrategy
+  sourcePath: string
+  compileCommand: string
+  compileArgs: string[]
+}
 
 export class NativeHelperBridge {
   private readonly appRoot: string
@@ -69,8 +82,54 @@ export class NativeHelperBridge {
     return path.join(this.appRoot, 'native', 'TypelessNativeHelper.swift')
   }
 
+  private getObjcSourcePath() {
+    return path.join(this.appRoot, 'native', 'TypelessNativeHelper.m')
+  }
+
   private getBinaryPath() {
     return path.join(this.userDataPath, 'native', 'typeless-native-helper')
+  }
+
+  private getBuildStatePath() {
+    return path.join(this.userDataPath, 'native', 'typeless-native-helper.build.json')
+  }
+
+  private getBuildTargets(binaryPath: string): NativeHelperBuildTarget[] {
+    const targets: NativeHelperBuildTarget[] = [
+      {
+        strategy: 'swift',
+        sourcePath: this.getSourcePath(),
+        compileCommand: '/usr/bin/xcrun',
+        compileArgs: [
+          'swiftc',
+          '-O',
+          '-framework',
+          'AppKit',
+          '-framework',
+          'ApplicationServices',
+          this.getSourcePath(),
+          '-o',
+          binaryPath,
+        ],
+      },
+      {
+        strategy: 'objc',
+        sourcePath: this.getObjcSourcePath(),
+        compileCommand: '/usr/bin/clang',
+        compileArgs: [
+          '-fobjc-arc',
+          '-framework',
+          'AppKit',
+          '-framework',
+          'ApplicationServices',
+          this.getObjcSourcePath(),
+          '-o',
+          binaryPath,
+        ],
+      },
+    ]
+
+    return targets.filter((target) => fsSync.existsSync(target.sourcePath))
   }
 
   private async run<T>(
@@ -98,17 +157,21 @@ export class NativeHelperBridge {
   }
 
   private async ensureBuilt() {
-    const sourcePath = this.getSourcePath()
     const binaryPath = this.getBinaryPath()
+    const buildStatePath = this.getBuildStatePath()
+    const buildTargets = this.getBuildTargets(binaryPath)
 
-    if (!fsSync.existsSync(sourcePath)) {
+    if (buildTargets.length === 0) {
       return null
     }
 
-    const sourceStat = fsSync.statSync(sourcePath)
     const binaryExists = fsSync.existsSync(binaryPath)
+    const currentSourceMtimes = Object.fromEntries(
+      buildTargets.map((target) => [target.strategy, fsSync.statSync(target.sourcePath).mtimeMs]),
+    ) as Partial<Record<NativeHelperStrategy, number>>
+    const previousBuildState = this.readBuildState(buildStatePath)
     const shouldCompile =
-      !binaryExists || fsSync.statSync(binaryPath).mtimeMs < sourceStat.mtimeMs
+      !binaryExists || !this.matchesBuildState(previousBuildState, currentSourceMtimes)
 
     if (!shouldCompile) {
       this.lastBuildError = ''
@@ -117,29 +180,65 @@ export class NativeHelperBridge {
 
     fsSync.mkdirSync(path.dirname(binaryPath), { recursive: true })
 
+    const buildErrors: string[] = []
+
+    for (const target of buildTargets) {
+      try {
+        await execFileAsync(target.compileCommand, target.compileArgs, {
+          timeout: 10_000,
+        })
+        this.writeBuildState(buildStatePath, {
+          strategy: target.strategy,
+          sourceMtimes: currentSourceMtimes,
+        })
+        this.lastBuildError = ''
+        return binaryPath
+      } catch (error) {
+        buildErrors.push(`${target.strategy}: ${this.normalizeError(error)}`)
+      }
+    }
+
+    this.lastBuildError = buildErrors.join(' | ')
+    return null
+  }
+
+  private lastBuildError = ''
+
+  private readBuildState(buildStatePath: string) {
+    if (!fsSync.existsSync(buildStatePath)) {
+      return null
+    }
+
     try {
-      await execFileAsync('/usr/bin/xcrun', [
-        'swiftc',
-        '-O',
-        '-framework',
-        'AppKit',
-        '-framework',
-        'ApplicationServices',
-        sourcePath,
-        '-o',
-        binaryPath,
-      ], {
-        timeout: 10_000,
-      })
-      this.lastBuildError = ''
-      return binaryPath
-    } catch (error) {
-      this.lastBuildError = this.normalizeError(error)
+      const raw = fsSync.readFileSync(buildStatePath, 'utf8')
+      const parsed = JSON.parse(raw) as NativeHelperBuildState
+
+      if (!parsed || typeof parsed !== 'object' || !parsed.sourceMtimes) {
+        return null
+      }
+
+      return parsed
+    } catch {
       return null
     }
   }
 
-  private lastBuildError = ''
+  private writeBuildState(buildStatePath: string, buildState: NativeHelperBuildState) {
+    fsSync.writeFileSync(buildStatePath, `${JSON.stringify(buildState, null, 2)}\n`, 'utf8')
+  }
+
+  private matchesBuildState(
+    buildState: NativeHelperBuildState | null,
+    currentSourceMtimes: Partial<Record<NativeHelperStrategy, number>>,
+  ) {
+    if (!buildState) {
+      return false
+    }
+
+    return (Object.entries(currentSourceMtimes) as Array<[NativeHelperStrategy, number]>).every(
+      ([strategy, mtimeMs]) => buildState.sourceMtimes[strategy] === mtimeMs,
+    )
+  }
 
   private fallbackStatus(helperAvailable: boolean, helperPath = '', lastError = '') {
     return DesktopNativeStatusSchema.parse({
@@ -186,6 +285,10 @@ export class NativeHelperBridge {
 
     if (combined.includes('this SDK is not supported by the compiler')) {
       return 'Swift toolchain does not match the installed macOS SDK. Open Xcode once or reinstall Command Line Tools.'
+    }
+
+    if (combined.includes("redefinition of module 'SwiftBridging'")) {
+      return 'Command Line Tools install is inconsistent and duplicates SwiftBridging module maps.'
     }
 
     const message = combined
