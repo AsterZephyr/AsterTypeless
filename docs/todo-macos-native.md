@@ -36,6 +36,7 @@
 
 ### P1 跨 App 能力
 
+- 本地 compatibility store 已接通，开始记录写回方式与成功率
 - 建立插入兼容矩阵
 - 优先验证 Cursor、VS Code、Slack、Notion、Chrome、Arc、JetBrains
 - 区分 AX 直接写回和剪贴板回退两条路径

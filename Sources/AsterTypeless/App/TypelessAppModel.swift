@@ -11,8 +11,11 @@ final class TypelessAppModel: ObservableObject {
     @Published var personaReport = PersonaReport.placeholder
     @Published var quickBar = QuickBarState()
     @Published var providerRuntime = ProviderRuntimeStatus.mockOnly
+    @Published var insertionAttempts: [InsertionAttempt] = []
+    @Published var insertionOverview = InsertionCompatibilityOverview.empty
 
     private let transcriptStore = TranscriptStore()
+    private let insertionCompatibilityStore = InsertionCompatibilityStore()
     private let runtimeConfigService = RuntimeConfigService()
     private let accessibilityBridge = AccessibilityBridge()
     private let hotkeyBridge = HotkeyBridge()
@@ -22,6 +25,7 @@ final class TypelessAppModel: ObservableObject {
     func bootstrap() {
         refreshRuntimeConfiguration()
         sessions = transcriptStore.loadSessions()
+        insertionAttempts = insertionCompatibilityStore.loadAttempts()
         recomputeDashboard()
         refreshPermissions()
         refreshQuickBarBindings()
@@ -129,10 +133,21 @@ final class TypelessAppModel: ObservableObject {
         quickBar.phase = .ready
         quickBar.statusText = "已生成结果，正在准备写回。"
 
-        _ = accessibilityBridge.insert(
+        let insertionResult = accessibilityBridge.insert(
             text: quickBar.generatedText,
             preferredBundleIdentifier: quickBar.targetBundleIdentifier
         )
+
+        let insertionAttempt = InsertionAttempt(
+            createdAt: .now,
+            appName: insertionResult.appName.isEmpty ? quickBar.targetAppName : insertionResult.appName,
+            bundleIdentifier: insertionResult.bundleIdentifier.isEmpty ? quickBar.targetBundleIdentifier : insertionResult.bundleIdentifier,
+            method: insertionResult.method,
+            success: insertionResult.success,
+            detail: insertionResult.detail
+        )
+        insertionCompatibilityStore.append(insertionAttempt)
+        insertionAttempts = insertionCompatibilityStore.loadAttempts()
 
         let session = DictationSession(
             createdAt: .now,
@@ -350,6 +365,19 @@ final class TypelessAppModel: ObservableObject {
                 "优先补实时音频反馈，让浮窗在说话时更有生命力。",
                 "把最近转录与反馈入口拆开，降低首页信息噪音。",
             ]
+        )
+
+        let testedApps = Set(insertionAttempts.map(\.bundleIdentifier).filter { !$0.isEmpty }).count
+        let directWrites = insertionAttempts.filter { $0.method == .accessibilityValue }.count
+        let clipboardFallbacks = insertionAttempts.filter { $0.method == .clipboardFallback }.count
+        let failures = insertionAttempts.filter { !$0.success }.count
+
+        insertionOverview = InsertionCompatibilityOverview(
+            testedApps: testedApps,
+            successfulWrites: insertionAttempts.filter(\.success).count,
+            directWrites: directWrites,
+            clipboardFallbacks: clipboardFallbacks,
+            failures: failures
         )
     }
 

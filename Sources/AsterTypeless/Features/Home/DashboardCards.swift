@@ -40,6 +40,13 @@ struct SettingsSummaryCard: View {
             }
 
             HStack {
+                StatusPill(title: "已测 \(model.insertionOverview.testedApps) 个 App", tint: AppTheme.muted)
+                StatusPill(title: "AX 直写 \(model.insertionOverview.directWrites)", tint: AppTheme.success)
+                StatusPill(title: "回退 \(model.insertionOverview.clipboardFallbacks)", tint: AppTheme.warning)
+                StatusPill(title: "失败 \(model.insertionOverview.failures)", tint: model.insertionOverview.failures > 0 ? AppTheme.warning : AppTheme.muted)
+            }
+
+            HStack {
                 Button("请求辅助功能权限") {
                     model.requestAccessibilityPermission()
                 }
@@ -170,6 +177,26 @@ struct FeedbackHubCard: View {
                 }
                 .padding(12)
                 .background(AppTheme.accentSoft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+
+            if let latestInsertion = model.insertionAttempts.first {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("最近一次写回")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(AppTheme.muted)
+                    HStack {
+                        StatusPill(title: latestInsertion.method.title, tint: latestInsertion.success ? AppTheme.success : AppTheme.warning)
+                        Text(latestInsertion.appName.isEmpty ? "未知 App" : latestInsertion.appName)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(AppTheme.ink)
+                    }
+                    Text(latestInsertion.detail)
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppTheme.muted)
+                        .lineLimit(2)
+                }
+                .padding(12)
+                .background(Color.white.opacity(0.56), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

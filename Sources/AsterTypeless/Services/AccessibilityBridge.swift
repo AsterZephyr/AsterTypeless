@@ -4,6 +4,14 @@ import Foundation
 
 @MainActor
 final class AccessibilityBridge {
+    struct InsertionResult {
+        var appName: String
+        var bundleIdentifier: String
+        var method: InsertionMethod
+        var success: Bool
+        var detail: String
+    }
+
     func accessibilityPermission(prompt: Bool) -> PermissionState {
         let options = ["AXTrustedCheckOptionPrompt": prompt] as CFDictionary
         return AXIsProcessTrustedWithOptions(options) ? .granted : .required
@@ -50,7 +58,7 @@ final class AccessibilityBridge {
         )
     }
 
-    func insert(text: String, preferredBundleIdentifier: String?) -> Bool {
+    func insert(text: String, preferredBundleIdentifier: String?) -> InsertionResult {
         if let preferredBundleIdentifier, !preferredBundleIdentifier.isEmpty {
             NSRunningApplication.runningApplications(withBundleIdentifier: preferredBundleIdentifier)
                 .first?
@@ -58,15 +66,45 @@ final class AccessibilityBridge {
             usleep(180_000)
         }
 
+        let target = frontmostAppInfo()
+
         guard accessibilityPermission(prompt: false) == .granted else {
-            return false
+            return InsertionResult(
+                appName: target.name,
+                bundleIdentifier: target.bundleIdentifier,
+                method: .unavailable,
+                success: false,
+                detail: "辅助功能权限未开启"
+            )
         }
 
         if let element = focusedElement(), insertViaValueAttribute(text: text, into: element) {
-            return true
+            return InsertionResult(
+                appName: target.name,
+                bundleIdentifier: target.bundleIdentifier,
+                method: .accessibilityValue,
+                success: true,
+                detail: "通过 AXValue 直接写回"
+            )
         }
 
-        return pasteViaClipboard(text: text)
+        if pasteViaClipboard(text: text) {
+            return InsertionResult(
+                appName: target.name,
+                bundleIdentifier: target.bundleIdentifier,
+                method: .clipboardFallback,
+                success: true,
+                detail: "AX 直写失败，已回退到剪贴板粘贴"
+            )
+        }
+
+        return InsertionResult(
+            appName: target.name,
+            bundleIdentifier: target.bundleIdentifier,
+            method: .failed,
+            success: false,
+            detail: "AX 与剪贴板两条路径都未成功"
+        )
     }
 
     private func frontmostAppInfo() -> (name: String, bundleIdentifier: String) {

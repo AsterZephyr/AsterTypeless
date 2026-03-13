@@ -194,6 +194,52 @@ struct SelectionContext {
     var capturedAt: Date = .now
 }
 
+enum InsertionMethod: String, Codable {
+    case accessibilityValue
+    case clipboardFallback
+    case failed
+    case unavailable
+
+    var title: String {
+        switch self {
+        case .accessibilityValue:
+            return "AX 直写"
+        case .clipboardFallback:
+            return "剪贴板回退"
+        case .failed:
+            return "写回失败"
+        case .unavailable:
+            return "权限缺失"
+        }
+    }
+}
+
+struct InsertionAttempt: Codable, Identifiable {
+    var id: UUID = UUID()
+    var createdAt: Date
+    var appName: String
+    var bundleIdentifier: String
+    var method: InsertionMethod
+    var success: Bool
+    var detail: String
+}
+
+struct InsertionCompatibilityOverview {
+    var testedApps: Int
+    var successfulWrites: Int
+    var directWrites: Int
+    var clipboardFallbacks: Int
+    var failures: Int
+
+    static let empty = InsertionCompatibilityOverview(
+        testedApps: 0,
+        successfulWrites: 0,
+        directWrites: 0,
+        clipboardFallbacks: 0,
+        failures: 0
+    )
+}
+
 struct DictationSession: Codable, Identifiable {
     var id: UUID = UUID()
     var createdAt: Date
