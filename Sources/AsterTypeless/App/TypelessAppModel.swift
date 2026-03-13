@@ -17,6 +17,7 @@ final class TypelessAppModel: ObservableObject {
     private let transcriptStore = TranscriptStore()
     private let insertionCompatibilityStore = InsertionCompatibilityStore()
     private let runtimeConfigService = RuntimeConfigService()
+    private let quickActionEngine = QuickActionEngine()
     private let accessibilityBridge = AccessibilityBridge()
     private let hotkeyBridge = HotkeyBridge()
     private let audioMonitor = AudioInputMonitor()
@@ -57,6 +58,7 @@ final class TypelessAppModel: ObservableObject {
         quickBar.selectedContextPreview = selection.selectedText.isEmpty ? selection.surroundingText : selection.selectedText
         quickBar.transcriptDraft = captureMode == .holdToTalk ? "" : selection.selectedText
         quickBar.generatedText = ""
+        quickBar.generatedSourceLabel = ""
         quickBar.hasDetectedSpeech = false
         quickBar.capturedDuration = 0
         quickBar.holdDuration = 0
@@ -129,9 +131,16 @@ final class TypelessAppModel: ObservableObject {
             quickBar.transcriptDraft = inferredDraft()
         }
 
-        quickBar.generatedText = generateOutput()
+        let execution = quickActionEngine.execute(
+            mode: quickBar.mode,
+            draft: quickBar.transcriptDraft,
+            settings: settings,
+            providerRuntime: providerRuntime
+        )
+        quickBar.generatedText = execution.text
+        quickBar.generatedSourceLabel = execution.source.title
         quickBar.phase = .ready
-        quickBar.statusText = "已生成结果，正在准备写回。"
+        quickBar.statusText = execution.source.detail
 
         let insertionResult = accessibilityBridge.insert(
             text: quickBar.generatedText,
@@ -387,21 +396,6 @@ final class TypelessAppModel: ObservableObject {
         }
 
         return "请根据当前上下文生成一版更自然、更适合发送的文本。"
-    }
-
-    private func generateOutput() -> String {
-        let base = quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        switch quickBar.mode {
-        case .dictate:
-            return base.isEmpty ? "The quick dictation result will appear here." : base
-        case .rewrite:
-            return "把这段内容整理得更利落一些：\(base)"
-        case .translate:
-            return "Translate to \(settings.outputLanguage): \(base)"
-        case .ask:
-            return "基于当前上下文，建议先从目标输入框、权限状态和写回链路这三处开始排查。"
-        }
     }
 
     private var cancellables: Set<AnyCancellable> = []

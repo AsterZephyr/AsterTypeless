@@ -113,7 +113,7 @@ struct FloatingBarView: View {
 
             if !model.quickBar.generatedText.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("生成结果")
+                    Text(model.quickBar.generatedSourceLabel.isEmpty ? "生成结果" : "生成结果 · \(model.quickBar.generatedSourceLabel)")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(AppTheme.success)
                     Text(model.quickBar.generatedText)
