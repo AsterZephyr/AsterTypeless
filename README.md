@@ -1,190 +1,99 @@
-# Typeless Open Clean Room
+# TypelessMac
 
-一个开源版 Typeless MVP 骨架，目标是先把“桌面端语音输入 + 本地内嵌 provider / 自接 API”这条主链路搭起来，再逐步补全选中文本改写、上下文感知和原生输入能力。
+一个只面向 macOS 的 Typeless 开源版骨架。
 
-## 当前能力
+这次重构已经把之前的 Electron / React / Node 运行时全部移除，仓库现在只保留：
 
-- Electron + React + Vite 桌面端壳子
-- 更紧凑的 macOS 工具窗口式 UI
-- 麦克风录音和本地音频缓存
-- 本地历史记录持久化（SQLite）
-- Electron IPC 直连 voice flow
-- 全局快捷键唤起的浮层输入条
-- macOS native helper 状态探测骨架
-- 原生选中内容读取，失败时回落到剪贴板
-- 原生文本写回，失败时回落到粘贴板粘贴
-- 可切换 `mock` / `proxy` provider
-- 标准化的 `voice_flow` 请求与响应契约
+- `SwiftUI`：首页、设置页、浮动输入条
+- `AppKit / Accessibility / CoreGraphics`：全局触发、权限、焦点输入框读取与写回
+- `本地持久化`：先用 JSON store 承接首页统计与最近转录
+- `研究文档`：保留 clean-room 研究和 UX 审计，方便后续继续演进
 
-## Monorepo 结构
+## 当前方向
+
+项目现在不再做“网页壳桌面端”，而是直接按原生 macOS 工具来组织：
+
+- 首页是概览 Hub，不承担高频输入动作
+- 高频输入交给小浮窗
+- 浮窗要能显示说话时的实时状态
+- 目标体验是 `Fn` 唤起、说完即写回当前输入框
+
+## 目录结构
 
 ```text
-apps/
-  desktop/   Electron + React 桌面端
-  server/    可选 Fastify HTTP wrapper
-packages/
-  shared/    桌面端和服务端共享的 schema / contracts
-  voice-flow provider 与 voice flow 核心逻辑
+Sources/TypelessMacApp/
+  App/                应用状态与主入口状态机
+  Features/Home/      首页概览
+  Features/FloatingBar/ 浮动输入条
+  Features/Settings/  设置页
+  Models/             领域模型
+  Services/           音频、权限、Accessibility、热键、本地存储
+  Support/            视觉主题与通用样式
+
+Config/
+  Runtime.sample.plist  预留给后续 provider / key 配置
+
 docs/
-  research.md  clean-room 逆向分析记录
+  research.md
+  ux-audit-2026-03-13.md
+  architecture-macos-swiftui.md
 ```
 
-## 快速启动
+## 当前已实现
+
+- 原生 `SwiftUI` 主窗口
+- 原生 `SwiftUI` 设置页
+- 原生 `NSPanel` 浮动输入条
+- 麦克风权限检测与实时音量采样
+- 音频电平平滑值，可直接驱动“说话时抖动”的反馈条
+- `Fn` 触发监听骨架和 Input Monitoring 权限检测
+- Accessibility 权限检测
+- 当前前台 App 与焦点元素上下文读取
+- 选中文本读取
+- 文本写回焦点输入框
+- 失败时回落到剪贴板粘贴
+- 本地口述记录、首页统计、个人画像占位数据
+
+## 当前还没做完
+
+- 真正的 `OpenAI + Deepgram` 网络调用链
+- `Fn` 长按 / 按下即说 的完整状态机
+- 跨更多 macOS App 的稳定写回兼容性
+- 浮窗实时音频反馈的视觉打磨
+- 首页更进一步收紧成 Typeless 那种更克制的原生信息架构
+
+## 运行方式
+
+### 1. 用 Xcode 打开
+
+最推荐直接在 Xcode 中打开根目录下的 [Package.swift](/Users/hxz/code/typeless-open-cleanroom/Package.swift)。
+
+### 2. 命令行构建
 
 ```bash
 cd /Users/hxz/code/typeless-open-cleanroom
-cp .env.example .env
-pnpm install
-pnpm dev
+swift build
 ```
 
-默认会启动：
+如果本机的 Xcode / Command Line Tools 没有配好，`swift build` 可能会失败。这是系统工具链问题，不是旧 Node 依赖问题。
 
-- 桌面端开发环境
-- Electron 主进程内嵌的 voice flow runtime
+## 设计原则
 
-如果你只想单独启动某一部分：
+- 只做 macOS，不再考虑跨平台桌面壳
+- 首页做概览，不做重操作台
+- 高频动作收进浮窗
+- 功能层优先原生化，再谈 provider 接入
+- 尽量避免“大而全”的 dashboard 观感
 
-```bash
-pnpm dev:server
-pnpm dev:desktop
-pnpm dev:all
-```
+## 后续技术路线
 
-- `pnpm dev`：只起桌面端，用户侧不需要单独启动 server
-- `pnpm dev:all`：同时起桌面端和可选 HTTP wrapper，便于调试远程网关模式
+1. 把实时音频反馈做成 Typeless 风格的小体积生命体征。
+2. 把 `Fn` 触发补成按下即说、松开即停。
+3. 接入 `Deepgram + OpenAI` 主链路。
+4. 把首页继续压缩成更像 macOS 菜单栏工具的概览页。
 
-## 环境变量
+## 保留文档
 
-项目根目录下的 [`.env.example`](/Users/hxz/code/typeless-open-cleanroom/.env.example) 已经给了最小配置：
-
-```bash
-VOICE_PROVIDER=mock
-UPSTREAM_VOICE_FLOW_URL=
-UPSTREAM_API_KEY=
-GLOBAL_SHORTCUT=CommandOrControl+Shift+;
-PORT=8787
-HOST=127.0.0.1
-```
-
-### `mock` 模式
-
-- 不依赖外部模型
-- 用 `transcriptHint` / `selectedText` 模拟一条可用的语音处理链路
-- 适合先联调 UI、历史记录、录音和请求结构
-
-### `proxy` 模式
-
-把 `VOICE_PROVIDER` 设为 `proxy`，并填上：
-
-```bash
-VOICE_PROVIDER=proxy
-UPSTREAM_VOICE_FLOW_URL=https://your-gateway.example.com/v1/voice/flow
-UPSTREAM_API_KEY=your-token
-```
-
-这样 Electron 主进程里的 `proxy` provider 会直接把桌面端请求转发成 JSON 给你的上游服务，不需要额外起本地 server。
-
-### 全局快捷键
-
-- 当前默认快捷键：`CommandOrControl+Shift+;`
-- 按下后会弹出一个全局浮层输入条，适合快速打字或录音
-- 现在已经补了 `Fn` 监听骨架：如果授予 Input Monitoring，原生 helper 会直接监听 `Fn` 单键并弹出浮层
-- 如果 `Fn` 监听权限还没开，桌面端会自动回落到组合快捷键，不会卡死主流程
-
-### macOS native helper
-
-- 当前已经接通原生 helper，用来读取辅助功能权限状态、当前前台 App、选中文本，并尝试把结果写回目标 App
-- 界面里会显示 native bridge 状态，并能触发辅助功能和 Input Monitoring 两类权限申请
-- “Use selection” 会优先尝试原生选中内容读取，失败时回落到剪贴板
-- “Insert into app” 会优先尝试直接修改焦点输入框的值，失败时回落到粘贴板粘贴
-- 浮层在显示前会先捕获当前前台 App 和上下文，这样生成结果后可以更自然地写回原始目标
-- 构建时会优先尝试 Swift helper；如果本机的 Swift toolchain 和 Command Line Tools / Xcode SDK 不匹配，会自动回落到 Objective-C helper
-- 这一步还没有做完跨所有 App 的稳定兼容性验证
-
-## 上游接口契约
-
-桌面端默认通过 IPC 调主进程里的 voice flow runtime。
-
-如果你需要 HTTP 调试层，项目里仍然保留了可选的 Fastify wrapper：
-
-- `GET /health`
-- `GET /v1/runtime`
-- `POST /v1/voice/flow`
-
-`proxy` 模式下，上游会收到一个 JSON 请求体：
-
-```json
-{
-  "mode": "dictate",
-  "context": {
-    "focusedAppName": "Slack",
-    "selectedText": "",
-    "surroundingText": "Current nearby context",
-    "transcriptHint": "hello team this is a test",
-    "targetLanguage": "English"
-  },
-  "metadata": {
-    "client": "desktop",
-    "durationMs": 1200,
-    "mimeType": "audio/webm",
-    "source": "microphone"
-  },
-  "audioFile": {
-    "filename": "voice-input.webm",
-    "mimeType": "audio/webm",
-    "base64": "..."
-  }
-}
-```
-
-上游返回需要满足共享契约 [contracts.ts](/Users/hxz/code/typeless-open-cleanroom/packages/shared/src/contracts.ts) 里的 `VoiceFlowResponseSchema`，最小可用示例：
-
-```json
-{
-  "requestId": "req_123",
-  "mode": "dictate",
-  "refinedText": "Hello team, this is a test.",
-  "delivery": {
-    "kind": "insert-after-cursor"
-  },
-  "debug": {
-    "provider": "openai",
-    "transcriptSource": "audio",
-    "audioProvided": true,
-    "contextDigest": "Slack • hello team this is a test"
-  },
-  "latencyMs": 820
-}
-```
-
-## 现在这版的边界
-
-已经完成：
-
-- 桌面端 MVP 骨架
-- 共享 schema
-- 本地 mock provider
-- 自接 API 的 proxy provider
-- 本地历史记录与旧 JSON 迁移到 SQLite
-- 全局快捷键触发的浮层输入条
-- `Fn` 监听骨架与 Input Monitoring 权限探测
-- macOS native helper 权限状态与前台 App 探测骨架
-- 原生选中内容读取与剪贴板回落
-- 原生文本写回与粘贴板粘贴回落
-
-还没接入：
-
-- 跨任意 App 的稳定选中文本兼容层
-- 跨任意 App 的稳定文本写回兼容层
-- 真正的 STT / LLM provider 适配器
-
-## 下一步建议
-
-1. 先补一个真实 provider 适配器，比如 OpenAI 兼容网关或你自己的内部服务。
-2. 继续把 macOS 原生层往前推，增强跨 App 的选中文本与文本写回兼容性。
-3. 继续增强 `Fn` 触发的稳定性，并把它往长按/按下即说的 Typeless 体验推进。
-
-## 参考
-
-- clean-room 逆向分析记录：[research.md](/Users/hxz/code/typeless-open-cleanroom/docs/research.md)
+- clean-room 研究记录：[research.md](/Users/hxz/code/typeless-open-cleanroom/docs/research.md)
+- UX 审计记录：[ux-audit-2026-03-13.md](/Users/hxz/code/typeless-open-cleanroom/docs/ux-audit-2026-03-13.md)
+- 新架构说明：[architecture-macos-swiftui.md](/Users/hxz/code/typeless-open-cleanroom/docs/architecture-macos-swiftui.md)

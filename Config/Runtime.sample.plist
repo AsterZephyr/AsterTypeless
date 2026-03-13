@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferredProvider</key>
+	<string>OpenAI + Deepgram</string>
+	<key>OpenAIBaseURL</key>
+	<string>https://api.openai.com/v1</string>
+	<key>OpenAIAPIKey</key>
+	<string>sk-your-key</string>
+	<key>DeepgramAPIKey</key>
+	<string>dg-your-key</string>
+</dict>
+</plist>
