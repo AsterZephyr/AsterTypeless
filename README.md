@@ -28,6 +28,10 @@
 ## 目录结构
 
 ```text
+App/
+  Config/             Info.plist / entitlements
+  Resources/          Asset Catalog 等资源
+
 Sources/TypelessMacApp/
   App/                应用状态与主入口状态机
   Features/Home/      首页概览
@@ -39,6 +43,11 @@ Sources/TypelessMacApp/
 
 Config/
   Runtime.sample.plist  预留给后续 provider / key 配置
+
+Scripts/
+  generate_xcode_project.sh
+
+project.yml           Xcode project spec
 
 docs/
   research.md
@@ -77,6 +86,15 @@ docs/
 最推荐直接在 Xcode 中打开根目录下的 [Package.swift](/Users/hxz/code/typeless-open-cleanroom/Package.swift)。
 
 当前的 `Package.swift` 更像原型入口。下一步会迁成正式的 Xcode macOS App target。
+
+仓库里已经补了 App target 所需的外围件：
+
+- [project.yml](/Users/hxz/code/typeless-open-cleanroom/project.yml)
+- [Info.plist](/Users/hxz/code/typeless-open-cleanroom/App/Config/Info.plist)
+- [TypelessMac.entitlements](/Users/hxz/code/typeless-open-cleanroom/App/Config/TypelessMac.entitlements)
+- [generate_xcode_project.sh](/Users/hxz/code/typeless-open-cleanroom/Scripts/generate_xcode_project.sh)
+
+等你本机 Xcode 恢复后，可以选择继续手工建 target，或者先安装 `xcodegen` 再用脚本生成工程壳。
 
 ### 2. 命令行构建
 
