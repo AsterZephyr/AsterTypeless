@@ -92,6 +92,26 @@ enum QuickBarPhase: String, Codable {
     }
 }
 
+enum QuickBarCaptureMode: String, Codable {
+    case manual
+    case tapToggle
+    case holdToTalk
+    case handsFree
+
+    var title: String {
+        switch self {
+        case .manual:
+            return "手动"
+        case .tapToggle:
+            return "单击"
+        case .holdToTalk:
+            return "长按"
+        case .handsFree:
+            return "免提"
+        }
+    }
+}
+
 struct RuntimeSettings: Codable {
     var primaryTrigger: String = "Fn"
     var fallbackShortcut: String = "Control + Option + Space"
@@ -154,12 +174,14 @@ struct PersonaReport {
 struct QuickBarState {
     var mode: QuickActionMode = .dictate
     var phase: QuickBarPhase = .idle
+    var captureMode: QuickBarCaptureMode = .manual
     var isPresented: Bool = false
     var isRecording: Bool = false
     var liveLevel: Double = 0
     var smoothedLevel: Double = 0
     var isSpeaking: Bool = false
     var hasDetectedSpeech: Bool = false
+    var capturedDuration: Double = 0
     var transcriptDraft: String = ""
     var generatedText: String = ""
     var statusText: String = "按 Fn 或点击按钮开始。"
@@ -167,11 +189,10 @@ struct QuickBarState {
     var targetBundleIdentifier: String = ""
     var selectedContextPreview: String = ""
     var triggerLabel: String = "Fn"
-    var usesPressAndHold: Bool = false
     var holdDuration: Double = 0
 
     var isCompactLayout: Bool {
-        usesPressAndHold
+        captureMode == .holdToTalk
             && generatedText.isEmpty
             && transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && (phase == .armed || phase == .recording || phase == .processing)

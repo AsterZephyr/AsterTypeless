@@ -5,8 +5,10 @@ import Foundation
 @MainActor
 final class HotkeyBridge {
     struct FnMonitorHandlers {
-        let onPress: () -> Void
-        let onRelease: (TimeInterval) -> Void
+        let onTap: () -> Void
+        let onDoubleTap: () -> Void
+        let onHoldStart: () -> Void
+        let onHoldEnd: (TimeInterval) -> Void
     }
 
     private var flagsMonitor: Any?
@@ -14,7 +16,12 @@ final class HotkeyBridge {
     private var keyUpMonitor: Any?
     private var fnIsDown = false
     private var fnChorded = false
+    private var holdStarted = false
     private var fnPressedAt: TimeInterval = 0
+    private var pendingTapWorkItem: DispatchWorkItem?
+    private var holdWorkItem: DispatchWorkItem?
+    private let holdThreshold: TimeInterval = 0.22
+    private let doubleTapThreshold: TimeInterval = 0.28
 
     func inputMonitoringPermission(prompt: Bool) -> PermissionState {
         if #available(macOS 10.15, *) {
@@ -61,7 +68,10 @@ final class HotkeyBridge {
         keyUpMonitor = nil
         fnIsDown = false
         fnChorded = false
+        holdStarted = false
         fnPressedAt = 0
+        holdWorkItem?.cancel()
+        holdWorkItem = nil
     }
 
     private func handleFlagsChanged(_ event: NSEvent, handlers: FnMonitorHandlers) {
@@ -72,26 +82,36 @@ final class HotkeyBridge {
             guard !hasOtherModifiers else {
                 fnIsDown = true
                 fnChorded = true
+                holdStarted = false
                 fnPressedAt = ProcessInfo.processInfo.systemUptime
                 return
             }
 
             fnIsDown = true
             fnChorded = false
+            holdStarted = false
             fnPressedAt = ProcessInfo.processInfo.systemUptime
-            handlers.onPress()
+            scheduleHoldStart(handlers: handlers)
             return
         }
 
         if !fnActive && fnIsDown {
             let elapsed = ProcessInfo.processInfo.systemUptime - fnPressedAt
             let shouldTrigger = !fnChorded
+            holdWorkItem?.cancel()
+            holdWorkItem = nil
+            let wasHold = holdStarted
             fnIsDown = false
             fnChorded = false
+            holdStarted = false
             fnPressedAt = 0
 
             if shouldTrigger {
-                handlers.onRelease(elapsed)
+                if wasHold {
+                    handlers.onHoldEnd(elapsed)
+                } else {
+                    registerTap(handlers: handlers)
+                }
             }
         }
     }
@@ -99,6 +119,35 @@ final class HotkeyBridge {
     private func markChorded() {
         if fnIsDown {
             fnChorded = true
+            holdWorkItem?.cancel()
+            holdWorkItem = nil
         }
+    }
+
+    private func scheduleHoldStart(handlers: FnMonitorHandlers) {
+        holdWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self, self.fnIsDown, !self.fnChorded else { return }
+            self.holdStarted = true
+            handlers.onHoldStart()
+        }
+        holdWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + holdThreshold, execute: workItem)
+    }
+
+    private func registerTap(handlers: FnMonitorHandlers) {
+        if let pendingTapWorkItem {
+            pendingTapWorkItem.cancel()
+            self.pendingTapWorkItem = nil
+            handlers.onDoubleTap()
+            return
+        }
+
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.pendingTapWorkItem = nil
+            handlers.onTap()
+        }
+        pendingTapWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + doubleTapThreshold, execute: workItem)
     }
 }

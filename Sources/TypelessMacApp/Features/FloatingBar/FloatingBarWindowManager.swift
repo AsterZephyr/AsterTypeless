@@ -12,10 +12,11 @@ final class FloatingBarWindowManager {
 
     func present() {
         guard let model else { return }
+        let targetSize = panelSize(for: model.quickBar)
 
         if panel == nil {
             let panel = FloatingBarPanel(
-                contentRect: NSRect(x: 0, y: 0, width: 438, height: 276),
+                contentRect: NSRect(x: 0, y: 0, width: targetSize.width, height: targetSize.height),
                 styleMask: [.nonactivatingPanel, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
@@ -35,6 +36,7 @@ final class FloatingBarWindowManager {
             panel?.contentView = NSHostingView(rootView: FloatingBarView(model: model))
         }
 
+        panel?.setContentSize(targetSize)
         centerPanel()
         panel?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -53,6 +55,14 @@ final class FloatingBarWindowManager {
                 y: frame.maxY - panel.frame.height - 70
             )
         )
+    }
+
+    private func panelSize(for quickBar: QuickBarState) -> NSSize {
+        if quickBar.isCompactLayout {
+            return NSSize(width: 332, height: 228)
+        }
+
+        return NSSize(width: 428, height: 430)
     }
 }
 

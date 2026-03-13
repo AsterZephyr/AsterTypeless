@@ -108,20 +108,36 @@
 2. `armed`
 3. `recording`
 4. `processing`
-5. `ready-to-insert`
+5. `ready`
 6. `dismissed`
 
 目前已经覆盖：
 
+- `idle`
 - `armed`
 - `recording`
-- `ready-to-insert`
+- `processing`
+- `ready`
 - `dismissed`
+
+当前已经接入的捕获语义：
+
+- `manual`
+- `tapToggle`
+- `holdToTalk`
+- `handsFree`
+
+当前原型行为：
+
+- 轻点 `Fn` 开始或结束一次录音
+- 长按 `Fn` 进入紧凑浮窗并在松开后结束
+- 双击 `Fn` 进入或退出 `hands-free`
+- 浮窗会根据 `holdToTalk` 录音态切成更小的尺寸
 
 后续要补：
 
-- `Fn` 按下即进入 `recording`
-- `Fn` 松开后自动停止并进入 `processing`
+- 把 `tap / hold / double tap` 的边界处理磨到更稳
+- 把真实 provider 的流式结果接进 `processing` 和 `ready`
 
 ## 为什么不用旧架构
 

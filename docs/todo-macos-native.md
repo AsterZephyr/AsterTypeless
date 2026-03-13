@@ -20,14 +20,16 @@
 
 ### P0 输入主链路
 
-- `Fn` 按下即说、松开即停的原型已接通
-- 明确 `tap / hold / double tap` 的交互语义
+- `Fn` 的 `tap / hold / double tap` 原型已接通
+- 单击录音、长按口述、双击 hands-free 的基础状态机已接通
+- 继续打磨 `hands-free` 退出语义和误触处理
 - 完善 Input Monitoring 权限引导
 - 完善 Accessibility 权限引导
 
 ### P0 浮窗体验
 
-- 浮窗已切成“录音时更紧凑、停下后展开”的布局
+- 浮窗已切成“长按录音时更紧凑、停下后展开”的布局
+- 浮窗尺寸已按紧凑态 / 展开态动态调整
 - 音频电平反馈已升级到实时抖动原型
 - `idle / armed / recording / processing / ready` 状态机已接通原型
 - 继续往 Typeless 的浮窗质感打磨

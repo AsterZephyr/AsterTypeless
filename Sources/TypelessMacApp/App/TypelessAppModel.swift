@@ -38,45 +38,45 @@ final class TypelessAppModel: ObservableObject {
         }
     }
 
-    func presentQuickBar(trigger: String, usesPressAndHold: Bool = false) {
+    func presentQuickBar(trigger: String, captureMode: QuickBarCaptureMode = .manual) {
         let selection = accessibilityBridge.captureSelectionContext()
 
         quickBar.isPresented = true
         quickBar.phase = .armed
+        quickBar.captureMode = captureMode
         quickBar.triggerLabel = trigger
         quickBar.targetAppName = selection.focusedAppName.isEmpty ? "任意输入框" : selection.focusedAppName
         quickBar.targetBundleIdentifier = selection.bundleIdentifier
         quickBar.selectedContextPreview = selection.selectedText.isEmpty ? selection.surroundingText : selection.selectedText
-        quickBar.transcriptDraft = usesPressAndHold ? "" : selection.selectedText
+        quickBar.transcriptDraft = captureMode == .holdToTalk ? "" : selection.selectedText
         quickBar.generatedText = ""
         quickBar.hasDetectedSpeech = false
-        quickBar.usesPressAndHold = usesPressAndHold
+        quickBar.capturedDuration = 0
         quickBar.holdDuration = 0
-        quickBar.statusText = usesPressAndHold
-            ? "按住 Fn 说话，松开后结束本次口述。"
-            : (trigger == "Fn" ? "已捕获目标输入框，开始说话即可。" : "已打开快速口述条。")
+        quickBar.statusText = statusTextForPresentation(trigger: trigger, captureMode: captureMode)
 
         floatingBarManager.present()
     }
 
     func dismissQuickBar() {
         quickBar.phase = .idle
+        quickBar.captureMode = .manual
         quickBar.isPresented = false
         quickBar.isRecording = false
         quickBar.hasDetectedSpeech = false
-        quickBar.usesPressAndHold = false
+        quickBar.capturedDuration = 0
         quickBar.holdDuration = 0
         audioMonitor.stopMonitoring()
         floatingBarManager.dismiss()
     }
 
-    func startRecording(triggeredByPressAndHold: Bool = false) {
+    func startRecording(captureMode: QuickBarCaptureMode? = nil) {
         guard !quickBar.isRecording else {
             return
         }
 
-        if triggeredByPressAndHold {
-            quickBar.usesPressAndHold = true
+        if let captureMode {
+            quickBar.captureMode = captureMode
         }
 
         Task {
@@ -85,7 +85,8 @@ final class TypelessAppModel: ObservableObject {
                 quickBar.isRecording = true
                 quickBar.phase = .recording
                 quickBar.hasDetectedSpeech = false
-                quickBar.statusText = quickBar.usesPressAndHold ? "松开 Fn 即可结束本次口述。" : "正在听你说话…"
+                quickBar.capturedDuration = 0
+                quickBar.statusText = statusTextForRecording()
                 floatingBarManager.present()
             } else {
                 refreshPermissions()
@@ -96,22 +97,22 @@ final class TypelessAppModel: ObservableObject {
         }
     }
 
-    func stopRecording(fromPressAndHoldRelease: Bool = false) {
+    func stopRecording(for captureMode: QuickBarCaptureMode? = nil) {
+        let activeCaptureMode = captureMode ?? quickBar.captureMode
         let hadSpeech = quickBar.hasDetectedSpeech
         let holdDuration = audioMonitor.elapsedSeconds
         audioMonitor.stopMonitoring()
         quickBar.isRecording = false
         quickBar.holdDuration = holdDuration
+        quickBar.capturedDuration = holdDuration
 
-        if fromPressAndHoldRelease && !hadSpeech && quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if activeCaptureMode == .holdToTalk && !hadSpeech && quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             dismissQuickBar()
             return
         }
 
         quickBar.phase = .ready
-        quickBar.statusText = fromPressAndHoldRelease
-            ? (hadSpeech ? "已结束本次口述。当前还是本地原型，可继续编辑或点击运行。" : "没有检测到明显语音，你可以继续手动输入。")
-            : (quickBar.transcriptDraft.isEmpty ? "录音结束，可以直接运行。" : "已停止录音，可以继续编辑文本。")
+        quickBar.statusText = statusTextForStop(captureMode: activeCaptureMode, hadSpeech: hadSpeech)
         floatingBarManager.present()
     }
 
@@ -136,7 +137,7 @@ final class TypelessAppModel: ObservableObject {
             mode: quickBar.mode,
             transcriptPreview: quickBar.transcriptDraft,
             finalText: quickBar.generatedText,
-            durationSeconds: audioMonitor.elapsedSeconds,
+            durationSeconds: effectiveCapturedDuration,
             words: quickBar.generatedText.split(whereSeparator: \.isWhitespace).count,
             savedMinutes: max(1, Double(quickBar.generatedText.count) / 38),
             feedback: .accepted
@@ -183,36 +184,122 @@ final class TypelessAppModel: ObservableObject {
     private func startHotkeyMonitoringIfPossible() {
         hotkeyBridge.startMonitoring(
             handlers: .init(
-                onPress: { [weak self] in
+                onTap: { [weak self] in
                     Task { @MainActor in
-                        self?.handleFnPress()
+                        self?.handleFnTap()
                     }
                 },
-                onRelease: { [weak self] elapsed in
+                onDoubleTap: { [weak self] in
                     Task { @MainActor in
-                        self?.handleFnRelease(elapsed: elapsed)
+                        self?.handleFnDoubleTap()
+                    }
+                },
+                onHoldStart: { [weak self] in
+                    Task { @MainActor in
+                        self?.handleFnHoldStart()
+                    }
+                },
+                onHoldEnd: { [weak self] elapsed in
+                    Task { @MainActor in
+                        self?.handleFnHoldEnd(elapsed: elapsed)
                     }
                 }
             )
         )
     }
 
-    private func handleFnPress() {
-        presentQuickBar(trigger: "Fn", usesPressAndHold: true)
-        startRecording(triggeredByPressAndHold: true)
+    private func handleFnTap() {
+        if quickBar.captureMode == .tapToggle && quickBar.isRecording {
+            stopRecording(for: .tapToggle)
+            return
+        }
+
+        if quickBar.captureMode == .handsFree && quickBar.isRecording {
+            stopRecording(for: .handsFree)
+            return
+        }
+
+        presentQuickBar(trigger: "Fn", captureMode: .tapToggle)
+        startRecording(captureMode: .tapToggle)
     }
 
-    private func handleFnRelease(elapsed: TimeInterval) {
+    private func handleFnDoubleTap() {
+        if quickBar.captureMode == .handsFree && quickBar.isRecording {
+            stopRecording(for: .handsFree)
+            return
+        }
+
+        presentQuickBar(trigger: "Fn", captureMode: .handsFree)
+        startRecording(captureMode: .handsFree)
+    }
+
+    private func handleFnHoldStart() {
+        presentQuickBar(trigger: "Fn", captureMode: .holdToTalk)
+        startRecording(captureMode: .holdToTalk)
+    }
+
+    private func handleFnHoldEnd(elapsed: TimeInterval) {
         quickBar.holdDuration = elapsed
 
-        guard quickBar.usesPressAndHold else {
+        guard quickBar.captureMode == .holdToTalk else {
             return
         }
 
         if quickBar.isRecording {
-            stopRecording(fromPressAndHoldRelease: true)
+            stopRecording(for: .holdToTalk)
         } else if quickBar.isPresented && quickBar.phase == .armed {
             dismissQuickBar()
+        }
+    }
+
+    private var effectiveCapturedDuration: Double {
+        if quickBar.capturedDuration > 0 {
+            return quickBar.capturedDuration
+        }
+
+        if audioMonitor.elapsedSeconds > 0 {
+            return audioMonitor.elapsedSeconds
+        }
+
+        return quickBar.holdDuration
+    }
+
+    private func statusTextForPresentation(trigger: String, captureMode: QuickBarCaptureMode) -> String {
+        switch captureMode {
+        case .manual:
+            return trigger == "Fn" ? "已捕获目标输入框，开始说话即可。" : "已打开快速口述条。"
+        case .tapToggle:
+            return "轻点 Fn 开始，再点一次 Fn 结束。"
+        case .holdToTalk:
+            return "按住 Fn 说话，松开后结束本次口述。"
+        case .handsFree:
+            return "已进入 hands-free，再双击 Fn 可结束。"
+        }
+    }
+
+    private func statusTextForRecording() -> String {
+        switch quickBar.captureMode {
+        case .manual:
+            return "正在听你说话…"
+        case .tapToggle:
+            return "正在录音，再点一次 Fn 结束。"
+        case .holdToTalk:
+            return "松开 Fn 即可结束本次口述。"
+        case .handsFree:
+            return "hands-free 录音中，再双击 Fn 结束。"
+        }
+    }
+
+    private func statusTextForStop(captureMode: QuickBarCaptureMode, hadSpeech: Bool) -> String {
+        switch captureMode {
+        case .manual:
+            return quickBar.transcriptDraft.isEmpty ? "录音结束，可以直接运行。" : "已停止录音，可以继续编辑文本。"
+        case .tapToggle:
+            return hadSpeech ? "已结束本次录音，可以继续编辑或点击运行。" : "没有检测到明显语音，你可以继续手动输入。"
+        case .holdToTalk:
+            return hadSpeech ? "已结束本次口述。当前还是本地原型，可继续编辑或点击运行。" : "没有检测到明显语音，你可以继续手动输入。"
+        case .handsFree:
+            return hadSpeech ? "hands-free 已结束，可以继续编辑或点击运行。" : "hands-free 已结束，但没有检测到明显语音。"
         }
     }
 

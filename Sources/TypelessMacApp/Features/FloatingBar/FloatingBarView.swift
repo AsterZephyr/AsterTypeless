@@ -33,7 +33,7 @@ struct FloatingBarView: View {
                 .stroke(AppTheme.cardBorder, lineWidth: 1)
         )
         .padding(12)
-        .frame(width: 404)
+        .frame(width: model.quickBar.isCompactLayout ? 308 : 404)
     }
 
     private var header: some View {
@@ -52,7 +52,7 @@ struct FloatingBarView: View {
 
             VStack(alignment: .trailing, spacing: 8) {
                 StatusPill(title: model.quickBar.phase.title, tint: phaseTint)
-                StatusPill(title: model.quickBar.triggerLabel, tint: model.quickBar.usesPressAndHold ? AppTheme.warning : AppTheme.accent)
+                StatusPill(title: model.quickBar.captureMode.title, tint: captureModeTint)
             }
         }
     }
@@ -74,7 +74,11 @@ struct FloatingBarView: View {
                     .padding(.horizontal, 10)
             }
 
-            if model.quickBar.holdDuration > 0 {
+            if model.quickBar.capturedDuration > 0 {
+                Text("本次录音 \(String(format: "%.1f", model.quickBar.capturedDuration)) 秒")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(AppTheme.muted)
+            } else if model.quickBar.holdDuration > 0 {
                 Text("本次按住 \(String(format: "%.1f", model.quickBar.holdDuration)) 秒")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(AppTheme.muted)
@@ -166,7 +170,16 @@ struct FloatingBarView: View {
     private var primaryListeningLabel: String {
         switch model.quickBar.phase {
         case .armed:
-            return model.quickBar.usesPressAndHold ? "按住 Fn 开始口述" : "准备开始"
+            switch model.quickBar.captureMode {
+            case .holdToTalk:
+                return "按住 Fn 开始口述"
+            case .tapToggle:
+                return "轻点 Fn 开始录音"
+            case .handsFree:
+                return "已进入 hands-free"
+            case .manual:
+                return "准备开始"
+            }
         case .recording:
             return model.quickBar.isSpeaking ? "正在捕获你的语音" : "继续说话，浮窗会跟着声音抖动"
         case .processing:
@@ -175,6 +188,17 @@ struct FloatingBarView: View {
             return model.quickBar.generatedText.isEmpty ? "可以继续编辑或直接运行" : "结果已准备好"
         case .idle:
             return "待机中"
+        }
+    }
+
+    private var captureModeTint: Color {
+        switch model.quickBar.captureMode {
+        case .manual, .tapToggle:
+            return AppTheme.accent
+        case .holdToTalk:
+            return AppTheme.warning
+        case .handsFree:
+            return AppTheme.success
         }
     }
 
