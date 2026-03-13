@@ -1,5 +1,7 @@
 import type {
   DesktopHistoryItem,
+  DesktopInsertTextRequest,
+  DesktopInsertTextResult,
   DesktopNativeStatus,
   DesktopRuntimeInfo,
   DesktopSelectionSnapshot,
@@ -16,6 +18,7 @@ type DesktopBridge = {
   runVoiceFlow: (input: DesktopVoiceFlowRequest) => Promise<VoiceFlowResponse>
   showMainWindow: () => Promise<boolean>
   toggleFloatingWindow: () => Promise<boolean>
+  insertText: (input: DesktopInsertTextRequest) => Promise<DesktopInsertTextResult>
   readSelectionContext: () => Promise<DesktopSelectionSnapshot>
   copyToClipboard: (text: string) => Promise<boolean>
   listHistory: () => Promise<DesktopHistoryItem[]>
@@ -86,6 +89,15 @@ const noopBridge: DesktopBridge = {
   },
   async toggleFloatingWindow() {
     return true
+  },
+  async insertText() {
+    return {
+      ok: false,
+      method: 'unavailable',
+      focusedAppName: '',
+      focusedBundleId: '',
+      lastError: 'Text insertion is only available in the desktop shell.',
+    }
   },
   async readSelectionContext() {
     return {

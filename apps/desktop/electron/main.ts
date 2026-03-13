@@ -5,6 +5,8 @@ import fsSync from 'node:fs'
 import path from 'node:path'
 
 import {
+  DesktopInsertTextRequestSchema,
+  DesktopInsertTextResultSchema,
   DesktopHistoryItemSchema,
   DesktopNativeStatusSchema,
   DesktopRuntimeInfoSchema,
@@ -425,6 +427,21 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('desktop:window:show-main', async () => showMainWindow())
   ipcMain.handle('desktop:window:toggle-floating', async () => toggleFloatingWindow())
+  ipcMain.handle('desktop:insert-text', async (_event, rawInput: unknown) => {
+    const input = DesktopInsertTextRequestSchema.parse(rawInput)
+
+    if (!nativeHelperBridge) {
+      return DesktopInsertTextResultSchema.parse({
+        ok: false,
+        method: 'unavailable',
+        focusedAppName: '',
+        focusedBundleId: '',
+        lastError: 'Native helper is unavailable.',
+      })
+    }
+
+    return nativeHelperBridge.insertText(input)
+  })
   ipcMain.handle('desktop:selection:read-context', async () => {
     const nativeSnapshot = nativeHelperBridge
       ? await nativeHelperBridge.readSelection()

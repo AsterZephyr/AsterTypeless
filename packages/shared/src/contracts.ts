@@ -78,6 +78,19 @@ export const DesktopSelectionSnapshotSchema = z.object({
   lastError: z.string().default(''),
 })
 
+export const DesktopInsertTextRequestSchema = z.object({
+  text: z.string(),
+  preferredBundleId: z.string().default(''),
+})
+
+export const DesktopInsertTextResultSchema = z.object({
+  ok: z.boolean(),
+  method: z.enum(['replace-selection', 'append-value', 'pasteboard', 'unavailable']),
+  focusedAppName: z.string().default(''),
+  focusedBundleId: z.string().default(''),
+  lastError: z.string().default(''),
+})
+
 export const HealthResponseSchema = z.object({
   ok: z.literal(true),
   provider: z.string(),
@@ -112,6 +125,8 @@ export type DesktopHistoryItem = z.infer<typeof DesktopHistoryItemSchema>
 export type DesktopRuntimeInfo = z.infer<typeof DesktopRuntimeInfoSchema>
 export type DesktopNativeStatus = z.infer<typeof DesktopNativeStatusSchema>
 export type DesktopSelectionSnapshot = z.infer<typeof DesktopSelectionSnapshotSchema>
+export type DesktopInsertTextRequest = z.infer<typeof DesktopInsertTextRequestSchema>
+export type DesktopInsertTextResult = z.infer<typeof DesktopInsertTextResultSchema>
 export type HealthResponse = z.infer<typeof HealthResponseSchema>
 export type VoiceGatewayRuntime = z.infer<typeof VoiceGatewayRuntimeSchema>
 export type DesktopVoiceFlowRequest = z.infer<typeof DesktopVoiceFlowRequestSchema>

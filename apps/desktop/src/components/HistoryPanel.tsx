@@ -10,12 +10,14 @@ function formatMode(mode: DesktopHistoryItem['mode']) {
 }
 
 export function HistoryPanel({ history, onReuse }: HistoryPanelProps) {
+  const recentHistory = history.slice(0, 6)
+
   return (
     <aside className="history-panel">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Local History</p>
-          <h2>Recent runs</h2>
+          <p className="eyebrow">History</p>
+          <h2>Recent</h2>
         </div>
         <span className="status-pill muted">{history.length} items</span>
       </div>
@@ -28,7 +30,7 @@ export function HistoryPanel({ history, onReuse }: HistoryPanelProps) {
           </div>
         ) : null}
 
-        {history.map((item) => (
+        {recentHistory.map((item) => (
           <button
             key={item.id}
             className="history-item"

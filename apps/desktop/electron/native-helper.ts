@@ -4,13 +4,15 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 
 import {
+  DesktopInsertTextRequestSchema,
+  DesktopInsertTextResultSchema,
   DesktopNativeStatusSchema,
   DesktopSelectionSnapshotSchema,
 } from '@typeless-open/shared'
 
 const execFileAsync = promisify(execFile)
 
-type NativeHelperCommand = 'status' | 'prompt-accessibility' | 'read-selection'
+type NativeHelperCommand = 'status' | 'prompt-accessibility' | 'read-selection' | 'insert-text'
 
 export class NativeHelperBridge {
   private readonly appRoot: string
@@ -50,6 +52,19 @@ export class NativeHelperBridge {
     )
   }
 
+  async insertText(input: unknown) {
+    const payload = DesktopInsertTextRequestSchema.parse(input)
+    const textBase64 = Buffer.from(payload.text, 'utf8').toString('base64')
+
+    return this.run(
+      'insert-text',
+      (value) => DesktopInsertTextResultSchema.parse(value),
+      this.fallbackInsertText(),
+      (_helperAvailable, _helperPath, lastError) => this.fallbackInsertText(lastError),
+      [textBase64, payload.preferredBundleId],
+    )
+  }
+
   private getSourcePath() {
     return path.join(this.appRoot, 'native', 'TypelessNativeHelper.swift')
   }
@@ -63,6 +78,7 @@ export class NativeHelperBridge {
     parse: (value: unknown) => T,
     missingHelperFallback: T,
     fallbackFactory: (helperAvailable: boolean, helperPath: string, lastError: string) => T,
+    args: string[] = [],
   ): Promise<T> {
     const binaryPath = await this.ensureBuilt()
 
@@ -71,7 +87,7 @@ export class NativeHelperBridge {
     }
 
     try {
-      const { stdout } = await execFileAsync(binaryPath, [command], {
+      const { stdout } = await execFileAsync(binaryPath, [command, ...args], {
         timeout: 8_000,
       })
       const parsed = JSON.parse(stdout || '{}')
@@ -145,6 +161,16 @@ export class NativeHelperBridge {
       focusedAppName: '',
       focusedBundleId: '',
       source: 'unavailable',
+      lastError: lastError || this.lastBuildError,
+    })
+  }
+
+  private fallbackInsertText(lastError = '') {
+    return DesktopInsertTextResultSchema.parse({
+      ok: false,
+      method: 'unavailable',
+      focusedAppName: '',
+      focusedBundleId: '',
       lastError: lastError || this.lastBuildError,
     })
   }

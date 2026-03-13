@@ -1,6 +1,7 @@
 import {
   createHistoryPreview,
   type DesktopHistoryItem,
+  type DesktopInsertTextResult,
   type DesktopNativeStatus,
   type DesktopRuntimeInfo,
   type VoiceGatewayRuntime,
@@ -36,8 +37,10 @@ function App() {
   const [runtimeInfo, setRuntimeInfo] = useState<DesktopRuntimeInfo | null>(null)
   const [voiceRuntime, setVoiceRuntime] = useState<VoiceGatewayRuntime | null>(null)
   const [nativeStatus, setNativeStatus] = useState<DesktopNativeStatus | null>(null)
+  const [targetBundleId, setTargetBundleId] = useState('')
   const [history, setHistory] = useState<DesktopHistoryItem[]>([])
   const [result, setResult] = useState<VoiceFlowResponse | null>(null)
+  const [insertResult, setInsertResult] = useState<DesktopInsertTextResult | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [lastError, setLastError] = useState<string | null>(null)
   const recorder = useVoiceRecorder()
@@ -61,6 +64,9 @@ function App() {
         setNativeStatus(nextNativeStatus)
         if (nextNativeStatus.focusedAppName) {
           setFocusedAppName(nextNativeStatus.focusedAppName)
+        }
+        if (nextNativeStatus.focusedBundleId) {
+          setTargetBundleId(nextNativeStatus.focusedBundleId)
         }
       })
 
@@ -92,10 +98,14 @@ function App() {
         if (selection.focusedAppName) {
           setFocusedAppName(selection.focusedAppName)
         }
+        if (selection.focusedBundleId) {
+          setTargetBundleId(selection.focusedBundleId)
+        }
         setSelectedText(selection.selectedText)
         if (selection.surroundingText) {
           setSurroundingText(selection.surroundingText)
         }
+        setInsertResult(null)
       })
 
       if (!selection.available && selection.lastError) {
@@ -116,6 +126,9 @@ function App() {
         if (nextNativeStatus.focusedAppName) {
           setFocusedAppName(nextNativeStatus.focusedAppName)
         }
+        if (nextNativeStatus.focusedBundleId) {
+          setTargetBundleId(nextNativeStatus.focusedBundleId)
+        }
       })
     } catch (error) {
       setLastError(error instanceof Error ? error.message : 'Unable to read native helper status')
@@ -131,6 +144,9 @@ function App() {
         setNativeStatus(nextNativeStatus)
         if (nextNativeStatus.focusedAppName) {
           setFocusedAppName(nextNativeStatus.focusedAppName)
+        }
+        if (nextNativeStatus.focusedBundleId) {
+          setTargetBundleId(nextNativeStatus.focusedBundleId)
         }
       })
     } catch (error) {
@@ -177,6 +193,7 @@ function App() {
 
       startTransition(() => {
         setResult(nextResult)
+        setInsertResult(null)
       })
 
       const savedHistory = await desktopBridge.saveHistory(historyItem)
@@ -193,6 +210,29 @@ function App() {
   async function handleCopyOutput() {
     if (!deferredResult?.refinedText) return
     await desktopBridge.copyToClipboard(deferredResult.refinedText)
+  }
+
+  async function handleInsertOutput() {
+    if (!deferredResult?.refinedText) return
+
+    setLastError(null)
+
+    try {
+      const nextInsertResult = await desktopBridge.insertText({
+        text: deferredResult.refinedText,
+        preferredBundleId: targetBundleId,
+      })
+
+      setInsertResult(nextInsertResult)
+
+      if (!nextInsertResult.ok && nextInsertResult.lastError) {
+        setLastError(nextInsertResult.lastError)
+      } else if (nextInsertResult.focusedAppName) {
+        setFocusedAppName(nextInsertResult.focusedAppName)
+      }
+    } catch (error) {
+      setLastError(error instanceof Error ? error.message : 'Unable to insert text into the target app')
+    }
   }
 
   async function handleOpenDocs() {
@@ -219,6 +259,11 @@ function App() {
         ? 'Accessibility needed'
         : 'Native helper unavailable'
     : 'Checking native bridge'
+  const insertionLabel = insertResult?.ok
+    ? `${insertResult.method} into ${insertResult.focusedAppName || 'target app'}`
+    : targetBundleId
+      ? `Ready for ${focusedAppName || 'captured app'}`
+      : 'Capture a target app first'
 
   if (surface === 'floating') {
     return (
@@ -245,13 +290,11 @@ function App() {
 
   return (
     <div className="app-shell">
-      <HistoryPanel history={history} onReuse={handleReuseHistory} />
-
       <main className="workspace-panel">
         <header className="workspace-header">
-          <div>
-            <p className="eyebrow">Open-source desktop MVP</p>
-            <h2>Clean-room voice keyboard with local runtime</h2>
+          <div className="workspace-title">
+            <p className="eyebrow">Typeless Open</p>
+            <h2>Compact voice keyboard</h2>
           </div>
           <div className="header-runtime">
             <span className="status-pill">
@@ -274,42 +317,50 @@ function App() {
           </div>
         </header>
 
-        <ComposerPanel
-          mode={mode}
-          focusedAppName={focusedAppName}
-          selectedText={selectedText}
-          surroundingText={surroundingText}
-          transcriptHint={transcriptHint}
-          targetLanguage={targetLanguage}
-          serverLabel={serverLabel}
-          nativeStatus={nativeStatus}
-          isRecording={recorder.isRecording}
-          durationMs={recorder.durationMs}
-          hasRecordedAudio={Boolean(recorder.audioBlob)}
-          recordError={recorder.error}
-          isSubmitting={isSubmitting}
-          onModeChange={setMode}
-          onFocusedAppNameChange={setFocusedAppName}
-          onSelectedTextChange={setSelectedText}
-          onSurroundingTextChange={setSurroundingText}
-          onTranscriptHintChange={setTranscriptHint}
-          onTargetLanguageChange={setTargetLanguage}
-          onReadSelection={handleReadSelectionContext}
-          onRefreshNativeStatus={handleRefreshNativeStatus}
-          onPromptAccessibilityPermission={handlePromptAccessibilityPermission}
-          onStartRecording={recorder.startRecording}
-          onStopRecording={recorder.stopRecording}
-          onClearAudio={recorder.clearRecording}
-          onSubmit={handleSubmit}
-        />
-      </main>
+        <div className="workspace-body">
+          <ComposerPanel
+            mode={mode}
+            focusedAppName={focusedAppName}
+            selectedText={selectedText}
+            surroundingText={surroundingText}
+            transcriptHint={transcriptHint}
+            targetLanguage={targetLanguage}
+            serverLabel={serverLabel}
+            nativeStatus={nativeStatus}
+            isRecording={recorder.isRecording}
+            durationMs={recorder.durationMs}
+            hasRecordedAudio={Boolean(recorder.audioBlob)}
+            recordError={recorder.error}
+            isSubmitting={isSubmitting}
+            onModeChange={setMode}
+            onFocusedAppNameChange={setFocusedAppName}
+            onSelectedTextChange={setSelectedText}
+            onSurroundingTextChange={setSurroundingText}
+            onTranscriptHintChange={setTranscriptHint}
+            onTargetLanguageChange={setTargetLanguage}
+            onReadSelection={handleReadSelectionContext}
+            onRefreshNativeStatus={handleRefreshNativeStatus}
+            onPromptAccessibilityPermission={handlePromptAccessibilityPermission}
+            onStartRecording={recorder.startRecording}
+            onStopRecording={recorder.stopRecording}
+            onClearAudio={recorder.clearRecording}
+            onSubmit={handleSubmit}
+          />
 
-      <ResultPanel
-        result={deferredResult}
-        lastError={lastError}
-        onCopy={handleCopyOutput}
-        onOpenDocs={handleOpenDocs}
-      />
+          <aside className="utility-rail">
+            <ResultPanel
+              result={deferredResult}
+              insertResult={insertResult}
+              insertionLabel={insertionLabel}
+              lastError={lastError}
+              onCopy={handleCopyOutput}
+              onInsert={handleInsertOutput}
+              onOpenDocs={handleOpenDocs}
+            />
+            <HistoryPanel history={history} onReuse={handleReuseHistory} />
+          </aside>
+        </div>
+      </main>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import CoreGraphics
 import Foundation
 
 struct NativeStatus: Codable {
@@ -22,10 +23,19 @@ struct SelectionSnapshot: Codable {
     let lastError: String
 }
 
+struct InsertTextResult: Codable {
+    let ok: Bool
+    let method: String
+    let focusedAppName: String
+    let focusedBundleId: String
+    let lastError: String
+}
+
 enum HelperCommand: String {
     case status
     case promptAccessibility = "prompt-accessibility"
     case readSelection = "read-selection"
+    case insertText = "insert-text"
 }
 
 func frontmostAppInfo() -> (name: String, bundleId: String) {
@@ -72,6 +82,12 @@ func stringAttribute(element: AXUIElement, attribute: String) -> String? {
     copyAttributeValue(element: element, attribute: attribute) as? String
 }
 
+func isAttributeSettable(element: AXUIElement, attribute: String) -> Bool {
+    var settable: DarwinBoolean = false
+    let error = AXUIElementIsAttributeSettable(element, attribute as CFString, &settable)
+    return error == .success && settable.boolValue
+}
+
 func rangeAttribute(element: AXUIElement, attribute: String) -> CFRange? {
     guard let value = copyAttributeValue(element: element, attribute: attribute) else {
         return nil
@@ -95,6 +111,11 @@ func rangeAttribute(element: AXUIElement, attribute: String) -> CFRange? {
     return range
 }
 
+func axRangeValue(_ range: CFRange) -> AXValue? {
+    var mutableRange = range
+    return AXValueCreate(.cfRange, &mutableRange)
+}
+
 func focusedElement() -> AXUIElement? {
     let systemWide = AXUIElementCreateSystemWide()
     guard let value = copyAttributeValue(
@@ -109,6 +130,17 @@ func focusedElement() -> AXUIElement? {
     }
 
     return unsafeBitCast(value, to: AXUIElement.self)
+}
+
+func activatePreferredApp(bundleId: String) -> (name: String, bundleId: String) {
+    if bundleId.isEmpty {
+        return frontmostAppInfo()
+    }
+
+    let runningApp = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first
+    runningApp?.activate(options: [.activateIgnoringOtherApps])
+    usleep(220_000)
+    return frontmostAppInfo()
 }
 
 func validatedRange(_ range: CFRange?, in value: NSString) -> NSRange? {
@@ -228,8 +260,131 @@ func buildSelectionSnapshot() -> SelectionSnapshot {
     )
 }
 
+func insertTextViaValueAttribute(
+    element: AXUIElement,
+    text: String,
+    appInfo: (name: String, bundleId: String)
+) -> InsertTextResult? {
+    guard isAttributeSettable(element: element, attribute: kAXValueAttribute as String) else {
+        return nil
+    }
+
+    let currentValue = stringAttribute(element: element, attribute: kAXValueAttribute as String) ?? ""
+    let currentNSString = currentValue as NSString
+    let currentRange = validatedRange(
+        rangeAttribute(element: element, attribute: kAXSelectedTextRangeAttribute as String),
+        in: currentNSString
+    )
+
+    let replacementRange = currentRange ?? NSRange(location: currentNSString.length, length: 0)
+    let nextValue = currentNSString.replacingCharacters(in: replacementRange, with: text)
+    let setValueError = AXUIElementSetAttributeValue(
+        element,
+        kAXValueAttribute as CFString,
+        nextValue as CFTypeRef
+    )
+
+    guard setValueError == .success else {
+        return nil
+    }
+
+    let nextCursor = CFRange(location: replacementRange.location + (text as NSString).length, length: 0)
+    if isAttributeSettable(element: element, attribute: kAXSelectedTextRangeAttribute as String),
+       let rangeValue = axRangeValue(nextCursor) {
+        _ = AXUIElementSetAttributeValue(
+            element,
+            kAXSelectedTextRangeAttribute as CFString,
+            rangeValue
+        )
+    }
+
+    return InsertTextResult(
+        ok: true,
+        method: replacementRange.length > 0 ? "replace-selection" : "append-value",
+        focusedAppName: appInfo.name,
+        focusedBundleId: appInfo.bundleId,
+        lastError: ""
+    )
+}
+
+func postPasteShortcut() -> Bool {
+    guard let source = CGEventSource(stateID: .combinedSessionState) else {
+        return false
+    }
+
+    let keyCode: CGKeyCode = 9
+    guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true),
+          let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false) else {
+        return false
+    }
+
+    keyDown.flags = .maskCommand
+    keyUp.flags = .maskCommand
+    keyDown.post(tap: .cghidEventTap)
+    keyUp.post(tap: .cghidEventTap)
+    return true
+}
+
+func insertTextViaPasteboard(text: String, appInfo: (name: String, bundleId: String)) -> InsertTextResult {
+    let pasteboard = NSPasteboard.general
+    let existingString = pasteboard.string(forType: .string)
+
+    pasteboard.clearContents()
+    pasteboard.setString(text, forType: .string)
+
+    let pasted = postPasteShortcut()
+    usleep(180_000)
+
+    pasteboard.clearContents()
+    if let existingString {
+        pasteboard.setString(existingString, forType: .string)
+    }
+
+    return InsertTextResult(
+        ok: pasted,
+        method: pasted ? "pasteboard" : "unavailable",
+        focusedAppName: appInfo.name,
+        focusedBundleId: appInfo.bundleId,
+        lastError: pasted ? "" : "Unable to trigger a paste shortcut for the focused app."
+    )
+}
+
+func buildInsertTextResult(encodedText: String?, preferredBundleId: String) -> InsertTextResult {
+    let appInfo = activatePreferredApp(bundleId: preferredBundleId)
+
+    guard isAccessibilityTrusted(prompt: false) else {
+        return InsertTextResult(
+            ok: false,
+            method: "unavailable",
+            focusedAppName: appInfo.name,
+            focusedBundleId: appInfo.bundleId,
+            lastError: "Accessibility permission is required to insert text into the focused app."
+        )
+    }
+
+    guard let encodedText, let data = Data(base64Encoded: encodedText),
+          let text = String(data: data, encoding: .utf8), !text.isEmpty else {
+        return InsertTextResult(
+            ok: false,
+            method: "unavailable",
+            focusedAppName: appInfo.name,
+            focusedBundleId: appInfo.bundleId,
+            lastError: "No insertion text was provided."
+        )
+    }
+
+    if let element = focusedElement(),
+       let directInsert = insertTextViaValueAttribute(element: element, text: text, appInfo: appInfo) {
+        return directInsert
+    }
+
+    return insertTextViaPasteboard(text: text, appInfo: appInfo)
+}
+
 let command = HelperCommand(rawValue: CommandLine.arguments.dropFirst().first ?? "") ?? .status
 let helperPath = CommandLine.arguments.first ?? ""
+let encodedTextArgument = CommandLine.arguments.dropFirst(2).first
+let preferredBundleIdArgument = CommandLine.arguments.dropFirst(3).first ?? ""
 
 do {
     switch command {
@@ -239,6 +394,11 @@ do {
         try emit(buildStatus(helperPath: helperPath, prompt: true))
     case .readSelection:
         try emit(buildSelectionSnapshot())
+    case .insertText:
+        try emit(buildInsertTextResult(
+            encodedText: encodedTextArgument,
+            preferredBundleId: preferredBundleIdArgument
+        ))
     }
 } catch {
     switch command {
@@ -261,6 +421,15 @@ do {
             focusedAppName: "",
             focusedBundleId: "",
             source: "unavailable",
+            lastError: "Failed to encode native helper output."
+        )
+        try? emit(fallback)
+    case .insertText:
+        let fallback = InsertTextResult(
+            ok: false,
+            method: "unavailable",
+            focusedAppName: "",
+            focusedBundleId: "",
             lastError: "Failed to encode native helper output."
         )
         try? emit(fallback)

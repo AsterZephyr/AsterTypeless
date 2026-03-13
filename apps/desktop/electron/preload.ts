@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 import type {
   DesktopHistoryItem,
+  DesktopInsertTextRequest,
+  DesktopInsertTextResult,
   DesktopNativeStatus,
   DesktopRuntimeInfo,
   DesktopSelectionSnapshot,
@@ -31,6 +33,9 @@ const desktopApi = {
   },
   toggleFloatingWindow() {
     return ipcRenderer.invoke('desktop:window:toggle-floating') as Promise<boolean>
+  },
+  insertText(input: DesktopInsertTextRequest) {
+    return ipcRenderer.invoke('desktop:insert-text', input) as Promise<DesktopInsertTextResult>
   },
   readSelectionContext() {
     return ipcRenderer.invoke('desktop:selection:read-context') as Promise<DesktopSelectionSnapshot>

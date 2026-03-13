@@ -2,6 +2,8 @@
 
 import type {
   DesktopHistoryItem,
+  DesktopInsertTextRequest,
+  DesktopInsertTextResult,
   DesktopNativeStatus,
   DesktopRuntimeInfo,
   DesktopSelectionSnapshot,
@@ -18,6 +20,7 @@ interface DesktopBridge {
   runVoiceFlow: (input: DesktopVoiceFlowRequest) => Promise<VoiceFlowResponse>
   showMainWindow: () => Promise<boolean>
   toggleFloatingWindow: () => Promise<boolean>
+  insertText: (input: DesktopInsertTextRequest) => Promise<DesktopInsertTextResult>
   readSelectionContext: () => Promise<DesktopSelectionSnapshot>
   copyToClipboard: (text: string) => Promise<boolean>
   listHistory: () => Promise<DesktopHistoryItem[]>
