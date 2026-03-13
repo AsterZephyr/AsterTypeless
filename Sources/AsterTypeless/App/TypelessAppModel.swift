@@ -25,6 +25,8 @@ final class TypelessAppModel: ObservableObject {
     private let fallbackShortcutBridge = FallbackShortcutBridge()
     private let audioMonitor = AudioInputMonitor()
     private lazy var floatingBarManager = FloatingBarWindowManager(model: self)
+    private var lastCaptureArmedAt: Date = .distantPast
+    private let captureArmCooldown: TimeInterval = 0.35
 
     func bootstrap() {
         refreshRuntimeConfiguration()
@@ -266,6 +268,10 @@ final class TypelessAppModel: ObservableObject {
             return
         }
 
+        guard canBeginCapture(mode: .tapToggle) else {
+            return
+        }
+
         presentQuickBar(trigger: "Fn", captureMode: .tapToggle)
         startRecording(captureMode: .tapToggle)
     }
@@ -273,6 +279,10 @@ final class TypelessAppModel: ObservableObject {
     private func handleFallbackShortcut() {
         if quickBar.captureMode == .tapToggle && quickBar.isRecording {
             stopRecording(for: .tapToggle)
+            return
+        }
+
+        guard canBeginCapture(mode: .tapToggle) else {
             return
         }
 
@@ -286,11 +296,19 @@ final class TypelessAppModel: ObservableObject {
             return
         }
 
+        guard canBeginCapture(mode: .handsFree) else {
+            return
+        }
+
         presentQuickBar(trigger: "Fn", captureMode: .handsFree)
         startRecording(captureMode: .handsFree)
     }
 
     private func handleFnHoldStart() {
+        guard canBeginCapture(mode: .holdToTalk) else {
+            return
+        }
+
         presentQuickBar(trigger: "Fn", captureMode: .holdToTalk)
         startRecording(captureMode: .holdToTalk)
     }
@@ -423,6 +441,24 @@ final class TypelessAppModel: ObservableObject {
         }
 
         return "请根据当前上下文生成一版更自然、更适合发送的文本。"
+    }
+
+    private func canBeginCapture(mode: QuickBarCaptureMode) -> Bool {
+        if quickBar.phase == .processing || quickBar.isRecording {
+            return false
+        }
+
+        if quickBar.isPresented && quickBar.phase == .armed && quickBar.captureMode == mode {
+            return false
+        }
+
+        let now = Date()
+        guard now.timeIntervalSince(lastCaptureArmedAt) >= captureArmCooldown else {
+            return false
+        }
+
+        lastCaptureArmedAt = now
+        return true
     }
 
     private func refreshReadiness() {
