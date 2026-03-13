@@ -5,7 +5,7 @@ struct HomeView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 header
                 ReadinessCard(report: model.readinessReport)
 
@@ -21,58 +21,42 @@ struct HomeView: View {
 
                 TranscriptHistoryCard(sessions: model.sessions)
             }
-            .padding(24)
-            .frame(maxWidth: 1160)
+            .padding(20)
+            .frame(maxWidth: 1080)
             .frame(maxWidth: .infinity)
         }
         .background(background)
-        .frame(minWidth: 980, minHeight: 760)
-    }
-
-    private var header: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Typeless for macOS")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(AppTheme.accent)
-                Text("把首页变成概览页，而不是一张操作表单。")
-                    .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(AppTheme.ink)
-                Text("设置、口述报告、个人画像和反馈记录都收在同一层里。真正的输入动作留给小浮窗。")
-                    .font(.system(size: 14))
-                    .foregroundStyle(AppTheme.muted)
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 10) {
-                Button("打开浮窗") {
+        .toolbar {
+            ToolbarItemGroup {
+                Button {
                     model.presentQuickBar(trigger: "手动")
+                } label: {
+                    Label("快速口述", systemImage: "mic.fill")
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(AppTheme.accent)
 
                 SettingsLink {
                     Label("设置", systemImage: "gearshape")
                 }
-                .buttonStyle(.bordered)
             }
         }
-        .cardSurface()
+        .frame(minWidth: 920, minHeight: 720)
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("AsterTypeless")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(AppTheme.accent)
+            Text("把主窗口收成概览，把输入动作留给浮窗和菜单栏。")
+                .font(.system(size: 26, weight: .bold))
+                .foregroundStyle(AppTheme.ink)
+            Text("这里保留口述报告、个性化摘要、反馈记录和主链路体检，不再承载高频输入动作。")
+                .font(.system(size: 13))
+                .foregroundStyle(AppTheme.muted)
+        }
     }
 
     private var background: some View {
-        LinearGradient(
-            colors: [AppTheme.backgroundTop, AppTheme.backgroundBottom],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .overlay(alignment: .topLeading) {
-            Circle()
-                .fill(AppTheme.accent.opacity(0.08))
-                .frame(width: 280, height: 280)
-                .blur(radius: 30)
-                .offset(x: -20, y: -40)
-        }
+        AppTheme.backgroundTop
     }
 }
