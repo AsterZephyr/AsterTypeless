@@ -6,6 +6,7 @@
 
 - `SwiftUI`：首页、设置页、浮动输入条
 - `AppKit / Accessibility / CoreGraphics`：全局触发、权限、焦点输入框读取与写回
+- `Xcode macOS App target`：后续用于打包、签名、权限、资源和发布
 - `本地持久化`：先用 JSON store 承接首页统计与最近转录
 - `研究文档`：保留 clean-room 研究和 UX 审计，方便后续继续演进
 
@@ -17,6 +18,12 @@
 - 高频输入交给小浮窗
 - 浮窗要能显示说话时的实时状态
 - 目标体验是 `Fn` 唤起、说完即写回当前输入框
+
+当前已经确认的正式路线：
+
+1. `SwiftUI` 做界面
+2. `AppKit + AXUIElement + CGEventTap` 做系统桥
+3. `Xcode macOS App target` 做打包、签名、权限、资源和发布
 
 ## 目录结构
 
@@ -37,6 +44,7 @@ docs/
   research.md
   ux-audit-2026-03-13.md
   architecture-macos-swiftui.md
+  todo-macos-native.md
 ```
 
 ## 当前已实现
@@ -68,6 +76,8 @@ docs/
 
 最推荐直接在 Xcode 中打开根目录下的 [Package.swift](/Users/hxz/code/typeless-open-cleanroom/Package.swift)。
 
+当前的 `Package.swift` 更像原型入口。下一步会迁成正式的 Xcode macOS App target。
+
 ### 2. 命令行构建
 
 ```bash
@@ -76,6 +86,15 @@ swift build
 ```
 
 如果本机的 Xcode / Command Line Tools 没有配好，`swift build` 可能会失败。这是系统工具链问题，不是旧 Node 依赖问题。
+
+根据 2026-03-13 本机实际排查，当前环境已确认：
+
+- `/Applications/Xcode.app` 不存在或不可用
+- `xcode-select -p` 仍指向 `CommandLineTools`
+- `swift --version` 是 `Apple Swift 6.2.4`
+- 当前 SDK / CLT 仍有 `6.2.3` 痕迹
+- `xcodebuild -version` 无法执行
+- 直接类型检查会报 `SwiftBridging` 重复定义和 SDK / 编译器不匹配
 
 ## 设计原则
 
@@ -87,13 +106,15 @@ swift build
 
 ## 后续技术路线
 
-1. 把实时音频反馈做成 Typeless 风格的小体积生命体征。
-2. 把 `Fn` 触发补成按下即说、松开即停。
-3. 接入 `Deepgram + OpenAI` 主链路。
-4. 把首页继续压缩成更像 macOS 菜单栏工具的概览页。
+1. 把工程从 `Swift Package` 原型迁到 `Xcode macOS App target`。
+2. 把实时音频反馈做成 Typeless 风格的小体积生命体征。
+3. 把 `Fn` 触发补成按下即说、松开即停。
+4. 接入 `Deepgram + OpenAI` 主链路。
+5. 把首页继续压缩成更像 macOS 菜单栏工具的概览页。
 
 ## 保留文档
 
 - clean-room 研究记录：[research.md](/Users/hxz/code/typeless-open-cleanroom/docs/research.md)
 - UX 审计记录：[ux-audit-2026-03-13.md](/Users/hxz/code/typeless-open-cleanroom/docs/ux-audit-2026-03-13.md)
 - 新架构说明：[architecture-macos-swiftui.md](/Users/hxz/code/typeless-open-cleanroom/docs/architecture-macos-swiftui.md)
+- 原生路线 TODO：[todo-macos-native.md](/Users/hxz/code/typeless-open-cleanroom/docs/todo-macos-native.md)

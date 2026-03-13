@@ -6,6 +6,7 @@
 
 - UI 层使用 `SwiftUI`
 - 系统能力层使用 `AppKit + Accessibility + CoreGraphics`
+- 工程与发布层使用 `Xcode macOS App target`
 - 输入体验以“小浮窗 + 全局触发 + 当前输入框写回”为核心
 
 这份文档替代旧的 Electron / React / Node 设计。旧技术栈已经从主工程中移除。
@@ -120,11 +121,13 @@
 - 原生权限模型
 - 原生系统事件
 - 原生 Accessibility 写回
+- 原生打包、签名与发布链路
 
 ## 后续迭代顺序
 
-1. 把浮窗的实时音频反馈继续打磨细。
-2. 把 `Fn` 的按下、长按、松开语义做完整。
-3. 接 `Deepgram + OpenAI` 真正的语音链路。
-4. 把首页进一步收窄成更克制的 macOS 概览页。
-5. 视需要把本地 JSON store 升到 SQLite 或 SwiftData。
+1. 先把当前原型迁到 Xcode macOS App target。
+2. 把浮窗的实时音频反馈继续打磨细。
+3. 把 `Fn` 的按下、长按、松开语义做完整。
+4. 接 `Deepgram + OpenAI` 真正的语音链路。
+5. 把首页进一步收窄成更克制的 macOS 概览页。
+6. 视需要把本地 JSON store 升到 SQLite 或 SwiftData。
