@@ -121,6 +121,65 @@ struct RuntimeSettings: Codable {
     var launchAtLogin: Bool = false
 }
 
+enum ProviderExecutionMode: String, Codable {
+    case mockReady
+    case partial
+    case providerReady
+
+    var title: String {
+        switch self {
+        case .mockReady:
+            return "Mock"
+        case .partial:
+            return "半配置"
+        case .providerReady:
+            return "可联调"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .mockReady:
+            return "当前没有真实 key，App 会走本地占位链路。"
+        case .partial:
+            return "只配置了部分 provider，已经能开始接链路，但还不是完整联调态。"
+        case .providerReady:
+            return "Deepgram 和 OpenAI 都已具备配置，可以开始打通真实语音链路。"
+        }
+    }
+}
+
+struct ProviderRuntimeStatus {
+    var preferredProvider: String
+    var sourceDescription: String
+    var sourcePath: String
+    var executionMode: ProviderExecutionMode
+    var openAIConfigured: Bool
+    var deepgramConfigured: Bool
+    var openAIBaseURL: String
+    var deepgramBaseURL: String
+    var openAIModel: String
+    var openAITranscribeModel: String
+    var deepgramModel: String
+    var deepgramLanguage: String
+    var lastError: String = ""
+
+    static let mockOnly = ProviderRuntimeStatus(
+        preferredProvider: "Mock",
+        sourceDescription: "未读取到配置",
+        sourcePath: "",
+        executionMode: .mockReady,
+        openAIConfigured: false,
+        deepgramConfigured: false,
+        openAIBaseURL: "",
+        deepgramBaseURL: "",
+        openAIModel: "",
+        openAITranscribeModel: "",
+        deepgramModel: "",
+        deepgramLanguage: ""
+    )
+}
+
 struct PermissionSnapshot {
     var accessibility: PermissionState = .required
     var microphone: PermissionState = .required

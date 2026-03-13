@@ -10,14 +10,17 @@ final class TypelessAppModel: ObservableObject {
     @Published var overview = DictationOverview.empty
     @Published var personaReport = PersonaReport.placeholder
     @Published var quickBar = QuickBarState()
+    @Published var providerRuntime = ProviderRuntimeStatus.mockOnly
 
     private let transcriptStore = TranscriptStore()
+    private let runtimeConfigService = RuntimeConfigService()
     private let accessibilityBridge = AccessibilityBridge()
     private let hotkeyBridge = HotkeyBridge()
     private let audioMonitor = AudioInputMonitor()
     private lazy var floatingBarManager = FloatingBarWindowManager(model: self)
 
     func bootstrap() {
+        refreshRuntimeConfiguration()
         sessions = transcriptStore.loadSessions()
         recomputeDashboard()
         refreshPermissions()
@@ -161,6 +164,11 @@ final class TypelessAppModel: ObservableObject {
 
     func requestInputMonitoringPermission() {
         refreshPermissions(promptInputMonitoring: true)
+    }
+
+    func refreshRuntimeConfiguration() {
+        providerRuntime = runtimeConfigService.loadStatus()
+        settings.providerDisplayName = "\(providerRuntime.preferredProvider) · \(providerRuntime.executionMode.title)"
     }
 
     private func refreshQuickBarBindings() {

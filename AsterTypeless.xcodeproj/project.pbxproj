@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		070A0B87069F3A0C849D9E94 /* RuntimeConfigService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 976F888D9F28F7ED712A7DB1 /* RuntimeConfigService.swift */; };
 		20DCC7385646F312824A95F0 /* DomainModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ABA3DCDB312BFB9AB55876B /* DomainModels.swift */; };
 		258F71B73BF583999A7DD2C8 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9DB26D223E3419D3EE1FF97 /* SettingsView.swift */; };
 		2DD1388F56B881D8E6A44CA7 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E006B1620B4F22747E5E989 /* HomeView.swift */; };
@@ -34,6 +35,7 @@
 		86A6631D8F7944AC7AA418F0 /* AudioInputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioInputMonitor.swift; sourceTree = "<group>"; };
 		877B19E49DD1C651B7E12897 /* AsterTypelessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsterTypelessApp.swift; sourceTree = "<group>"; };
 		91778E90B71821634659DA34 /* AsterTypeless.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AsterTypeless.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		976F888D9F28F7ED712A7DB1 /* RuntimeConfigService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeConfigService.swift; sourceTree = "<group>"; };
 		B65C1CD4237C634BE9F78E2F /* AudioPulseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPulseView.swift; sourceTree = "<group>"; };
 		D9DB26D223E3419D3EE1FF97 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		DB6E58206A82CDAC24C9C01D /* TypelessAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypelessAppModel.swift; sourceTree = "<group>"; };
@@ -81,6 +83,7 @@
 				4E57B3142E0BC8FBB29A3F5F /* AccessibilityBridge.swift */,
 				86A6631D8F7944AC7AA418F0 /* AudioInputMonitor.swift */,
 				0A335BA5E01388AF947CD101 /* HotkeyBridge.swift */,
+				976F888D9F28F7ED712A7DB1 /* RuntimeConfigService.swift */,
 				00AD365F693CF7A633328B7E /* TranscriptStore.swift */,
 			);
 			path = Services;
@@ -214,6 +217,7 @@
 				7843888A8CE65FBABB601EB4 /* FloatingBarWindowManager.swift in Sources */,
 				2DD1388F56B881D8E6A44CA7 /* HomeView.swift in Sources */,
 				5C991554FFF2E30FBABB06A5 /* HotkeyBridge.swift in Sources */,
+				070A0B87069F3A0C849D9E94 /* RuntimeConfigService.swift in Sources */,
 				258F71B73BF583999A7DD2C8 /* SettingsView.swift in Sources */,
 				570911DC84B7D9840A4FEFF5 /* TranscriptStore.swift in Sources */,
 				495E7370C77705A531F3D114 /* TypelessAppModel.swift in Sources */,

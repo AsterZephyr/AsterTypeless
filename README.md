@@ -117,6 +117,21 @@ xcodebuild -project /Users/hxz/code/AsterTypeless/AsterTypeless.xcodeproj -schem
 
 当前这台机器的 Xcode 环境已经在 2026-03-14 修复并验证通过。上面的两条构建命令都可以正常跑完。
 
+### 3. Runtime Provider 配置
+
+当前 App 已经支持本地读取运行时 provider 配置，并在首页 / 设置页显示当前是：
+
+- `Mock`
+- `半配置`
+- `可联调`
+
+读取顺序如下：
+
+1. `Config/Runtime.local.plist`
+2. `Config/Runtime.sample.plist`
+
+其中 [Runtime.local.plist](/Users/hxz/code/AsterTypeless/Config/Runtime.local.plist) 已加入 `.gitignore`，适合后续放真实 key；sample 文件只保留占位配置，在 [Runtime.sample.plist](/Users/hxz/code/AsterTypeless/Config/Runtime.sample.plist)。
+
 ## 设计原则
 
 - 只做 macOS，不再考虑跨平台桌面壳

@@ -5,6 +5,7 @@ apps/
 .swiftpm
 Packages
 DerivedData
+Config/Runtime.local.plist
 *.xcodeproj/project.xcworkspace/xcuserdata
 *.xcworkspace/xcuserdata
 *.xcuserdatad

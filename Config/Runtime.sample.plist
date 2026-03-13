@@ -8,7 +8,17 @@
 	<string>https://api.openai.com/v1</string>
 	<key>OpenAIAPIKey</key>
 	<string>sk-your-key</string>
+	<key>OpenAIModel</key>
+	<string>gpt-5-mini</string>
+	<key>OpenAITranscribeModel</key>
+	<string>gpt-4o-transcribe</string>
+	<key>DeepgramBaseURL</key>
+	<string>https://api.deepgram.com</string>
 	<key>DeepgramAPIKey</key>
 	<string>dg-your-key</string>
+	<key>DeepgramModel</key>
+	<string>nova-2</string>
+	<key>DeepgramLanguage</key>
+	<string>zh-CN</string>
 </dict>
 </plist>

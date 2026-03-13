@@ -23,6 +23,7 @@ struct SettingsSummaryCard: View {
             LabeledRow(title: "麦克风", value: model.settings.microphoneName)
             LabeledRow(title: "输出语言", value: model.settings.outputLanguage)
             LabeledRow(title: "Provider", value: model.settings.providerDisplayName)
+            LabeledRow(title: "配置来源", value: model.providerRuntime.sourceDescription)
 
             Divider()
 
@@ -33,6 +34,12 @@ struct SettingsSummaryCard: View {
             }
 
             HStack {
+                StatusPill(title: "Deepgram \(model.providerRuntime.deepgramConfigured ? "已配置" : "未配置")", tint: model.providerRuntime.deepgramConfigured ? AppTheme.success : AppTheme.warning)
+                StatusPill(title: "OpenAI \(model.providerRuntime.openAIConfigured ? "已配置" : "未配置")", tint: model.providerRuntime.openAIConfigured ? AppTheme.success : AppTheme.warning)
+                StatusPill(title: model.providerRuntime.executionMode.title, tint: providerTint)
+            }
+
+            HStack {
                 Button("请求辅助功能权限") {
                     model.requestAccessibilityPermission()
                 }
@@ -40,6 +47,11 @@ struct SettingsSummaryCard: View {
 
                 Button("请求 Fn 权限") {
                     model.requestInputMonitoringPermission()
+                }
+                .buttonStyle(.bordered)
+
+                Button("刷新 Provider 状态") {
+                    model.refreshRuntimeConfiguration()
                 }
                 .buttonStyle(.bordered)
             }
@@ -56,6 +68,17 @@ struct SettingsSummaryCard: View {
             return AppTheme.warning
         case .unavailable:
             return AppTheme.muted
+        }
+    }
+
+    private var providerTint: Color {
+        switch model.providerRuntime.executionMode {
+        case .mockReady:
+            return AppTheme.muted
+        case .partial:
+            return AppTheme.warning
+        case .providerReady:
+            return AppTheme.success
         }
     }
 }
@@ -269,4 +292,3 @@ private struct FlowTagCloud: View {
         }
     }
 }
-

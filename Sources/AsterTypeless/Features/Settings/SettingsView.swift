@@ -17,7 +17,43 @@ struct SettingsView: View {
 
             Section("Provider") {
                 TextField("当前方案", text: $model.settings.providerDisplayName)
+                HStack {
+                    Text("运行状态")
+                    Spacer()
+                    Text(model.providerRuntime.executionMode.title)
+                }
+                HStack {
+                    Text("配置来源")
+                    Spacer()
+                    Text(model.providerRuntime.sourceDescription)
+                }
                 Toggle("开机启动", isOn: $model.settings.launchAtLogin)
+                Button("刷新运行时配置") {
+                    model.refreshRuntimeConfiguration()
+                }
+                .buttonStyle(.bordered)
+            }
+
+            Section("Provider 明细") {
+                providerRow(title: "Deepgram", configured: model.providerRuntime.deepgramConfigured)
+                providerRow(title: "OpenAI", configured: model.providerRuntime.openAIConfigured)
+
+                if !model.providerRuntime.deepgramModel.isEmpty {
+                    Text("Deepgram: \(model.providerRuntime.deepgramModel) · \(model.providerRuntime.deepgramLanguage)")
+                }
+
+                if !model.providerRuntime.openAIModel.isEmpty {
+                    Text("OpenAI: \(model.providerRuntime.openAIModel)")
+                }
+
+                if !model.providerRuntime.openAITranscribeModel.isEmpty {
+                    Text("OpenAI Transcribe: \(model.providerRuntime.openAITranscribeModel)")
+                }
+
+                if !model.providerRuntime.lastError.isEmpty {
+                    Text("错误: \(model.providerRuntime.lastError)")
+                        .foregroundStyle(.red)
+                }
             }
 
             Section("权限") {
@@ -42,5 +78,14 @@ struct SettingsView: View {
         .padding(20)
         .frame(width: 520, height: 420)
     }
-}
 
+    @ViewBuilder
+    private func providerRow(title: String, configured: Bool) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(configured ? "已配置" : "未配置")
+                .foregroundStyle(configured ? AppTheme.success : AppTheme.warning)
+        }
+    }
+}
