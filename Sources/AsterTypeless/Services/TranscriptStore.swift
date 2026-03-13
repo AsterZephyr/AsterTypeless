@@ -58,7 +58,7 @@ final class TranscriptStore {
         ).first ?? URL(fileURLWithPath: NSTemporaryDirectory())
 
         return appSupport
-            .appendingPathComponent("TypelessMac", isDirectory: true)
+            .appendingPathComponent("AsterTypeless", isDirectory: true)
             .appendingPathComponent("dictation-history.json")
     }
 }

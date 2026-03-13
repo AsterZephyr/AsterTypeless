@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C2D63B47643041FB16BD3D72"
-               BuildableName = "TypelessMac.app"
-               BlueprintName = "TypelessMac"
-               ReferencedContainer = "container:TypelessMac.xcodeproj">
+               BlueprintIdentifier = "23F218F1C9F0777A0DB5E73A"
+               BuildableName = "AsterTypeless.app"
+               BlueprintName = "AsterTypeless"
+               ReferencedContainer = "container:AsterTypeless.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C2D63B47643041FB16BD3D72"
-            BuildableName = "TypelessMac.app"
-            BlueprintName = "TypelessMac"
-            ReferencedContainer = "container:TypelessMac.xcodeproj">
+            BlueprintIdentifier = "23F218F1C9F0777A0DB5E73A"
+            BuildableName = "AsterTypeless.app"
+            BlueprintName = "AsterTypeless"
+            ReferencedContainer = "container:AsterTypeless.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -57,10 +57,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C2D63B47643041FB16BD3D72"
-            BuildableName = "TypelessMac.app"
-            BlueprintName = "TypelessMac"
-            ReferencedContainer = "container:TypelessMac.xcodeproj">
+            BlueprintIdentifier = "23F218F1C9F0777A0DB5E73A"
+            BuildableName = "AsterTypeless.app"
+            BlueprintName = "AsterTypeless"
+            ReferencedContainer = "container:AsterTypeless.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -76,10 +76,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C2D63B47643041FB16BD3D72"
-            BuildableName = "TypelessMac.app"
-            BlueprintName = "TypelessMac"
-            ReferencedContainer = "container:TypelessMac.xcodeproj">
+            BlueprintIdentifier = "23F218F1C9F0777A0DB5E73A"
+            BuildableName = "AsterTypeless.app"
+            BlueprintName = "AsterTypeless"
+            ReferencedContainer = "container:AsterTypeless.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>

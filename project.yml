@@ -1,4 +1,4 @@
-name: TypelessMac
+name: AsterTypeless
 options:
   bundleIdPrefix: com.asterzephyr
   deploymentTarget:
@@ -8,25 +8,25 @@ configs:
   Release: release
 settings:
   base:
-    PRODUCT_NAME: TypelessMac
+    PRODUCT_NAME: AsterTypeless
     SWIFT_VERSION: "6.0"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     CURRENT_PROJECT_VERSION: "1"
     MARKETING_VERSION: "0.1.0"
 targets:
-  TypelessMac:
+  AsterTypeless:
     type: application
     platform: macOS
     deploymentTarget: "14.0"
     sources:
-      - path: Sources/TypelessMacApp
+      - path: Sources/AsterTypeless
     resources:
       - path: App/Resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.asterzephyr.typelessmac
+        PRODUCT_BUNDLE_IDENTIFIER: com.asterzephyr.astertypeless
         INFOPLIST_FILE: App/Config/Info.plist
-        CODE_SIGN_ENTITLEMENTS: App/Config/TypelessMac.entitlements
+        CODE_SIGN_ENTITLEMENTS: App/Config/AsterTypeless.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: YES
         GENERATE_INFOPLIST_FILE: NO

@@ -2,20 +2,20 @@
 import PackageDescription
 
 let package = Package(
-    name: "TypelessMac",
+    name: "AsterTypeless",
     platforms: [
         .macOS(.v14),
     ],
     products: [
         .executable(
-            name: "TypelessMacApp",
-            targets: ["TypelessMacApp"]
+            name: "AsterTypeless",
+            targets: ["AsterTypeless"]
         ),
     ],
     targets: [
         .executableTarget(
-            name: "TypelessMacApp",
-            path: "Sources/TypelessMacApp"
+            name: "AsterTypeless",
+            path: "Sources/AsterTypeless"
         ),
     ]
 )

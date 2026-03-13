@@ -17,8 +17,8 @@
 
 入口文件：
 
-- [TypelessMacApp.swift](/Users/hxz/code/typeless-open-cleanroom/Sources/TypelessMacApp/TypelessMacApp.swift)
-- [TypelessAppModel.swift](/Users/hxz/code/typeless-open-cleanroom/Sources/TypelessMacApp/App/TypelessAppModel.swift)
+- [AsterTypelessApp.swift](/Users/hxz/code/AsterTypeless/Sources/AsterTypeless/AsterTypelessApp.swift)
+- [TypelessAppModel.swift](/Users/hxz/code/AsterTypeless/Sources/AsterTypeless/App/TypelessAppModel.swift)
 
 职责：
 
@@ -30,18 +30,18 @@
 
 首页：
 
-- [HomeView.swift](/Users/hxz/code/typeless-open-cleanroom/Sources/TypelessMacApp/Features/Home/HomeView.swift)
-- [DashboardCards.swift](/Users/hxz/code/typeless-open-cleanroom/Sources/TypelessMacApp/Features/Home/DashboardCards.swift)
+- [HomeView.swift](/Users/hxz/code/AsterTypeless/Sources/AsterTypeless/Features/Home/HomeView.swift)
+- [DashboardCards.swift](/Users/hxz/code/AsterTypeless/Sources/AsterTypeless/Features/Home/DashboardCards.swift)
 
 浮窗：
 
-- [FloatingBarView.swift](/Users/hxz/code/typeless-open-cleanroom/Sources/TypelessMacApp/Features/FloatingBar/FloatingBarView.swift)
-- [FloatingBarWindowManager.swift](/Users/hxz/code/typeless-open-cleanroom/Sources/TypelessMacApp/Features/FloatingBar/FloatingBarWindowManager.swift)
-- [AudioPulseView.swift](/Users/hxz/code/typeless-open-cleanroom/Sources/TypelessMacApp/Features/FloatingBar/AudioPulseView.swift)
+- [FloatingBarView.swift](/Users/hxz/code/AsterTypeless/Sources/AsterTypeless/Features/FloatingBar/FloatingBarView.swift)
+- [FloatingBarWindowManager.swift](/Users/hxz/code/AsterTypeless/Sources/AsterTypeless/Features/FloatingBar/FloatingBarWindowManager.swift)
+- [AudioPulseView.swift](/Users/hxz/code/AsterTypeless/Sources/AsterTypeless/Features/FloatingBar/AudioPulseView.swift)
 
 设置：
 
-- [SettingsView.swift](/Users/hxz/code/typeless-open-cleanroom/Sources/TypelessMacApp/Features/Settings/SettingsView.swift)
+- [SettingsView.swift](/Users/hxz/code/AsterTypeless/Sources/AsterTypeless/Features/Settings/SettingsView.swift)
 
 职责：
 
@@ -53,16 +53,16 @@
 
 本地数据：
 
-- [TranscriptStore.swift](/Users/hxz/code/typeless-open-cleanroom/Sources/TypelessMacApp/Services/TranscriptStore.swift)
+- [TranscriptStore.swift](/Users/hxz/code/AsterTypeless/Sources/AsterTypeless/Services/TranscriptStore.swift)
 
 音频：
 
-- [AudioInputMonitor.swift](/Users/hxz/code/typeless-open-cleanroom/Sources/TypelessMacApp/Services/AudioInputMonitor.swift)
+- [AudioInputMonitor.swift](/Users/hxz/code/AsterTypeless/Sources/AsterTypeless/Services/AudioInputMonitor.swift)
 
 系统桥：
 
-- [AccessibilityBridge.swift](/Users/hxz/code/typeless-open-cleanroom/Sources/TypelessMacApp/Services/AccessibilityBridge.swift)
-- [HotkeyBridge.swift](/Users/hxz/code/typeless-open-cleanroom/Sources/TypelessMacApp/Services/HotkeyBridge.swift)
+- [AccessibilityBridge.swift](/Users/hxz/code/AsterTypeless/Sources/AsterTypeless/Services/AccessibilityBridge.swift)
+- [HotkeyBridge.swift](/Users/hxz/code/AsterTypeless/Sources/AsterTypeless/Services/HotkeyBridge.swift)
 
 职责：
 
@@ -74,11 +74,11 @@
 
 工程壳相关文件：
 
-- [project.yml](/Users/hxz/code/typeless-open-cleanroom/project.yml)
-- [TypelessMac.xcodeproj](/Users/hxz/code/typeless-open-cleanroom/TypelessMac.xcodeproj)
-- [Info.plist](/Users/hxz/code/typeless-open-cleanroom/App/Config/Info.plist)
-- [TypelessMac.entitlements](/Users/hxz/code/typeless-open-cleanroom/App/Config/TypelessMac.entitlements)
-- [generate_xcode_project.sh](/Users/hxz/code/typeless-open-cleanroom/Scripts/generate_xcode_project.sh)
+- [project.yml](/Users/hxz/code/AsterTypeless/project.yml)
+- [AsterTypeless.xcodeproj](/Users/hxz/code/AsterTypeless/AsterTypeless.xcodeproj)
+- [Info.plist](/Users/hxz/code/AsterTypeless/App/Config/Info.plist)
+- [AsterTypeless.entitlements](/Users/hxz/code/AsterTypeless/App/Config/AsterTypeless.entitlements)
+- [generate_xcode_project.sh](/Users/hxz/code/AsterTypeless/Scripts/generate_xcode_project.sh)
 
 职责：
 

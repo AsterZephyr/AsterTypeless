@@ -59,7 +59,7 @@
 2026-03-14 已验证：
 
 - `swift build` 通过
-- `xcodebuild -project TypelessMac.xcodeproj -scheme TypelessMac -configuration Debug -sdk macosx build` 通过
+- `xcodebuild -project AsterTypeless.xcodeproj -scheme AsterTypeless -configuration Debug -sdk macosx build` 通过
 
 ## 备注
 

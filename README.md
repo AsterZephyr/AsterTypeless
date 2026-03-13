@@ -1,4 +1,4 @@
-# TypelessMac
+# AsterTypeless
 
 一个只面向 macOS 的 Typeless 开源版骨架。
 
@@ -32,7 +32,7 @@ App/
   Config/             Info.plist / entitlements
   Resources/          Asset Catalog 等资源
 
-Sources/TypelessMacApp/
+Sources/AsterTypeless/
   App/                应用状态与主入口状态机
   Features/Home/      首页概览
   Features/FloatingBar/ 浮动输入条
@@ -85,34 +85,34 @@ docs/
 
 ### 1. 用 Xcode 打开
 
-现在最推荐直接打开 [TypelessMac.xcodeproj](/Users/hxz/code/typeless-open-cleanroom/TypelessMac.xcodeproj)。
+现在最推荐直接打开 [AsterTypeless.xcodeproj](/Users/hxz/code/AsterTypeless/AsterTypeless.xcodeproj)。
 
-[Package.swift](/Users/hxz/code/typeless-open-cleanroom/Package.swift) 仍然保留，主要用于快速本地验证和轻量编译。
+[Package.swift](/Users/hxz/code/AsterTypeless/Package.swift) 仍然保留，主要用于快速本地验证和轻量编译。
 
 仓库里已经补了 App target 所需的外围件：
 
-- [project.yml](/Users/hxz/code/typeless-open-cleanroom/project.yml)
-- [TypelessMac.xcodeproj](/Users/hxz/code/typeless-open-cleanroom/TypelessMac.xcodeproj)
-- [Info.plist](/Users/hxz/code/typeless-open-cleanroom/App/Config/Info.plist)
-- [TypelessMac.entitlements](/Users/hxz/code/typeless-open-cleanroom/App/Config/TypelessMac.entitlements)
-- [generate_xcode_project.sh](/Users/hxz/code/typeless-open-cleanroom/Scripts/generate_xcode_project.sh)
+- [project.yml](/Users/hxz/code/AsterTypeless/project.yml)
+- [AsterTypeless.xcodeproj](/Users/hxz/code/AsterTypeless/AsterTypeless.xcodeproj)
+- [Info.plist](/Users/hxz/code/AsterTypeless/App/Config/Info.plist)
+- [AsterTypeless.entitlements](/Users/hxz/code/AsterTypeless/App/Config/AsterTypeless.entitlements)
+- [generate_xcode_project.sh](/Users/hxz/code/AsterTypeless/Scripts/generate_xcode_project.sh)
 
 本机在 2026-03-14 已经验证通过：
 
 - `swift build`
-- `xcodebuild -project TypelessMac.xcodeproj -scheme TypelessMac -configuration Debug -sdk macosx build`
+- `xcodebuild -project AsterTypeless.xcodeproj -scheme AsterTypeless -configuration Debug -sdk macosx build`
 
 ### 2. 命令行构建
 
 ```bash
-cd /Users/hxz/code/typeless-open-cleanroom
+cd /Users/hxz/code/AsterTypeless
 swift build
 ```
 
 或者直接走 Xcode 工程：
 
 ```bash
-xcodebuild -project /Users/hxz/code/typeless-open-cleanroom/TypelessMac.xcodeproj -scheme TypelessMac -configuration Debug -sdk macosx build
+xcodebuild -project /Users/hxz/code/AsterTypeless/AsterTypeless.xcodeproj -scheme AsterTypeless -configuration Debug -sdk macosx build
 ```
 
 当前这台机器的 Xcode 环境已经在 2026-03-14 修复并验证通过。上面的两条构建命令都可以正常跑完。
@@ -135,7 +135,7 @@ xcodebuild -project /Users/hxz/code/typeless-open-cleanroom/TypelessMac.xcodepro
 
 ## 保留文档
 
-- clean-room 研究记录：[research.md](/Users/hxz/code/typeless-open-cleanroom/docs/research.md)
-- UX 审计记录：[ux-audit-2026-03-13.md](/Users/hxz/code/typeless-open-cleanroom/docs/ux-audit-2026-03-13.md)
-- 新架构说明：[architecture-macos-swiftui.md](/Users/hxz/code/typeless-open-cleanroom/docs/architecture-macos-swiftui.md)
-- 原生路线 TODO：[todo-macos-native.md](/Users/hxz/code/typeless-open-cleanroom/docs/todo-macos-native.md)
+- clean-room 研究记录：[research.md](/Users/hxz/code/AsterTypeless/docs/research.md)
+- UX 审计记录：[ux-audit-2026-03-13.md](/Users/hxz/code/AsterTypeless/docs/ux-audit-2026-03-13.md)
+- 新架构说明：[architecture-macos-swiftui.md](/Users/hxz/code/AsterTypeless/docs/architecture-macos-swiftui.md)
+- 原生路线 TODO：[todo-macos-native.md](/Users/hxz/code/AsterTypeless/docs/todo-macos-native.md)

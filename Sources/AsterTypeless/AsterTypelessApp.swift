@@ -1,11 +1,11 @@
 import SwiftUI
 
 @main
-struct TypelessMacApp: App {
+struct AsterTypelessApp: App {
     @StateObject private var model = TypelessAppModel()
 
     var body: some Scene {
-        WindowGroup("Typeless") {
+        WindowGroup("AsterTypeless") {
             HomeView(model: model)
                 .task {
                     model.bootstrap()
