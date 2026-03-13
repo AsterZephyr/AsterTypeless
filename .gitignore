@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+.DS_Store
+dist
+**/dist
+dist-electron
+**/dist-electron
+.vite
+**/.vite
+coverage
+*.tsbuildinfo
+**/*.tsbuildinfo
+.env
+.env.local
+.env.*.local
