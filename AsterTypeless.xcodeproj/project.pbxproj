@@ -13,6 +13,7 @@
 		2DD1388F56B881D8E6A44CA7 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E006B1620B4F22747E5E989 /* HomeView.swift */; };
 		495E7370C77705A531F3D114 /* TypelessAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB6E58206A82CDAC24C9C01D /* TypelessAppModel.swift */; };
 		570911DC84B7D9840A4FEFF5 /* TranscriptStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00AD365F693CF7A633328B7E /* TranscriptStore.swift */; };
+		5991CF2C7DA489CB8F04DF30 /* FallbackShortcutBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198A32D2D580E17AB5794697 /* FallbackShortcutBridge.swift */; };
 		5C991554FFF2E30FBABB06A5 /* HotkeyBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A335BA5E01388AF947CD101 /* HotkeyBridge.swift */; };
 		7843888A8CE65FBABB601EB4 /* FloatingBarWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EE51ED17F52EA893FAAAC1F /* FloatingBarWindowManager.swift */; };
 		7FD79375165137FD2FB6C0D0 /* DashboardCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = F98B4F6E54A115184E3A6215 /* DashboardCards.swift */; };
@@ -32,6 +33,7 @@
 		0A335BA5E01388AF947CD101 /* HotkeyBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyBridge.swift; sourceTree = "<group>"; };
 		0ABA3DCDB312BFB9AB55876B /* DomainModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainModels.swift; sourceTree = "<group>"; };
 		0EE51ED17F52EA893FAAAC1F /* FloatingBarWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingBarWindowManager.swift; sourceTree = "<group>"; };
+		198A32D2D580E17AB5794697 /* FallbackShortcutBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallbackShortcutBridge.swift; sourceTree = "<group>"; };
 		4E57B3142E0BC8FBB29A3F5F /* AccessibilityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityBridge.swift; sourceTree = "<group>"; };
 		584274AFFE82B4111F0BF3E1 /* InsertionCompatibilityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsertionCompatibilityStore.swift; sourceTree = "<group>"; };
 		58998E7BCB1803DF74F4B63B /* ReadinessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessCard.swift; sourceTree = "<group>"; };
@@ -89,6 +91,7 @@
 			children = (
 				4E57B3142E0BC8FBB29A3F5F /* AccessibilityBridge.swift */,
 				86A6631D8F7944AC7AA418F0 /* AudioInputMonitor.swift */,
+				198A32D2D580E17AB5794697 /* FallbackShortcutBridge.swift */,
 				0A335BA5E01388AF947CD101 /* HotkeyBridge.swift */,
 				584274AFFE82B4111F0BF3E1 /* InsertionCompatibilityStore.swift */,
 				CC188BB78BE566E1F1607293 /* QuickActionEngine.swift */,
@@ -222,6 +225,7 @@
 				CF113BFAE3623CEBAD264ED1 /* AudioPulseView.swift in Sources */,
 				7FD79375165137FD2FB6C0D0 /* DashboardCards.swift in Sources */,
 				20DCC7385646F312824A95F0 /* DomainModels.swift in Sources */,
+				5991CF2C7DA489CB8F04DF30 /* FallbackShortcutBridge.swift in Sources */,
 				9B6FF56C2449689F926430F2 /* FloatingBarView.swift in Sources */,
 				7843888A8CE65FBABB601EB4 /* FloatingBarWindowManager.swift in Sources */,
 				2DD1388F56B881D8E6A44CA7 /* HomeView.swift in Sources */,

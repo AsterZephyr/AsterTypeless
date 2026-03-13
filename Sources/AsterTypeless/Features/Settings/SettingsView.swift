@@ -8,6 +8,16 @@ struct SettingsView: View {
             Section("触发") {
                 TextField("主触发键", text: $model.settings.primaryTrigger)
                 TextField("回退快捷键", text: $model.settings.fallbackShortcut)
+                HStack {
+                    Text("回退绑定")
+                    Spacer()
+                    Text(model.fallbackShortcutRegistered ? "已绑定" : "未绑定")
+                        .foregroundStyle(model.fallbackShortcutRegistered ? AppTheme.success : AppTheme.warning)
+                }
+                Button("重新绑定回退快捷键") {
+                    model.refreshShortcutBindings()
+                }
+                .buttonStyle(.bordered)
             }
 
             Section("音频与语言") {

@@ -14,6 +14,7 @@ final class TypelessAppModel: ObservableObject {
     @Published var insertionAttempts: [InsertionAttempt] = []
     @Published var insertionOverview = InsertionCompatibilityOverview.empty
     @Published var readinessReport = ReadinessReport.placeholder
+    @Published var fallbackShortcutRegistered = false
 
     private let transcriptStore = TranscriptStore()
     private let insertionCompatibilityStore = InsertionCompatibilityStore()
@@ -21,6 +22,7 @@ final class TypelessAppModel: ObservableObject {
     private let quickActionEngine = QuickActionEngine()
     private let accessibilityBridge = AccessibilityBridge()
     private let hotkeyBridge = HotkeyBridge()
+    private let fallbackShortcutBridge = FallbackShortcutBridge()
     private let audioMonitor = AudioInputMonitor()
     private lazy var floatingBarManager = FloatingBarWindowManager(model: self)
 
@@ -30,6 +32,7 @@ final class TypelessAppModel: ObservableObject {
         insertionAttempts = insertionCompatibilityStore.loadAttempts()
         recomputeDashboard()
         refreshPermissions()
+        refreshShortcutBindings()
         refreshQuickBarBindings()
         startHotkeyMonitoringIfPossible()
     }
@@ -198,6 +201,15 @@ final class TypelessAppModel: ObservableObject {
         refreshReadiness()
     }
 
+    func refreshShortcutBindings() {
+        fallbackShortcutRegistered = fallbackShortcutBridge.register(shortcut: settings.fallbackShortcut) { [weak self] in
+            Task { @MainActor in
+                self?.handleFallbackShortcut()
+            }
+        }
+        refreshReadiness()
+    }
+
     private func refreshQuickBarBindings() {
         cancellables.removeAll()
 
@@ -255,6 +267,16 @@ final class TypelessAppModel: ObservableObject {
         }
 
         presentQuickBar(trigger: "Fn", captureMode: .tapToggle)
+        startRecording(captureMode: .tapToggle)
+    }
+
+    private func handleFallbackShortcut() {
+        if quickBar.captureMode == .tapToggle && quickBar.isRecording {
+            stopRecording(for: .tapToggle)
+            return
+        }
+
+        presentQuickBar(trigger: settings.fallbackShortcut, captureMode: .tapToggle)
         startRecording(captureMode: .tapToggle)
     }
 
@@ -417,10 +439,20 @@ final class TypelessAppModel: ObservableObject {
             ),
             readinessItem(
                 title: "Fn 监听",
-                detail: permissions.inputMonitoring == .granted ? "可以继续打磨 tap / hold / double tap 语义。" : "未开启时只能依赖回退快捷键，Fn 原生体验不会生效。",
+                detail: permissions.inputMonitoring == .granted
+                    ? "可以继续打磨 tap / hold / double tap 语义。"
+                    : (fallbackShortcutRegistered ? "Fn 原生体验暂时不可用，但你仍可通过 \(settings.fallbackShortcut) 这条全局热键唤起浮窗。" : "未开启时 Fn 原生体验不会生效，当前也还没有成功绑定回退快捷键。"),
                 state: permissions.inputMonitoring
             ),
         ]
+
+        let fallbackItem = ReadinessItem(
+            title: "回退快捷键",
+            detail: fallbackShortcutRegistered
+                ? "已注册全局快捷键 \(settings.fallbackShortcut)，可以作为 Fn 的稳定回退入口。"
+                : "当前没有把 \(settings.fallbackShortcut) 成功注册成全局热键，需要检查快捷键格式或系统占用情况。",
+            level: fallbackShortcutRegistered ? .ready : .attention
+        )
 
         let providerItem = ReadinessItem(
             title: "Provider 链路",
@@ -436,7 +468,7 @@ final class TypelessAppModel: ObservableObject {
             level: insertionOverview.testedApps == 0 ? .attention : (insertionOverview.failures == 0 ? .ready : .attention)
         )
 
-        let items = permissionItems + [providerItem, insertionItem]
+        let items = permissionItems + [fallbackItem, providerItem, insertionItem]
         let blockedCount = items.filter { $0.level == .blocked }.count
         let attentionCount = items.filter { $0.level == .attention }.count
 

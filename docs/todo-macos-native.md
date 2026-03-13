@@ -23,6 +23,7 @@
 - `Fn` 的 `tap / hold / double tap` 原型已接通
 - 单击录音、长按口述、双击 hands-free 的基础状态机已接通
 - 首页和设置页已补“主链路体检”状态，开始把权限、provider 和跨 App 样本统一收口
+- 回退快捷键已开始走原生全局热键，不再只是设置文案
 - 继续打磨 `hands-free` 退出语义和误触处理
 - 完善 Input Monitoring 权限引导
 - 完善 Accessibility 权限引导

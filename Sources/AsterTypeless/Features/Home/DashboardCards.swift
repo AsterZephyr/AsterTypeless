@@ -31,6 +31,7 @@ struct SettingsSummaryCard: View {
                 StatusPill(title: "辅助功能 \(model.permissions.accessibility.label)", tint: color(for: model.permissions.accessibility))
                 StatusPill(title: "麦克风 \(model.permissions.microphone.label)", tint: color(for: model.permissions.microphone))
                 StatusPill(title: "Fn 监听 \(model.permissions.inputMonitoring.label)", tint: color(for: model.permissions.inputMonitoring))
+                StatusPill(title: "回退快捷键 \(model.fallbackShortcutRegistered ? "已绑定" : "未绑定")", tint: model.fallbackShortcutRegistered ? AppTheme.success : AppTheme.warning)
             }
 
             HStack {
@@ -59,6 +60,11 @@ struct SettingsSummaryCard: View {
 
                 Button("刷新 Provider 状态") {
                     model.refreshRuntimeConfiguration()
+                }
+                .buttonStyle(.bordered)
+
+                Button("重新绑定回退快捷键") {
+                    model.refreshShortcutBindings()
                 }
                 .buttonStyle(.bordered)
             }
