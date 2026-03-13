@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, ipcMain, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, nativeTheme, screen, shell } from 'electron'
 import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
 import fsSync from 'node:fs'
@@ -22,7 +22,9 @@ const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 let mainWindow: BrowserWindow | null = null
+let floatingWindow: BrowserWindow | null = null
 let historyDb: DatabaseSync | null = null
+const globalShortcutAccelerator = process.env.GLOBAL_SHORTCUT || 'CommandOrControl+Shift+;'
 
 nativeTheme.themeSource = 'light'
 
@@ -261,15 +263,104 @@ function createMainWindow() {
     return { action: 'deny' }
   })
 
+  void loadWindowSurface(mainWindow, 'main')
+}
+
+function createFloatingWindow() {
+  const display = screen.getPrimaryDisplay()
+  const { width, x, y } = display.workArea
+
+  floatingWindow = new BrowserWindow({
+    width: 560,
+    height: 360,
+    x: Math.round(x + width / 2 - 280),
+    y: Math.round(y + 72),
+    show: false,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    movable: true,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    hasShadow: true,
+    backgroundColor: '#00000000',
+    title: 'Typeless Open Quick Input',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+    },
+  })
+
+  floatingWindow.on('blur', () => {
+    if (!floatingWindow?.webContents.isDevToolsOpened()) {
+      floatingWindow?.hide()
+    }
+  })
+
+  floatingWindow.webContents.setWindowOpenHandler(({ url }) => {
+    void shell.openExternal(url)
+    return { action: 'deny' }
+  })
+
+  void loadWindowSurface(floatingWindow, 'floating')
+}
+
+function loadWindowSurface(targetWindow: BrowserWindow, surface: 'main' | 'floating') {
   if (VITE_DEV_SERVER_URL) {
-    void mainWindow.loadURL(VITE_DEV_SERVER_URL)
-  } else {
-    void mainWindow.loadFile(path.join(RENDERER_DIST, 'index.html'))
+    const url = new URL(VITE_DEV_SERVER_URL)
+    url.searchParams.set('surface', surface)
+    return targetWindow.loadURL(url.toString())
   }
+
+  return targetWindow.loadFile(path.join(RENDERER_DIST, 'index.html'), {
+    query: { surface },
+  })
+}
+
+function showMainWindow() {
+  if (!mainWindow) return false
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore()
+  }
+
+  mainWindow.show()
+  mainWindow.focus()
+  return true
+}
+
+function toggleFloatingWindow() {
+  if (!floatingWindow) {
+    createFloatingWindow()
+  }
+
+  if (!floatingWindow) {
+    return false
+  }
+
+  if (floatingWindow.isVisible()) {
+    floatingWindow.hide()
+    return false
+  }
+
+  floatingWindow.show()
+  floatingWindow.focus()
+  return true
+}
+
+function registerGlobalShortcuts() {
+  globalShortcut.unregisterAll()
+  globalShortcut.register(globalShortcutAccelerator, () => {
+    toggleFloatingWindow()
+  })
 }
 
 app.whenReady().then(() => {
   createMainWindow()
+  createFloatingWindow()
+  registerGlobalShortcuts()
 
   ipcMain.handle('desktop:get-runtime-info', async () => {
     return DesktopRuntimeInfoSchema.parse({
@@ -297,6 +388,8 @@ app.whenReady().then(() => {
         : null,
     })
   })
+  ipcMain.handle('desktop:window:show-main', async () => showMainWindow())
+  ipcMain.handle('desktop:window:toggle-floating', async () => toggleFloatingWindow())
 
   ipcMain.handle('desktop:selection:read-fallback', async () => clipboard.readText())
   ipcMain.handle('desktop:clipboard:copy', async (_event, text: string) => {
@@ -328,4 +421,8 @@ app.on('window-all-closed', () => {
     app.quit()
     mainWindow = null
   }
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })

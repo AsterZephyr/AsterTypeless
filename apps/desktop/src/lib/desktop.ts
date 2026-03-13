@@ -10,6 +10,8 @@ type DesktopBridge = {
   getRuntimeInfo: () => Promise<DesktopRuntimeInfo>
   getVoiceRuntime: () => Promise<VoiceGatewayRuntime>
   runVoiceFlow: (input: DesktopVoiceFlowRequest) => Promise<VoiceFlowResponse>
+  showMainWindow: () => Promise<boolean>
+  toggleFloatingWindow: () => Promise<boolean>
   readSelectionFallback: () => Promise<string>
   copyToClipboard: (text: string) => Promise<boolean>
   listHistory: () => Promise<DesktopHistoryItem[]>
@@ -52,6 +54,12 @@ const noopBridge: DesktopBridge = {
       },
       latencyMs: 1,
     }
+  },
+  async showMainWindow() {
+    return true
+  },
+  async toggleFloatingWindow() {
+    return true
   },
   async readSelectionFallback() {
     return navigator.clipboard.readText()

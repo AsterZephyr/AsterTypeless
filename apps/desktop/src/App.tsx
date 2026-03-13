@@ -9,6 +9,7 @@ import {
 import { startTransition, useDeferredValue, useEffect, useState } from 'react'
 
 import { ComposerPanel } from './components/ComposerPanel'
+import { FloatingPanel } from './components/FloatingPanel'
 import { HistoryPanel } from './components/HistoryPanel'
 import { ResultPanel } from './components/ResultPanel'
 import { useVoiceRecorder } from './hooks/useVoiceRecorder'
@@ -17,6 +18,10 @@ import { fetchVoiceRuntime, submitVoiceFlow } from './lib/server'
 import './App.css'
 
 function App() {
+  const surface =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('surface') || 'main'
+      : 'main'
   const [mode, setMode] = useState<VoiceMode>('dictate')
   const [focusedAppName, setFocusedAppName] = useState('Slack')
   const [selectedText, setSelectedText] = useState('')
@@ -134,6 +139,10 @@ function App() {
     await desktopBridge.openExternal('https://www.typeless.com/')
   }
 
+  async function handleOpenMainWindow() {
+    await desktopBridge.showMainWindow()
+  }
+
   function handleReuseHistory(item: DesktopHistoryItem) {
     setMode(item.mode)
     setFocusedAppName(item.focusedAppName)
@@ -143,6 +152,29 @@ function App() {
   const serverLabel = voiceRuntime
     ? `${voiceRuntime.provider} via ${voiceRuntime.transport.toUpperCase()}`
     : 'voice runtime unavailable'
+
+  if (surface === 'floating') {
+    return (
+      <FloatingPanel
+        mode={mode}
+        transcriptHint={transcriptHint}
+        serverLabel={serverLabel}
+        isRecording={recorder.isRecording}
+        durationMs={recorder.durationMs}
+        hasRecordedAudio={Boolean(recorder.audioBlob)}
+        recordError={recorder.error}
+        isSubmitting={isSubmitting}
+        result={deferredResult}
+        lastError={lastError}
+        onModeChange={setMode}
+        onTranscriptHintChange={setTranscriptHint}
+        onStartRecording={recorder.startRecording}
+        onStopRecording={recorder.stopRecording}
+        onSubmit={handleSubmit}
+        onOpenMain={handleOpenMainWindow}
+      />
+    )
+  }
 
   return (
     <div className="app-shell">

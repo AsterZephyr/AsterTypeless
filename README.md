@@ -9,6 +9,7 @@
 - 麦克风录音和本地音频缓存
 - 本地历史记录持久化（SQLite）
 - Electron IPC 直连 voice flow
+- 全局快捷键唤起的浮层输入条
 - 可切换 `mock` / `proxy` provider
 - 标准化的 `voice_flow` 请求与响应契约
 
@@ -58,6 +59,7 @@ pnpm dev:all
 VOICE_PROVIDER=mock
 UPSTREAM_VOICE_FLOW_URL=
 UPSTREAM_API_KEY=
+GLOBAL_SHORTCUT=CommandOrControl+Shift+;
 PORT=8787
 HOST=127.0.0.1
 ```
@@ -79,6 +81,12 @@ UPSTREAM_API_KEY=your-token
 ```
 
 这样 Electron 主进程里的 `proxy` provider 会直接把桌面端请求转发成 JSON 给你的上游服务，不需要额外起本地 server。
+
+### 全局快捷键
+
+- 当前默认快捷键：`CommandOrControl+Shift+;`
+- 按下后会弹出一个全局浮层输入条，适合快速打字或录音
+- `Fn` 单键唤起还没接入；这一步需要补 macOS 原生事件监听层，而不是只靠 Electron 的 `globalShortcut`
 
 ## 上游接口契约
 
@@ -145,11 +153,12 @@ UPSTREAM_API_KEY=your-token
 - 本地 mock provider
 - 自接 API 的 proxy provider
 - 本地历史记录与旧 JSON 迁移到 SQLite
+- 全局快捷键触发的浮层输入条
 
 还没接入：
 
 - macOS 原生 Accessibility 桥
-- 全局快捷键
+- `Fn` 单键唤起
 - 当前焦点输入框插入文本
 - 选中文本捕获
 - 真正的 STT / LLM provider 适配器

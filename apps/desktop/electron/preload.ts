@@ -18,6 +18,12 @@ const desktopApi = {
   runVoiceFlow(input: DesktopVoiceFlowRequest) {
     return ipcRenderer.invoke('desktop:voice-flow:run', input) as Promise<VoiceFlowResponse>
   },
+  showMainWindow() {
+    return ipcRenderer.invoke('desktop:window:show-main') as Promise<boolean>
+  },
+  toggleFloatingWindow() {
+    return ipcRenderer.invoke('desktop:window:toggle-floating') as Promise<boolean>
+  },
   readSelectionFallback() {
     return ipcRenderer.invoke('desktop:selection:read-fallback') as Promise<string>
   },

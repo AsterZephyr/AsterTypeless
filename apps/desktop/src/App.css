@@ -509,6 +509,92 @@ button:focus-visible {
   font-weight: 700;
 }
 
+.floating-shell {
+  min-height: 100vh;
+  padding: 14px;
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(246, 238, 227, 0.96)),
+    rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(91, 76, 56, 0.12);
+  box-shadow:
+    0 24px 60px rgba(76, 55, 24, 0.16),
+    0 8px 20px rgba(76, 55, 24, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.floating-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.floating-status,
+.floating-actions,
+.floating-modes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.floating-modes {
+  padding: 6px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--border);
+}
+
+.floating-mode-button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.floating-mode-button.active {
+  background: linear-gradient(180deg, #ffffff, #edf3ff);
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.floating-textarea {
+  min-height: 118px;
+}
+
+.floating-note {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.floating-result {
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.62);
+  padding: 14px;
+}
+
+.floating-result strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+
+.floating-result p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 @media (max-width: 1240px) {
   .app-shell {
     grid-template-columns: minmax(0, 1fr);
@@ -548,6 +634,12 @@ button:focus-visible {
   .composer-grid,
   .debug-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .floating-header,
+  .floating-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .field-card.wide {
