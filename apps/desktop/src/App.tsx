@@ -82,9 +82,28 @@ function App() {
     }
   }, [])
 
-  async function handleReadClipboard() {
-    const text = await desktopBridge.readSelectionFallback()
-    setSelectedText(text)
+  async function handleReadSelectionContext() {
+    setLastError(null)
+
+    try {
+      const selection = await desktopBridge.readSelectionContext()
+
+      startTransition(() => {
+        if (selection.focusedAppName) {
+          setFocusedAppName(selection.focusedAppName)
+        }
+        setSelectedText(selection.selectedText)
+        if (selection.surroundingText) {
+          setSurroundingText(selection.surroundingText)
+        }
+      })
+
+      if (!selection.available && selection.lastError) {
+        setLastError(selection.lastError)
+      }
+    } catch (error) {
+      setLastError(error instanceof Error ? error.message : 'Unable to read selection context')
+    }
   }
 
   async function handleRefreshNativeStatus() {
@@ -275,7 +294,7 @@ function App() {
           onSurroundingTextChange={setSurroundingText}
           onTranscriptHintChange={setTranscriptHint}
           onTargetLanguageChange={setTargetLanguage}
-          onReadClipboard={handleReadClipboard}
+          onReadSelection={handleReadSelectionContext}
           onRefreshNativeStatus={handleRefreshNativeStatus}
           onPromptAccessibilityPermission={handlePromptAccessibilityPermission}
           onStartRecording={recorder.startRecording}

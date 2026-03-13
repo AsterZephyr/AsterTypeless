@@ -4,6 +4,7 @@ import type {
   DesktopHistoryItem,
   DesktopNativeStatus,
   DesktopRuntimeInfo,
+  DesktopSelectionSnapshot,
   DesktopVoiceFlowRequest,
   VoiceFlowResponse,
   VoiceGatewayRuntime,
@@ -31,8 +32,8 @@ const desktopApi = {
   toggleFloatingWindow() {
     return ipcRenderer.invoke('desktop:window:toggle-floating') as Promise<boolean>
   },
-  readSelectionFallback() {
-    return ipcRenderer.invoke('desktop:selection:read-fallback') as Promise<string>
+  readSelectionContext() {
+    return ipcRenderer.invoke('desktop:selection:read-context') as Promise<DesktopSelectionSnapshot>
   },
   copyToClipboard(text: string) {
     return ipcRenderer.invoke('desktop:clipboard:copy', text) as Promise<boolean>

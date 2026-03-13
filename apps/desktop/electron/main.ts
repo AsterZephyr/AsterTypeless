@@ -8,6 +8,7 @@ import {
   DesktopHistoryItemSchema,
   DesktopNativeStatusSchema,
   DesktopRuntimeInfoSchema,
+  DesktopSelectionSnapshotSchema,
   DesktopVoiceFlowRequestSchema,
   type DesktopHistoryItem,
 } from '@typeless-open/shared'
@@ -424,8 +425,39 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('desktop:window:show-main', async () => showMainWindow())
   ipcMain.handle('desktop:window:toggle-floating', async () => toggleFloatingWindow())
+  ipcMain.handle('desktop:selection:read-context', async () => {
+    const nativeSnapshot = nativeHelperBridge
+      ? await nativeHelperBridge.readSelection()
+      : DesktopSelectionSnapshotSchema.parse({
+          available: false,
+          selectedText: '',
+          surroundingText: '',
+          focusedAppName: '',
+          focusedBundleId: '',
+          source: 'unavailable',
+          lastError: '',
+        })
 
-  ipcMain.handle('desktop:selection:read-fallback', async () => clipboard.readText())
+    if (
+      nativeSnapshot.available ||
+      nativeSnapshot.selectedText ||
+      nativeSnapshot.surroundingText
+    ) {
+      return nativeSnapshot
+    }
+
+    const clipboardText = clipboard.readText().trim()
+    if (!clipboardText) {
+      return nativeSnapshot
+    }
+
+    return DesktopSelectionSnapshotSchema.parse({
+      ...nativeSnapshot,
+      available: true,
+      selectedText: clipboardText,
+      source: 'clipboard',
+    })
+  })
   ipcMain.handle('desktop:clipboard:copy', async (_event, text: string) => {
     clipboard.writeText(text)
     return true

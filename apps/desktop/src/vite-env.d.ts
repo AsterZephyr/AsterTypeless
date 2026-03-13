@@ -4,6 +4,7 @@ import type {
   DesktopHistoryItem,
   DesktopNativeStatus,
   DesktopRuntimeInfo,
+  DesktopSelectionSnapshot,
   DesktopVoiceFlowRequest,
   VoiceFlowResponse,
   VoiceGatewayRuntime,
@@ -17,7 +18,7 @@ interface DesktopBridge {
   runVoiceFlow: (input: DesktopVoiceFlowRequest) => Promise<VoiceFlowResponse>
   showMainWindow: () => Promise<boolean>
   toggleFloatingWindow: () => Promise<boolean>
-  readSelectionFallback: () => Promise<string>
+  readSelectionContext: () => Promise<DesktopSelectionSnapshot>
   copyToClipboard: (text: string) => Promise<boolean>
   listHistory: () => Promise<DesktopHistoryItem[]>
   saveHistory: (item: DesktopHistoryItem) => Promise<DesktopHistoryItem[]>

@@ -20,7 +20,7 @@ type ComposerPanelProps = {
   onSurroundingTextChange: (value: string) => void
   onTranscriptHintChange: (value: string) => void
   onTargetLanguageChange: (value: string) => void
-  onReadClipboard: () => void
+  onReadSelection: () => void
   onRefreshNativeStatus: () => void
   onPromptAccessibilityPermission: () => void
   onStartRecording: () => void
@@ -78,7 +78,7 @@ export function ComposerPanel({
   onSurroundingTextChange,
   onTranscriptHintChange,
   onTargetLanguageChange,
-  onReadClipboard,
+  onReadSelection,
   onRefreshNativeStatus,
   onPromptAccessibilityPermission,
   onStartRecording,
@@ -204,8 +204,8 @@ export function ComposerPanel({
             <label className="field-label" htmlFor="selected-text">
               Selected text
             </label>
-            <button className="ghost-button" type="button" onClick={onReadClipboard}>
-              Use clipboard
+            <button className="ghost-button" type="button" onClick={onReadSelection}>
+              Use selection
             </button>
           </div>
           <textarea
@@ -214,7 +214,10 @@ export function ComposerPanel({
             onChange={(event) => onSelectedTextChange(event.target.value)}
             placeholder="Selected text from the current app, or a copied draft you want to rewrite."
           />
-          <p className="field-hint">Clipboard is the current fallback until native selection capture lands.</p>
+          <p className="field-hint">
+            Native selection capture is preferred here, with clipboard fallback when the helper is
+            unavailable.
+          </p>
         </div>
 
         <div className="field-card">

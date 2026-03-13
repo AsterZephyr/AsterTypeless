@@ -68,6 +68,16 @@ export const DesktopNativeStatusSchema = z.object({
   lastError: z.string().default(''),
 })
 
+export const DesktopSelectionSnapshotSchema = z.object({
+  available: z.boolean(),
+  selectedText: z.string().default(''),
+  surroundingText: z.string().default(''),
+  focusedAppName: z.string().default(''),
+  focusedBundleId: z.string().default(''),
+  source: z.enum(['accessibility', 'derived-value', 'clipboard', 'unavailable']),
+  lastError: z.string().default(''),
+})
+
 export const HealthResponseSchema = z.object({
   ok: z.literal(true),
   provider: z.string(),
@@ -101,6 +111,7 @@ export type VoiceFlowResponse = z.infer<typeof VoiceFlowResponseSchema>
 export type DesktopHistoryItem = z.infer<typeof DesktopHistoryItemSchema>
 export type DesktopRuntimeInfo = z.infer<typeof DesktopRuntimeInfoSchema>
 export type DesktopNativeStatus = z.infer<typeof DesktopNativeStatusSchema>
+export type DesktopSelectionSnapshot = z.infer<typeof DesktopSelectionSnapshotSchema>
 export type HealthResponse = z.infer<typeof HealthResponseSchema>
 export type VoiceGatewayRuntime = z.infer<typeof VoiceGatewayRuntimeSchema>
 export type DesktopVoiceFlowRequest = z.infer<typeof DesktopVoiceFlowRequestSchema>

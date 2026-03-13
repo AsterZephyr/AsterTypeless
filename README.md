@@ -11,6 +11,7 @@
 - Electron IPC 直连 voice flow
 - 全局快捷键唤起的浮层输入条
 - macOS native helper 状态探测骨架
+- 原生选中内容读取，失败时回落到剪贴板
 - 可切换 `mock` / `proxy` provider
 - 标准化的 `voice_flow` 请求与响应契约
 
@@ -91,10 +92,11 @@ UPSTREAM_API_KEY=your-token
 
 ### macOS native helper
 
-- 当前已经接通一个 Swift helper 骨架，用来读取辅助功能权限状态和当前前台 App
+- 当前已经接通一个 Swift helper 骨架，用来读取辅助功能权限状态、当前前台 App 和选中文本
 - 界面里会显示 native bridge 状态，并能触发一次辅助功能权限申请
+- “Use selection” 会优先尝试原生选中内容读取，失败时回落到剪贴板
 - 如果本机的 Swift toolchain 和 Command Line Tools / Xcode SDK 不匹配，helper 会降级为 unavailable，并把原因回显到界面
-- 这一步还没有实现“读取选中文本”和“把结果插回当前输入框”
+- 这一步还没有实现“把结果插回当前输入框”
 
 ## 上游接口契约
 
@@ -163,18 +165,19 @@ UPSTREAM_API_KEY=your-token
 - 本地历史记录与旧 JSON 迁移到 SQLite
 - 全局快捷键触发的浮层输入条
 - macOS native helper 权限状态与前台 App 探测骨架
+- 原生选中内容读取与剪贴板回落
 
 还没接入：
 
 - `Fn` 单键唤起
 - 当前焦点输入框插入文本
-- 选中文本捕获
+- 跨任意 App 的稳定选中文本兼容层
 - 真正的 STT / LLM provider 适配器
 
 ## 下一步建议
 
 1. 先补一个真实 provider 适配器，比如 OpenAI 兼容网关或你自己的内部服务。
-2. 再把 macOS 原生层往前推，把“获取选中文本”和“插回当前输入框”补上。
+2. 再把 macOS 原生层往前推，把“插回当前输入框”补上，并继续增强跨 App 选中文本兼容性。
 3. 最后接 `Fn` 或长按修饰键这类更接近 Typeless 的唤起方式。
 
 ## 参考

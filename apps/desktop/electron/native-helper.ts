@@ -3,11 +3,14 @@ import fsSync from 'node:fs'
 import path from 'node:path'
 import { promisify } from 'node:util'
 
-import { DesktopNativeStatusSchema, type DesktopNativeStatus } from '@typeless-open/shared'
+import {
+  DesktopNativeStatusSchema,
+  DesktopSelectionSnapshotSchema,
+} from '@typeless-open/shared'
 
 const execFileAsync = promisify(execFile)
 
-type NativeHelperCommand = 'status' | 'prompt-accessibility'
+type NativeHelperCommand = 'status' | 'prompt-accessibility' | 'read-selection'
 
 export class NativeHelperBridge {
   private readonly appRoot: string
@@ -19,11 +22,32 @@ export class NativeHelperBridge {
   }
 
   async getStatus() {
-    return this.run('status')
+    return this.run(
+      'status',
+      (value) => DesktopNativeStatusSchema.parse(value),
+      this.fallbackStatus(false),
+      (helperAvailable, helperPath, lastError) =>
+        this.fallbackStatus(helperAvailable, helperPath, lastError),
+    )
   }
 
   async promptAccessibilityPermission() {
-    return this.run('prompt-accessibility')
+    return this.run(
+      'prompt-accessibility',
+      (value) => DesktopNativeStatusSchema.parse(value),
+      this.fallbackStatus(false),
+      (helperAvailable, helperPath, lastError) =>
+        this.fallbackStatus(helperAvailable, helperPath, lastError),
+    )
+  }
+
+  async readSelection() {
+    return this.run(
+      'read-selection',
+      (value) => DesktopSelectionSnapshotSchema.parse(value),
+      this.fallbackSelection(false),
+      (helperAvailable, _helperPath, lastError) => this.fallbackSelection(helperAvailable, lastError),
+    )
   }
 
   private getSourcePath() {
@@ -34,11 +58,16 @@ export class NativeHelperBridge {
     return path.join(this.userDataPath, 'native', 'typeless-native-helper')
   }
 
-  private async run(command: NativeHelperCommand): Promise<DesktopNativeStatus> {
+  private async run<T>(
+    command: NativeHelperCommand,
+    parse: (value: unknown) => T,
+    missingHelperFallback: T,
+    fallbackFactory: (helperAvailable: boolean, helperPath: string, lastError: string) => T,
+  ): Promise<T> {
     const binaryPath = await this.ensureBuilt()
 
     if (!binaryPath) {
-      return this.fallbackStatus(false)
+      return missingHelperFallback
     }
 
     try {
@@ -46,9 +75,9 @@ export class NativeHelperBridge {
         timeout: 8_000,
       })
       const parsed = JSON.parse(stdout || '{}')
-      return DesktopNativeStatusSchema.parse(parsed)
+      return parse(parsed)
     } catch (error) {
-      return this.fallbackStatus(true, binaryPath, this.normalizeError(error))
+      return fallbackFactory(true, binaryPath, this.normalizeError(error))
     }
   }
 
@@ -83,7 +112,9 @@ export class NativeHelperBridge {
         sourcePath,
         '-o',
         binaryPath,
-      ])
+      ], {
+        timeout: 10_000,
+      })
       this.lastBuildError = ''
       return binaryPath
     } catch (error) {
@@ -102,6 +133,18 @@ export class NativeHelperBridge {
       accessibilityPermissionPrompted: false,
       focusedAppName: '',
       focusedBundleId: '',
+      lastError: lastError || this.lastBuildError,
+    })
+  }
+
+  private fallbackSelection(_helperAvailable: boolean, lastError = '') {
+    return DesktopSelectionSnapshotSchema.parse({
+      available: false,
+      selectedText: '',
+      surroundingText: '',
+      focusedAppName: '',
+      focusedBundleId: '',
+      source: 'unavailable',
       lastError: lastError || this.lastBuildError,
     })
   }

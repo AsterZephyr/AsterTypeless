@@ -2,6 +2,7 @@ import type {
   DesktopHistoryItem,
   DesktopNativeStatus,
   DesktopRuntimeInfo,
+  DesktopSelectionSnapshot,
   DesktopVoiceFlowRequest,
   VoiceFlowResponse,
   VoiceGatewayRuntime,
@@ -15,7 +16,7 @@ type DesktopBridge = {
   runVoiceFlow: (input: DesktopVoiceFlowRequest) => Promise<VoiceFlowResponse>
   showMainWindow: () => Promise<boolean>
   toggleFloatingWindow: () => Promise<boolean>
-  readSelectionFallback: () => Promise<string>
+  readSelectionContext: () => Promise<DesktopSelectionSnapshot>
   copyToClipboard: (text: string) => Promise<boolean>
   listHistory: () => Promise<DesktopHistoryItem[]>
   saveHistory: (item: DesktopHistoryItem) => Promise<DesktopHistoryItem[]>
@@ -86,8 +87,16 @@ const noopBridge: DesktopBridge = {
   async toggleFloatingWindow() {
     return true
   },
-  async readSelectionFallback() {
-    return navigator.clipboard.readText()
+  async readSelectionContext() {
+    return {
+      available: false,
+      selectedText: await navigator.clipboard.readText(),
+      surroundingText: '',
+      focusedAppName: '',
+      focusedBundleId: '',
+      source: 'clipboard',
+      lastError: '',
+    }
   },
   async copyToClipboard(text) {
     await navigator.clipboard.writeText(text)
