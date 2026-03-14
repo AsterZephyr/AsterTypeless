@@ -7,10 +7,7 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 header
-                QuickStartCard(model: model, overview: model.overview)
-                PersonaReportCard(report: model.personaReport)
-                FeedbackHubCard(model: model)
-                TranscriptHistoryCard(sessions: model.sessions)
+                HomeOverviewPanel(model: model)
             }
             .padding(24)
             .frame(maxWidth: 760)

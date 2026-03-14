@@ -1,5 +1,28 @@
 import SwiftUI
 
+struct HomeOverviewPanel: View {
+    @ObservedObject var model: TypelessAppModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            QuickStartCard(model: model, overview: model.overview)
+
+            Divider()
+
+            PersonaReportCard(report: model.personaReport)
+
+            Divider()
+
+            FeedbackHubCard(model: model)
+
+            Divider()
+
+            TranscriptHistoryCard(sessions: model.sessions)
+        }
+        .cardSurface()
+    }
+}
+
 struct QuickStartCard: View {
     @ObservedObject var model: TypelessAppModel
     let overview: DictationOverview
@@ -60,7 +83,6 @@ struct QuickStartCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cardSurface()
     }
 
     private func color(for state: PermissionState) -> Color {
@@ -133,7 +155,6 @@ struct PersonaReportCard: View {
             .insetSurface()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cardSurface()
     }
 }
 
@@ -197,7 +218,6 @@ struct FeedbackHubCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cardSurface()
     }
 }
 
@@ -233,7 +253,6 @@ struct TranscriptHistoryCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cardSurface()
     }
 }
 
