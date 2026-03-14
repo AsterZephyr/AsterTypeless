@@ -8,15 +8,13 @@ struct CaptureHeroView: View {
         VStack(spacing: 0) {
             topBar
 
-            Spacer()
-
             ZStack {
                 Circle()
-                    .fill(AppTheme.brand100.opacity(0.5))
+                    .fill(AppTheme.brand100.opacity(0.42))
                     .frame(width: 380, height: 380)
                     .blur(radius: 80)
 
-                VStack(spacing: 28) {
+                VStack(spacing: 30) {
                     captureButton
                         .offset(y: isFloating ? -10 : 0)
 
@@ -38,11 +36,9 @@ struct CaptureHeroView: View {
                     statusBadge
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            Spacer()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .padding(.bottom, 48)
         }
-        .padding(.bottom, 32)
     }
 
     private var topBar: some View {
@@ -67,9 +63,8 @@ struct CaptureHeroView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 26)
-        .padding(.top, 18)
-        .padding(.bottom, 12)
+        .frame(height: 56)
+        .padding(.horizontal, 24)
     }
 
     private var captureButton: some View {
@@ -140,7 +135,7 @@ struct CaptureHeroView: View {
         .padding(.vertical, 10)
         .background(
             Capsule(style: .continuous)
-                .fill(Color.white.opacity(0.44))
+                .fill(Color.white.opacity(0.5))
         )
         .overlay {
             Capsule(style: .continuous)

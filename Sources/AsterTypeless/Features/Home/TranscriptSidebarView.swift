@@ -13,9 +13,9 @@ struct TranscriptSidebarView: View {
             searchField
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     ForEach(sessionGroups) { group in
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 4) {
                             groupHeader(group.title)
 
                             ForEach(group.sessions) { session in
@@ -33,12 +33,12 @@ struct TranscriptSidebarView: View {
                     }
                 }
                 .padding(.horizontal, 12)
-                .padding(.bottom, 14)
+                .padding(.bottom, 12)
             }
 
             footer
         }
-        .background(Color.white.opacity(0.42))
+        .background(Color.white.opacity(0.40))
         .overlay(alignment: .trailing) {
             Rectangle()
                 .fill(Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255).opacity(0.65))
@@ -83,14 +83,13 @@ struct TranscriptSidebarView: View {
 
     private var trafficLights: some View {
         HStack(spacing: 8) {
-            Circle().fill(Color(red: 248 / 255, green: 113 / 255, blue: 113 / 255)).frame(width: 13, height: 13)
-            Circle().fill(Color(red: 250 / 255, green: 204 / 255, blue: 21 / 255)).frame(width: 13, height: 13)
-            Circle().fill(Color(red: 74 / 255, green: 222 / 255, blue: 128 / 255)).frame(width: 13, height: 13)
+            Circle().fill(Color(red: 248 / 255, green: 113 / 255, blue: 113 / 255)).frame(width: 12, height: 12)
+            Circle().fill(Color(red: 250 / 255, green: 204 / 255, blue: 21 / 255)).frame(width: 12, height: 12)
+            Circle().fill(Color(red: 74 / 255, green: 222 / 255, blue: 128 / 255)).frame(width: 12, height: 12)
             Spacer()
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 18)
-        .padding(.bottom, 12)
+        .frame(height: 56)
+        .padding(.horizontal, 16)
     }
 
     private var searchField: some View {
@@ -101,17 +100,17 @@ struct TranscriptSidebarView: View {
 
             TextField("Search transcripts...", text: $searchText)
                 .textFieldStyle(.plain)
-                .font(.system(size: 13, weight: .regular))
+                .font(.system(size: 14, weight: .medium))
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .frame(height: 38)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.white.opacity(0.72))
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white.opacity(0.5))
         )
         .overlay {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255).opacity(0.9), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255).opacity(0.8), lineWidth: 1)
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 16)
@@ -138,8 +137,9 @@ struct TranscriptSidebarView: View {
                 )
                 .frame(height: 1)
         }
-        .padding(.horizontal, 8)
-        .padding(.top, 6)
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+        .padding(.bottom, 2)
     }
 
     private var footer: some View {
@@ -172,8 +172,8 @@ struct TranscriptSidebarView: View {
                 }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(Color.white.opacity(0.34))
+        .padding(.vertical, 16)
+        .background(Color.white.opacity(0.30))
     }
 
     private var appVersionLabel: String {
@@ -195,14 +195,14 @@ private struct TranscriptSidebarRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 Text(session.title)
-                    .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
+                    .font(.system(size: 13.5, weight: isSelected ? .semibold : .medium))
                     .foregroundStyle(isSelected ? Color(red: 30 / 255, green: 41 / 255, blue: 59 / 255) : Color(red: 51 / 255, green: 65 / 255, blue: 85 / 255))
                     .lineLimit(1)
 
                 Spacer(minLength: 10)
 
                 Text(session.timestampLabel)
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(Color(red: 148 / 255, green: 163 / 255, blue: 184 / 255))
             }
 
@@ -226,21 +226,21 @@ private struct TranscriptSidebarRow: View {
         .background(
             ZStack(alignment: .leading) {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(Color.white.opacity(0.82))
                     RoundedRectangle(cornerRadius: 2, style: .continuous)
                         .fill(AppTheme.brand500)
                         .frame(width: 4)
-                        .padding(.vertical, 3)
-                        .padding(.leading, 1)
+                        .padding(.vertical, 2)
+                        .padding(.leading, 0.5)
                 } else {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(Color.clear)
                 }
             }
         )
         .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(isSelected ? Color.white.opacity(0.8) : Color.clear, lineWidth: 1)
         }
         .shadow(color: isSelected ? Color.black.opacity(0.06) : .clear, radius: 12, y: 6)

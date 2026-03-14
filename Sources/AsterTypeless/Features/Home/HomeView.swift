@@ -7,17 +7,16 @@ struct HomeView: View {
     @State private var heroIsFloating = false
 
     var body: some View {
-        GeometryReader { proxy in
+        GeometryReader { _ in
             ZStack(alignment: .topTrailing) {
                 background
 
                 workspaceFrame
-                    .padding(16)
 
                 if shouldShowHomeHUD {
                     RecordingStatusHUD(model: model)
-                        .padding(.top, 28)
-                        .padding(.trailing, 28)
+                        .padding(.top, 48)
+                        .padding(.trailing, 48)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -40,9 +39,9 @@ struct HomeView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 244 / 255, green: 247 / 255, blue: 252 / 255),
+                    Color(red: 238 / 255, green: 242 / 255, blue: 255 / 255),
                     Color.white,
-                    Color(red: 236 / 255, green: 242 / 255, blue: 250 / 255),
+                    Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255),
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -50,16 +49,16 @@ struct HomeView: View {
             .ignoresSafeArea()
 
             Circle()
-                .fill(AppTheme.brand100.opacity(0.45))
-                .frame(width: 420, height: 420)
-                .blur(radius: 84)
-                .offset(x: 250, y: -180)
+                .fill(AppTheme.brand100.opacity(0.58))
+                .frame(width: 600, height: 600)
+                .blur(radius: 100)
+                .offset(x: 430, y: -260)
 
             Circle()
-                .fill(Color(red: 219 / 255, green: 234 / 255, blue: 254 / 255).opacity(0.42))
-                .frame(width: 360, height: 360)
-                .blur(radius: 70)
-                .offset(x: -220, y: 220)
+                .fill(Color(red: 219 / 255, green: 234 / 255, blue: 254 / 255).opacity(0.56))
+                .frame(width: 500, height: 500)
+                .blur(radius: 80)
+                .offset(x: -360, y: 300)
         }
     }
 
@@ -75,22 +74,22 @@ struct HomeView: View {
             CaptureHeroView(model: model, isFloating: heroIsFloating)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(width: 960, height: 640)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.white.opacity(0.78))
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.white.opacity(0.75))
         )
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.white.opacity(0.65), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.white.opacity(0.6), lineWidth: 1)
         }
         .overlay {
             AcousticPatternOverlay()
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .allowsHitTesting(false)
         }
-        .shadow(color: Color.black.opacity(0.14), radius: 40, y: 18)
+        .shadow(color: Color.black.opacity(0.15), radius: 40, y: 20)
     }
 }
 
@@ -115,6 +114,6 @@ private struct AcousticPatternOverlay: View {
                 }
             }
         }
-        .opacity(0.42)
+        .opacity(0.5)
     }
 }
