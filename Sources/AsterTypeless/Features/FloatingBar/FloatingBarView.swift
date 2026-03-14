@@ -17,21 +17,12 @@ struct FloatingBarView: View {
             }
         }
         .padding(model.quickBar.isCompactLayout ? 16 : 18)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color.white.opacity(0.92),
-                    Color(red: 0.95, green: 0.93, blue: 0.89).opacity(0.90),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            ),
-            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
-        )
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(AppTheme.cardBorder, lineWidth: 1)
         )
+        .shadow(color: Color.black.opacity(0.08), radius: 20, y: 10)
         .padding(12)
         .frame(width: model.quickBar.isCompactLayout ? 308 : 404)
     }
@@ -40,10 +31,10 @@ struct FloatingBarView: View {
         HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(model.quickBar.targetAppName.isEmpty ? "Quick Dictation" : model.quickBar.targetAppName)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.headline)
                     .foregroundStyle(AppTheme.ink)
                 Text(model.quickBar.statusText)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.caption)
                     .foregroundStyle(AppTheme.muted)
                     .lineLimit(model.quickBar.isCompactLayout ? 2 : 3)
             }
@@ -62,12 +53,12 @@ struct FloatingBarView: View {
             AudioPulseView(level: model.quickBar.smoothedLevel, isSpeaking: model.quickBar.isSpeaking)
 
             Text(primaryListeningLabel)
-                .font(.system(size: model.quickBar.isCompactLayout ? 15 : 14, weight: .semibold))
+                .font(model.quickBar.isCompactLayout ? .subheadline.weight(.semibold) : .body.weight(.semibold))
                 .foregroundStyle(AppTheme.ink)
 
             if !model.quickBar.selectedContextPreview.isEmpty {
                 Text(model.quickBar.selectedContextPreview)
-                    .font(.system(size: 12))
+                    .font(.caption)
                     .foregroundStyle(AppTheme.muted)
                     .lineLimit(model.quickBar.isCompactLayout ? 2 : 3)
                     .multilineTextAlignment(.center)
@@ -76,11 +67,11 @@ struct FloatingBarView: View {
 
             if model.quickBar.capturedDuration > 0 {
                 Text("本次录音 \(String(format: "%.1f", model.quickBar.capturedDuration)) 秒")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.caption2.weight(.medium))
                     .foregroundStyle(AppTheme.muted)
             } else if model.quickBar.holdDuration > 0 {
                 Text("本次按住 \(String(format: "%.1f", model.quickBar.holdDuration)) 秒")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.caption2.weight(.medium))
                     .foregroundStyle(AppTheme.muted)
             }
         }
@@ -98,26 +89,26 @@ struct FloatingBarView: View {
             .pickerStyle(.segmented)
 
             TextEditor(text: $model.quickBar.transcriptDraft)
-                .font(.system(size: 14, weight: .medium))
+                .font(.body)
                 .scrollContentBackground(.hidden)
                 .padding(10)
                 .background(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color.white.opacity(0.74))
+                        .fill(AppTheme.insetCard)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(AppTheme.cardBorder, lineWidth: 1)
+                        .stroke(AppTheme.insetCardBorder, lineWidth: 1)
                 )
                 .frame(minHeight: 98)
 
             if !model.quickBar.generatedText.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(model.quickBar.generatedSourceLabel.isEmpty ? "生成结果" : "生成结果 · \(model.quickBar.generatedSourceLabel)")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.success)
                     Text(model.quickBar.generatedText)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.subheadline.weight(.medium))
                         .foregroundStyle(AppTheme.ink)
                         .lineLimit(4)
                 }
@@ -153,7 +144,7 @@ struct FloatingBarView: View {
     private var compactFooter: some View {
         HStack {
             Label(model.quickBar.mode.subtitle, systemImage: model.quickBar.isRecording ? "waveform" : "mic")
-                .font(.system(size: 12, weight: .medium))
+                .font(.caption.weight(.medium))
                 .foregroundStyle(AppTheme.muted)
 
             Spacer()
@@ -162,7 +153,7 @@ struct FloatingBarView: View {
                 model.dismissQuickBar()
             }
             .buttonStyle(.plain)
-            .font(.system(size: 12, weight: .semibold))
+            .font(.caption.weight(.semibold))
             .foregroundStyle(AppTheme.muted)
         }
     }

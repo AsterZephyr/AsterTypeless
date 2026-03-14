@@ -5,7 +5,7 @@ struct HomeView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 18) {
                 header
 
                 HStack(alignment: .top, spacing: 16) {
@@ -20,8 +20,8 @@ struct HomeView: View {
 
                 TranscriptHistoryCard(sessions: model.sessions)
             }
-            .padding(20)
-            .frame(maxWidth: 1080)
+            .padding(24)
+            .frame(maxWidth: 1040)
             .frame(maxWidth: .infinity)
         }
         .background(background)
@@ -44,13 +44,13 @@ struct HomeView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("AsterTypeless")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
             Text("像输入法一样开始口述，把想法直接写进当前输入框。")
-                .font(.system(size: 26, weight: .bold))
+                .font(.title.weight(.bold))
                 .foregroundStyle(AppTheme.ink)
             Text("首页只保留口述报告、个性化摘要和最近记录。真正的输入动作留给浮窗和菜单栏。")
-                .font(.system(size: 13))
+                .font(.callout)
                 .foregroundStyle(AppTheme.muted)
         }
     }

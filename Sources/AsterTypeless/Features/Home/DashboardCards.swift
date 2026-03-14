@@ -8,10 +8,10 @@ struct QuickStartCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("开始使用")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.accent)
                     Text("把口述留给浮窗")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.title3.weight(.semibold))
                         .foregroundStyle(AppTheme.ink)
                 }
                 Spacer()
@@ -19,7 +19,7 @@ struct QuickStartCard: View {
             }
 
             Text("把光标放到任意输入框，按住 \(model.settings.primaryTrigger) 说话；如果 `Fn` 还没开好，也可以用 \(model.settings.fallbackShortcut) 直接唤起。")
-                .font(.system(size: 14))
+                .font(.callout)
                 .foregroundStyle(AppTheme.muted)
 
             LabeledRow(title: "主触发键", value: model.settings.primaryTrigger)
@@ -36,7 +36,7 @@ struct QuickStartCard: View {
 
             if needsSetup {
                 Text("首次使用需要在设置里打开权限，系统才知道该往哪里写回文本。")
-                    .font(.system(size: 12))
+                    .font(.caption)
                     .foregroundStyle(AppTheme.muted)
             }
 
@@ -87,10 +87,10 @@ struct DictationReportCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("口述报告")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
             Text("本地统计概览")
-                .font(.system(size: 22, weight: .bold))
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(AppTheme.ink)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -111,13 +111,13 @@ struct PersonaReportCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Personalization")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
             Text(report.title)
-                .font(.system(size: 22, weight: .bold))
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(AppTheme.ink)
             Text(report.summary)
-                .font(.system(size: 14))
+                .font(.callout)
                 .foregroundStyle(AppTheme.muted)
 
             HStack(spacing: 12) {
@@ -128,7 +128,7 @@ struct PersonaReportCard: View {
             if !report.focusApps.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("高频场景")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.muted)
                     FlowTagCloud(tags: report.focusApps)
                 }
@@ -139,7 +139,7 @@ struct PersonaReportCard: View {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(report.suggestions, id: \.self) { suggestion in
                     Label(suggestion, systemImage: "sparkles")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.subheadline.weight(.medium))
                         .foregroundStyle(AppTheme.ink)
                 }
             }
@@ -156,15 +156,14 @@ private struct PersonaSummaryTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.muted)
             Text(value)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.ink)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Color.white.opacity(0.56), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .insetSurface()
     }
 }
 
@@ -178,10 +177,10 @@ struct FeedbackHubCard: View {
 
         return VStack(alignment: .leading, spacing: 16) {
             Text("反馈与转录")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
             Text("入口归类")
-                .font(.system(size: 22, weight: .bold))
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(AppTheme.ink)
 
             LabeledRow(title: "最近记录", value: "\(min(model.sessions.count, 4)) 条")
@@ -192,35 +191,33 @@ struct FeedbackHubCard: View {
             if let latest = model.sessions.first {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("最近一次最终转录")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.muted)
                     Text(latest.finalText)
-                        .font(.system(size: 13))
+                        .font(.subheadline)
                         .foregroundStyle(AppTheme.ink)
                         .lineLimit(4)
                 }
-                .padding(12)
-                .background(AppTheme.accentSoft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .insetSurface()
             }
 
             if let latestInsertion = model.insertionAttempts.first {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("最近一次写回")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.muted)
                     HStack {
                         StatusPill(title: latestInsertion.method.title, tint: latestInsertion.success ? AppTheme.success : AppTheme.warning)
                         Text(latestInsertion.appName.isEmpty ? "未知 App" : latestInsertion.appName)
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.caption.weight(.medium))
                             .foregroundStyle(AppTheme.ink)
                     }
                     Text(latestInsertion.detail)
-                        .font(.system(size: 12))
+                        .font(.caption)
                         .foregroundStyle(AppTheme.muted)
                         .lineLimit(2)
                 }
-                .padding(12)
-                .background(Color.white.opacity(0.56), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .insetSurface()
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -236,10 +233,10 @@ struct TranscriptHistoryCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("记录")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.accent)
                     Text("最近转录与最终输出")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.title3.weight(.semibold))
                         .foregroundStyle(AppTheme.ink)
                 }
                 Spacer()
@@ -250,34 +247,33 @@ struct TranscriptHistoryCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text(session.sourceAppName)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(AppTheme.ink)
                         StatusPill(title: session.mode.title, tint: AppTheme.accent)
                         Spacer()
                         Text(session.createdAt.formatted(date: .abbreviated, time: .shortened))
-                            .font(.system(size: 12))
+                            .font(.caption)
                             .foregroundStyle(AppTheme.muted)
                     }
 
                     Text(session.transcriptPreview)
-                        .font(.system(size: 13))
+                        .font(.subheadline)
                         .foregroundStyle(AppTheme.muted)
                         .lineLimit(2)
 
                     Text(session.finalText)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.body.weight(.medium))
                         .foregroundStyle(AppTheme.ink)
                         .lineLimit(3)
 
                     HStack {
                         StatusPill(title: session.feedback.title, tint: session.feedback == .accepted ? AppTheme.success : AppTheme.warning)
                         Text("\(session.words) words · \(Int(session.durationSeconds))s")
-                            .font(.system(size: 12))
+                            .font(.caption)
                             .foregroundStyle(AppTheme.muted)
                     }
                 }
-                .padding(14)
-                .background(Color.white.opacity(0.58), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .insetSurface()
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -292,11 +288,11 @@ private struct LabeledRow: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.system(size: 13))
+                .font(.subheadline)
                 .foregroundStyle(AppTheme.muted)
             Spacer()
             Text(value)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.ink)
         }
     }
@@ -310,20 +306,19 @@ private struct MetricTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.muted)
             HStack(alignment: .lastTextBaseline, spacing: 4) {
                 Text(value)
                     .font(.system(size: 28, weight: .bold))
                     .foregroundStyle(AppTheme.ink)
                 Text(unit)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.caption.weight(.medium))
                     .foregroundStyle(AppTheme.muted)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(Color.white.opacity(0.56), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .insetSurface()
     }
 }
 
@@ -334,7 +329,7 @@ private struct FlowTagCloud: View {
         HStack(spacing: 8) {
             ForEach(tags, id: \.self) { tag in
                 Text(tag)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(AppTheme.accent)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
