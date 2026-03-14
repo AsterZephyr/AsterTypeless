@@ -11,12 +11,13 @@ struct HomeView: View {
             ZStack(alignment: .topTrailing) {
                 background
 
-                workspaceFrame(size: proxy.size)
+                workspaceFrame
+                    .padding(16)
 
                 if shouldShowHomeHUD {
                     RecordingStatusHUD(model: model)
-                        .padding(.top, 42)
-                        .padding(.trailing, 42)
+                        .padding(.top, 28)
+                        .padding(.trailing, 28)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -39,9 +40,9 @@ struct HomeView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    AppTheme.brand50.opacity(0.95),
+                    Color(red: 244 / 255, green: 247 / 255, blue: 252 / 255),
                     Color.white,
-                    Color(nsColor: .windowBackgroundColor),
+                    Color(red: 236 / 255, green: 242 / 255, blue: 250 / 255),
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -49,24 +50,20 @@ struct HomeView: View {
             .ignoresSafeArea()
 
             Circle()
-                .fill(AppTheme.brand200.opacity(0.55))
-                .frame(width: 600, height: 600)
-                .blur(radius: 100)
-                .offset(x: 360, y: -260)
+                .fill(AppTheme.brand100.opacity(0.45))
+                .frame(width: 420, height: 420)
+                .blur(radius: 84)
+                .offset(x: 250, y: -180)
 
             Circle()
-                .fill(Color.blue.opacity(0.16))
-                .frame(width: 500, height: 500)
-                .blur(radius: 82)
-                .offset(x: -330, y: 280)
+                .fill(Color(red: 219 / 255, green: 234 / 255, blue: 254 / 255).opacity(0.42))
+                .frame(width: 360, height: 360)
+                .blur(radius: 70)
+                .offset(x: -220, y: 220)
         }
     }
 
-    @ViewBuilder
-    private func workspaceFrame(size: CGSize) -> some View {
-        let width = min(max(size.width - 96, 960), 1100)
-        let height = min(max(size.height - 92, 640), 700)
-
+    private var workspaceFrame: some View {
         HStack(spacing: 0) {
             TranscriptSidebarView(
                 model: model,
@@ -78,10 +75,10 @@ struct HomeView: View {
             CaptureHeroView(model: model, isFloating: heroIsFloating)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: width, height: height)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.white.opacity(0.72))
+                .fill(Color.white.opacity(0.78))
         )
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay {

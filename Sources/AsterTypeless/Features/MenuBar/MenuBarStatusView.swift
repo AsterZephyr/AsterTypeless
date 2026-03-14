@@ -6,41 +6,57 @@ struct MenuBarStatusView: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            header
-            quickActionSection
-            statusSection
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 244 / 255, green: 247 / 255, blue: 252 / 255),
+                    Color.white,
+                    Color(red: 236 / 255, green: 242 / 255, blue: 250 / 255),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            VStack(alignment: .leading, spacing: 16) {
+                header
+                quickActionSection
+                statusSection
+            }
+            .padding(18)
         }
-        .padding(18)
-        .frame(width: 336)
+        .frame(width: 356)
+        .background(Color.white.opacity(0.96))
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("菜单栏")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.accent)
-            Text("AsterTypeless")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(AppTheme.ink)
-            Text(model.readinessReport.headline)
-                .font(.callout)
-                .foregroundStyle(AppTheme.muted)
+        HStack(spacing: 10) {
+            Image(systemName: "waveform.path.ecg")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(AppTheme.brand600)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Acoustica")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(AppTheme.ink)
+                Text("Quick access from the menu bar")
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.muted)
+            }
         }
     }
 
     private var quickActionSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             menuSectionHeader(
-                title: "快速开始",
-                detail: "在这里直接开始口述，或者回到主窗口继续查看记录。"
+                title: "Quick start",
+                detail: "Open the floating bar or jump back into the main window."
             )
 
             Button {
                 NSApp.activate(ignoringOtherApps: true)
                 model.presentQuickBar(trigger: "菜单栏")
             } label: {
-                Label("开始快速口述", systemImage: "mic.fill")
+                Label("Start dictation", systemImage: "mic.fill")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.borderedProminent)
@@ -53,7 +69,7 @@ struct MenuBarStatusView: View {
                     NSApp.activate(ignoringOtherApps: true)
                     openWindow(id: "main")
                 } label: {
-                    Label("主窗口", systemImage: "rectangle.on.rectangle")
+                    Label("Open app", systemImage: "rectangle.on.rectangle")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.bordered)
@@ -61,7 +77,7 @@ struct MenuBarStatusView: View {
                 .controlSize(.large)
 
                 SettingsLink {
-                    Label("设置", systemImage: "gearshape")
+                    Label("Settings", systemImage: "gearshape")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.bordered)
@@ -75,8 +91,8 @@ struct MenuBarStatusView: View {
     private var statusSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             menuSectionHeader(
-                title: "当前状态",
-                detail: "保留真正会影响体验的几项状态，不再堆叠开发信息。"
+                title: "Current status",
+                detail: "Only the pieces that affect dictation quality and system access."
             )
 
             HStack(spacing: 10) {
@@ -98,7 +114,7 @@ struct MenuBarStatusView: View {
             }
 
             if model.permissions.inputMonitoring != .granted {
-                Text("如果 Fn 还没授权，应用会先回退到组合快捷键。")
+                Text("If Fn is still blocked by the system, the app falls back to the shortcut route.")
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
             }

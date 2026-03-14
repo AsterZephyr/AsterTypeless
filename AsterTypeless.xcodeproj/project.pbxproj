@@ -25,6 +25,7 @@
 		98DFA6006020C0760672CFB9 /* AsterTypelessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 877B19E49DD1C651B7E12897 /* AsterTypelessApp.swift */; };
 		9B6FF56C2449689F926430F2 /* FloatingBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651B5574B8EDD5286F40DB25 /* FloatingBarView.swift */; };
 		9DA6E37690B886DDF280E343 /* StreamingTranscriptEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20A82AD5C94079C92273AA2 /* StreamingTranscriptEngine.swift */; };
+		AAE7AB57AE109A7F1B3E8429 /* MainWindowChromeConfigurator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B14D92DE1CE389B29914810F /* MainWindowChromeConfigurator.swift */; };
 		AFEC5A70F468CE20D4B59E96 /* AccessibilityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E57B3142E0BC8FBB29A3F5F /* AccessibilityBridge.swift */; };
 		C02020EA91354AADCEB954C0 /* TranscriptSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF7689C7417CBBBFE8A5AC5 /* TranscriptSidebarView.swift */; };
 		C3CC0F3241A36EB6721E9362 /* QuickActionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC188BB78BE566E1F1607293 /* QuickActionEngine.swift */; };
@@ -51,6 +52,7 @@
 		877B19E49DD1C651B7E12897 /* AsterTypelessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsterTypelessApp.swift; sourceTree = "<group>"; };
 		91778E90B71821634659DA34 /* AsterTypeless.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AsterTypeless.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		976F888D9F28F7ED712A7DB1 /* RuntimeConfigService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeConfigService.swift; sourceTree = "<group>"; };
+		B14D92DE1CE389B29914810F /* MainWindowChromeConfigurator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowChromeConfigurator.swift; sourceTree = "<group>"; };
 		B65C1CD4237C634BE9F78E2F /* AudioPulseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPulseView.swift; sourceTree = "<group>"; };
 		CC188BB78BE566E1F1607293 /* QuickActionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionEngine.swift; sourceTree = "<group>"; };
 		D9DB26D223E3419D3EE1FF97 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -178,6 +180,7 @@
 			isa = PBXGroup;
 			children = (
 				F5A21A5054947174236DE1BA /* AppTheme.swift */,
+				B14D92DE1CE389B29914810F /* MainWindowChromeConfigurator.swift */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -256,6 +259,7 @@
 				2DD1388F56B881D8E6A44CA7 /* HomeView.swift in Sources */,
 				5C991554FFF2E30FBABB06A5 /* HotkeyBridge.swift in Sources */,
 				8C7931E7980AE5B1755F9721 /* InsertionCompatibilityStore.swift in Sources */,
+				AAE7AB57AE109A7F1B3E8429 /* MainWindowChromeConfigurator.swift in Sources */,
 				821F27C9829B16AB63890223 /* MenuBarStatusView.swift in Sources */,
 				C3CC0F3241A36EB6721E9362 /* QuickActionEngine.swift in Sources */,
 				8088DE34C2718C3F0292759F /* ReadinessCard.swift in Sources */,

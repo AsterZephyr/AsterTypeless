@@ -7,13 +7,13 @@ struct AsterTypelessApp: App {
     var body: some Scene {
         Window("AsterTypeless", id: "main") {
             HomeView(model: model)
+                .background(MainWindowChromeConfigurator())
                 .task {
                     model.bootstrap()
                 }
         }
         .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentSize)
-        .defaultSize(width: 1040, height: 760)
+        .defaultSize(width: 1440, height: 880)
 
         MenuBarExtra("AsterTypeless", systemImage: "waveform.badge.mic") {
             MenuBarStatusView(model: model)

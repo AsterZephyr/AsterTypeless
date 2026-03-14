@@ -38,8 +38,7 @@ struct TranscriptSidebarView: View {
 
             footer
         }
-        .background(Color.white.opacity(0.38))
-        .background(.ultraThinMaterial.opacity(0.92))
+        .background(Color.white.opacity(0.42))
         .overlay(alignment: .trailing) {
             Rectangle()
                 .fill(Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255).opacity(0.65))
@@ -84,13 +83,13 @@ struct TranscriptSidebarView: View {
 
     private var trafficLights: some View {
         HStack(spacing: 8) {
-            Circle().fill(Color(red: 248 / 255, green: 113 / 255, blue: 113 / 255)).frame(width: 12, height: 12)
-            Circle().fill(Color(red: 250 / 255, green: 204 / 255, blue: 21 / 255)).frame(width: 12, height: 12)
-            Circle().fill(Color(red: 74 / 255, green: 222 / 255, blue: 128 / 255)).frame(width: 12, height: 12)
+            Circle().fill(Color(red: 248 / 255, green: 113 / 255, blue: 113 / 255)).frame(width: 13, height: 13)
+            Circle().fill(Color(red: 250 / 255, green: 204 / 255, blue: 21 / 255)).frame(width: 13, height: 13)
+            Circle().fill(Color(red: 74 / 255, green: 222 / 255, blue: 128 / 255)).frame(width: 13, height: 13)
             Spacer()
         }
         .padding(.horizontal, 18)
-        .padding(.top, 16)
+        .padding(.top, 18)
         .padding(.bottom, 12)
     }
 
@@ -108,7 +107,7 @@ struct TranscriptSidebarView: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.white.opacity(0.58))
+                .fill(Color.white.opacity(0.72))
         )
         .overlay {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -174,7 +173,7 @@ struct TranscriptSidebarView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .background(Color.white.opacity(0.28))
+        .background(Color.white.opacity(0.34))
     }
 
     private var appVersionLabel: String {
