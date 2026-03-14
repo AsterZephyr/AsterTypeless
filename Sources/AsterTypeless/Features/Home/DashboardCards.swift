@@ -1,70 +1,54 @@
 import SwiftUI
 
-struct SettingsSummaryCard: View {
+struct QuickStartCard: View {
     @ObservedObject var model: TypelessAppModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("设置")
+                    Text("开始使用")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(AppTheme.accent)
-                    Text("核心开关")
+                    Text("把口述留给浮窗")
                         .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(AppTheme.ink)
                 }
                 Spacer()
-                StatusPill(title: model.settings.primaryTrigger, tint: AppTheme.accent)
+                StatusPill(title: quickStartState, tint: quickStartTint)
             }
+
+            Text("把光标放到任意输入框，按住 \(model.settings.primaryTrigger) 说话；如果 `Fn` 还没开好，也可以用 \(model.settings.fallbackShortcut) 直接唤起。")
+                .font(.system(size: 14))
+                .foregroundStyle(AppTheme.muted)
 
             LabeledRow(title: "主触发键", value: model.settings.primaryTrigger)
             LabeledRow(title: "回退快捷键", value: model.settings.fallbackShortcut)
-            LabeledRow(title: "麦克风", value: model.settings.microphoneName)
             LabeledRow(title: "输出语言", value: model.settings.outputLanguage)
-            LabeledRow(title: "Provider", value: model.settings.providerDisplayName)
-            LabeledRow(title: "配置来源", value: model.providerRuntime.sourceDescription)
+            LabeledRow(title: "最近写回", value: model.insertionAttempts.first?.appName ?? "还没有样本")
 
             Divider()
 
             HStack {
-                StatusPill(title: "辅助功能 \(model.permissions.accessibility.label)", tint: color(for: model.permissions.accessibility))
                 StatusPill(title: "麦克风 \(model.permissions.microphone.label)", tint: color(for: model.permissions.microphone))
-                StatusPill(title: "Fn 监听 \(model.permissions.inputMonitoring.label)", tint: color(for: model.permissions.inputMonitoring))
-                StatusPill(title: "回退快捷键 \(model.fallbackShortcutRegistered ? "已绑定" : "未绑定")", tint: model.fallbackShortcutRegistered ? AppTheme.success : AppTheme.warning)
+                StatusPill(title: "辅助功能 \(model.permissions.accessibility.label)", tint: color(for: model.permissions.accessibility))
+            }
+
+            if needsSetup {
+                Text("首次使用需要在设置里打开权限，系统才知道该往哪里写回文本。")
+                    .font(.system(size: 12))
+                    .foregroundStyle(AppTheme.muted)
             }
 
             HStack {
-                StatusPill(title: "Deepgram \(model.providerRuntime.deepgramConfigured ? "已配置" : "未配置")", tint: model.providerRuntime.deepgramConfigured ? AppTheme.success : AppTheme.warning)
-                StatusPill(title: "OpenAI \(model.providerRuntime.openAIConfigured ? "已配置" : "未配置")", tint: model.providerRuntime.openAIConfigured ? AppTheme.success : AppTheme.warning)
-                StatusPill(title: model.providerRuntime.executionMode.title, tint: providerTint)
-            }
-
-            HStack {
-                StatusPill(title: "已测 \(model.insertionOverview.testedApps) 个 App", tint: AppTheme.muted)
-                StatusPill(title: "AX 直写 \(model.insertionOverview.directWrites)", tint: AppTheme.success)
-                StatusPill(title: "回退 \(model.insertionOverview.clipboardFallbacks)", tint: AppTheme.warning)
-                StatusPill(title: "失败 \(model.insertionOverview.failures)", tint: model.insertionOverview.failures > 0 ? AppTheme.warning : AppTheme.muted)
-            }
-
-            HStack {
-                Button("请求辅助功能权限") {
-                    model.requestAccessibilityPermission()
+                Button("开始口述") {
+                    model.presentQuickBar(trigger: "手动")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
+                .tint(AppTheme.accent)
 
-                Button("请求 Fn 权限") {
-                    model.requestInputMonitoringPermission()
-                }
-                .buttonStyle(.bordered)
-
-                Button("刷新 Provider 状态") {
-                    model.refreshRuntimeConfiguration()
-                }
-                .buttonStyle(.bordered)
-
-                Button("重新绑定回退快捷键") {
-                    model.refreshShortcutBindings()
+                SettingsLink {
+                    Label("去设置", systemImage: "gearshape")
                 }
                 .buttonStyle(.bordered)
             }
@@ -84,15 +68,16 @@ struct SettingsSummaryCard: View {
         }
     }
 
-    private var providerTint: Color {
-        switch model.providerRuntime.executionMode {
-        case .mockReady:
-            return AppTheme.muted
-        case .partial:
-            return AppTheme.warning
-        case .providerReady:
-            return AppTheme.success
-        }
+    private var needsSetup: Bool {
+        model.permissions.accessibility != .granted || model.permissions.microphone != .granted
+    }
+
+    private var quickStartState: String {
+        needsSetup ? "需先授权" : "可以开始"
+    }
+
+    private var quickStartTint: Color {
+        needsSetup ? AppTheme.warning : AppTheme.success
     }
 }
 

@@ -7,10 +7,9 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 header
-                ReadinessCard(report: model.readinessReport)
 
                 HStack(alignment: .top, spacing: 16) {
-                    SettingsSummaryCard(model: model)
+                    QuickStartCard(model: model)
                     DictationReportCard(overview: model.overview)
                 }
 
@@ -47,10 +46,10 @@ struct HomeView: View {
             Text("AsterTypeless")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(AppTheme.accent)
-            Text("把主窗口收成概览，把输入动作留给浮窗和菜单栏。")
+            Text("像输入法一样开始口述，把想法直接写进当前输入框。")
                 .font(.system(size: 26, weight: .bold))
                 .foregroundStyle(AppTheme.ink)
-            Text("这里保留口述报告、个性化摘要、反馈记录和主链路体检，不再承载高频输入动作。")
+            Text("首页只保留口述报告、个性化摘要和最近记录。真正的输入动作留给浮窗和菜单栏。")
                 .font(.system(size: 13))
                 .foregroundStyle(AppTheme.muted)
         }

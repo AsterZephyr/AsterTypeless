@@ -5,9 +5,11 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("触发") {
+            Section("输入方式") {
                 TextField("主触发键", text: $model.settings.primaryTrigger)
                 TextField("回退快捷键", text: $model.settings.fallbackShortcut)
+                TextField("麦克风", text: $model.settings.microphoneName)
+                TextField("输出语言", text: $model.settings.outputLanguage)
                 HStack {
                     Text("回退绑定")
                     Spacer()
@@ -20,53 +22,7 @@ struct SettingsView: View {
                 .buttonStyle(.bordered)
             }
 
-            Section("音频与语言") {
-                TextField("麦克风", text: $model.settings.microphoneName)
-                TextField("输出语言", text: $model.settings.outputLanguage)
-            }
-
-            Section("Provider") {
-                TextField("当前方案", text: $model.settings.providerDisplayName)
-                HStack {
-                    Text("运行状态")
-                    Spacer()
-                    Text(model.providerRuntime.executionMode.title)
-                }
-                HStack {
-                    Text("配置来源")
-                    Spacer()
-                    Text(model.providerRuntime.sourceDescription)
-                }
-                Toggle("开机启动", isOn: $model.settings.launchAtLogin)
-                Button("刷新运行时配置") {
-                    model.refreshRuntimeConfiguration()
-                }
-                .buttonStyle(.bordered)
-            }
-
-            Section("Provider 明细") {
-                providerRow(title: "Deepgram", configured: model.providerRuntime.deepgramConfigured)
-                providerRow(title: "OpenAI", configured: model.providerRuntime.openAIConfigured)
-
-                if !model.providerRuntime.deepgramModel.isEmpty {
-                    Text("Deepgram: \(model.providerRuntime.deepgramModel) · \(model.providerRuntime.deepgramLanguage)")
-                }
-
-                if !model.providerRuntime.openAIModel.isEmpty {
-                    Text("OpenAI: \(model.providerRuntime.openAIModel)")
-                }
-
-                if !model.providerRuntime.openAITranscribeModel.isEmpty {
-                    Text("OpenAI Transcribe: \(model.providerRuntime.openAITranscribeModel)")
-                }
-
-                if !model.providerRuntime.lastError.isEmpty {
-                    Text("错误: \(model.providerRuntime.lastError)")
-                        .foregroundStyle(.red)
-                }
-            }
-
-            Section("权限") {
+            Section("系统权限") {
                 HStack {
                     Text("辅助功能")
                     Spacer()
@@ -82,29 +38,88 @@ struct SettingsView: View {
                     Spacer()
                     Text(model.permissions.inputMonitoring.label)
                 }
+
+                HStack {
+                    Button("请求辅助功能权限") {
+                        model.requestAccessibilityPermission()
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button("请求 Fn 权限") {
+                        model.requestInputMonitoringPermission()
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
 
-            Section("主链路体检") {
+            Section("应用行为") {
                 HStack {
-                    Text("当前结论")
+                    Text("文本处理方案")
                     Spacer()
-                    Text(model.readinessReport.headline)
-                        .multilineTextAlignment(.trailing)
+                    Text(model.settings.providerDisplayName)
                 }
+                Toggle("开机启动", isOn: $model.settings.launchAtLogin)
+            }
 
-                ForEach(model.readinessReport.items) { item in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(item.title)
-                            Spacer()
-                            Text(item.level.title)
-                                .foregroundStyle(color(for: item.level))
-                        }
-                        Text(item.detail)
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
+            Section("开发与诊断") {
+                DisclosureGroup("展开调试信息") {
+                    HStack {
+                        Text("运行状态")
+                        Spacer()
+                        Text(model.providerRuntime.executionMode.title)
                     }
-                    .padding(.vertical, 2)
+
+                    HStack {
+                        Text("配置来源")
+                        Spacer()
+                        Text(model.providerRuntime.sourceDescription)
+                    }
+
+                    providerRow(title: "Deepgram", configured: model.providerRuntime.deepgramConfigured)
+                    providerRow(title: "OpenAI", configured: model.providerRuntime.openAIConfigured)
+
+                    if !model.providerRuntime.deepgramModel.isEmpty {
+                        Text("Deepgram: \(model.providerRuntime.deepgramModel) · \(model.providerRuntime.deepgramLanguage)")
+                    }
+
+                    if !model.providerRuntime.openAIModel.isEmpty {
+                        Text("OpenAI: \(model.providerRuntime.openAIModel)")
+                    }
+
+                    if !model.providerRuntime.openAITranscribeModel.isEmpty {
+                        Text("OpenAI Transcribe: \(model.providerRuntime.openAITranscribeModel)")
+                    }
+
+                    Divider()
+
+                    Text("这些内容只用于当前原型联调，不应该出现在首页。")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+
+                    ForEach(model.readinessReport.items) { item in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(item.title)
+                                Spacer()
+                                Text(item.level.title)
+                                    .foregroundStyle(color(for: item.level))
+                            }
+                            Text(item.detail)
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 2)
+                    }
+
+                    if !model.providerRuntime.lastError.isEmpty {
+                        Text("错误: \(model.providerRuntime.lastError)")
+                            .foregroundStyle(.red)
+                    }
+
+                    Button("刷新运行时配置") {
+                        model.refreshRuntimeConfiguration()
+                    }
+                    .buttonStyle(.bordered)
                 }
             }
         }
