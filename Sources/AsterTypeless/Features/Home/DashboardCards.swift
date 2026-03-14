@@ -2,55 +2,59 @@ import SwiftUI
 
 struct QuickStartCard: View {
     @ObservedObject var model: TypelessAppModel
+    let overview: DictationOverview
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("开始使用")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.accent)
-                    Text("把口述留给浮窗")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(AppTheme.ink)
+        VStack(alignment: .leading, spacing: 18) {
+            CardHeader(
+                eyebrow: "开始使用",
+                title: "把口述直接写进当前输入框",
+                detail: "把光标放到任意输入框，按住 \(model.settings.primaryTrigger) 说话；如果 `Fn` 还没开好，也可以用 \(model.settings.fallbackShortcut) 直接唤起。"
+            )
+
+            HStack(spacing: 10) {
+                Button("开始口述") {
+                    model.presentQuickBar(trigger: "手动")
                 }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(AppTheme.accent)
+
+                SettingsLink {
+                    Label("打开设置", systemImage: "gearshape")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+
                 Spacer()
+
                 StatusPill(title: quickStartState, tint: quickStartTint)
             }
 
-            Text("把光标放到任意输入框，按住 \(model.settings.primaryTrigger) 说话；如果 `Fn` 还没开好，也可以用 \(model.settings.fallbackShortcut) 直接唤起。")
-                .font(.callout)
-                .foregroundStyle(AppTheme.muted)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 10)], spacing: 10) {
+                CompactMetricTile(title: "总口述时间", value: "\(overview.totalMinutes)", unit: "分钟")
+                CompactMetricTile(title: "总口述字数", value: "\(overview.totalWords)", unit: "字")
+                CompactMetricTile(title: "节省时间", value: "\(overview.savedMinutes)", unit: "分钟")
+                CompactMetricTile(title: "平均速度", value: "\(overview.averageWordsPerMinute)", unit: "WPM")
+            }
 
-            LabeledRow(title: "主触发键", value: model.settings.primaryTrigger)
-            LabeledRow(title: "回退快捷键", value: model.settings.fallbackShortcut)
-            LabeledRow(title: "输出语言", value: model.settings.outputLanguage)
-            LabeledRow(title: "最近写回", value: model.insertionAttempts.first?.appName ?? "还没有样本")
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 10)], spacing: 10) {
+                KeyValueTile(title: "主触发键", value: model.settings.primaryTrigger)
+                KeyValueTile(title: "回退快捷键", value: model.settings.fallbackShortcut)
+                KeyValueTile(title: "输出语言", value: model.settings.outputLanguage)
+                KeyValueTile(title: "最近写回", value: model.insertionAttempts.first?.appName ?? "还没有样本")
+            }
 
-            Divider()
-
-            HStack {
+            HStack(spacing: 8) {
                 StatusPill(title: "麦克风 \(model.permissions.microphone.label)", tint: color(for: model.permissions.microphone))
                 StatusPill(title: "辅助功能 \(model.permissions.accessibility.label)", tint: color(for: model.permissions.accessibility))
             }
 
             if needsSetup {
-                Text("首次使用需要在设置里打开权限，系统才知道该往哪里写回文本。")
+                Label("首次使用需要先在设置里打开权限，系统才知道该往哪里写回文本。", systemImage: "exclamationmark.triangle")
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
-            }
-
-            HStack {
-                Button("开始口述") {
-                    model.presentQuickBar(trigger: "手动")
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppTheme.accent)
-
-                SettingsLink {
-                    Label("去设置", systemImage: "gearshape")
-                }
-                .buttonStyle(.bordered)
+                    .insetSurface()
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -81,60 +85,41 @@ struct QuickStartCard: View {
     }
 }
 
-struct DictationReportCard: View {
-    let overview: DictationOverview
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("口述报告")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.accent)
-            Text("本地统计概览")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(AppTheme.ink)
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                MetricTile(title: "总口述时间", value: "\(overview.totalMinutes)", unit: "分钟")
-                MetricTile(title: "总口述字数", value: "\(overview.totalWords)", unit: "字")
-                MetricTile(title: "节省时间", value: "\(overview.savedMinutes)", unit: "分钟")
-                MetricTile(title: "平均速度", value: "\(overview.averageWordsPerMinute)", unit: "WPM")
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cardSurface()
-    }
-}
-
 struct PersonaReportCard: View {
     let report: PersonaReport
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Personalization")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.accent)
-            Text(report.title)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(AppTheme.ink)
-            Text(report.summary)
-                .font(.callout)
-                .foregroundStyle(AppTheme.muted)
+        VStack(alignment: .leading, spacing: 18) {
+            CardHeader(
+                eyebrow: "Personalization",
+                title: report.title,
+                detail: report.summary
+            )
 
-            HStack(spacing: 12) {
-                PersonaSummaryTile(title: "当前状态", value: report.personalizationState)
-                PersonaSummaryTile(title: "推荐语气", value: report.tonePreset)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 10)], spacing: 10) {
+                KeyValueTile(title: "当前状态", value: report.personalizationState)
+                KeyValueTile(title: "推荐语气", value: report.tonePreset)
             }
 
             if !report.focusApps.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text("高频场景")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.muted)
                     FlowTagCloud(tags: report.focusApps)
                 }
+                .insetSurface()
             }
 
-            FlowTagCloud(tags: report.traits)
+            if !report.traits.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("表达偏好")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.muted)
+                    FlowTagCloud(tags: report.traits)
+                }
+                .insetSurface()
+            }
 
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(report.suggestions, id: \.self) { suggestion in
@@ -143,27 +128,10 @@ struct PersonaReportCard: View {
                         .foregroundStyle(AppTheme.ink)
                 }
             }
+            .insetSurface()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface()
-    }
-}
-
-private struct PersonaSummaryTile: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.muted)
-            Text(value)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.ink)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .insetSurface()
     }
 }
 
@@ -175,18 +143,18 @@ struct FeedbackHubCard: View {
         let edited = model.sessions.filter { $0.feedback == .edited }.count
         let retried = model.sessions.filter { $0.feedback == .retried }.count
 
-        return VStack(alignment: .leading, spacing: 16) {
-            Text("反馈与转录")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.accent)
-            Text("入口归类")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(AppTheme.ink)
+        return VStack(alignment: .leading, spacing: 18) {
+            CardHeader(
+                eyebrow: "反馈与写回",
+                title: "最近活动",
+                detail: "只保留用户会关心的结果：采用、修改、重试，以及最近一次写回。"
+            )
 
-            LabeledRow(title: "最近记录", value: "\(min(model.sessions.count, 4)) 条")
-            LabeledRow(title: "直接采用", value: "\(accepted) 次")
-            LabeledRow(title: "手动修改", value: "\(edited) 次")
-            LabeledRow(title: "重新生成", value: "\(retried) 次")
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 10)], spacing: 10) {
+                FeedbackCountTile(title: "直接采用", value: "\(accepted)")
+                FeedbackCountTile(title: "手动修改", value: "\(edited)")
+                FeedbackCountTile(title: "重新生成", value: "\(retried)")
+            }
 
             if let latest = model.sessions.first {
                 VStack(alignment: .leading, spacing: 8) {
@@ -194,24 +162,30 @@ struct FeedbackHubCard: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.muted)
                     Text(latest.finalText)
-                        .font(.subheadline)
+                        .font(.body.weight(.medium))
                         .foregroundStyle(AppTheme.ink)
                         .lineLimit(4)
+                    Text("来自 \(latest.sourceAppName) · \(latest.createdAt.formatted(date: .abbreviated, time: .shortened))")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.muted)
                 }
                 .insetSurface()
             }
 
             if let latestInsertion = model.insertionAttempts.first {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("最近一次写回")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.muted)
                     HStack {
+                        Text("最近一次写回")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.muted)
+                        Spacer()
                         StatusPill(title: latestInsertion.method.title, tint: latestInsertion.success ? AppTheme.success : AppTheme.warning)
-                        Text(latestInsertion.appName.isEmpty ? "未知 App" : latestInsertion.appName)
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(AppTheme.ink)
                     }
+
+                    Text(latestInsertion.appName.isEmpty ? "未知 App" : latestInsertion.appName)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.ink)
+
                     Text(latestInsertion.detail)
                         .font(.caption)
                         .foregroundStyle(AppTheme.muted)
@@ -229,51 +203,31 @@ struct TranscriptHistoryCard: View {
     let sessions: [DictationSession]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("记录")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.accent)
-                    Text("最近转录与最终输出")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(AppTheme.ink)
-                }
-                Spacer()
-                StatusPill(title: "\(sessions.count) 项", tint: AppTheme.muted)
-            }
+        let recentSessions = Array(sessions.prefix(4))
 
-            ForEach(sessions.prefix(6)) { session in
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text(session.sourceAppName)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(AppTheme.ink)
-                        StatusPill(title: session.mode.title, tint: AppTheme.accent)
-                        Spacer()
-                        Text(session.createdAt.formatted(date: .abbreviated, time: .shortened))
-                            .font(.caption)
-                            .foregroundStyle(AppTheme.muted)
-                    }
+        return VStack(alignment: .leading, spacing: 18) {
+            CardHeader(
+                eyebrow: "记录",
+                title: "最近转录与最终输出",
+                detail: "只保留最后几次口述，方便你回看来源、最终输出和采用结果。"
+            )
 
-                    Text(session.transcriptPreview)
-                        .font(.subheadline)
-                        .foregroundStyle(AppTheme.muted)
-                        .lineLimit(2)
+            if recentSessions.isEmpty {
+                Text("还没有历史记录。完成几次口述后，这里会自动出现最近输出。")
+                    .font(.callout)
+                    .foregroundStyle(AppTheme.muted)
+                    .padding(.vertical, 6)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(recentSessions.enumerated()), id: \.element.id) { index, session in
+                        HistorySessionRow(session: session)
 
-                    Text(session.finalText)
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(AppTheme.ink)
-                        .lineLimit(3)
-
-                    HStack {
-                        StatusPill(title: session.feedback.title, tint: session.feedback == .accepted ? AppTheme.success : AppTheme.warning)
-                        Text("\(session.words) words · \(Int(session.durationSeconds))s")
-                            .font(.caption)
-                            .foregroundStyle(AppTheme.muted)
+                        if index < recentSessions.count - 1 {
+                            Divider()
+                                .padding(.vertical, 2)
+                        }
                     }
                 }
-                .insetSurface()
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -281,24 +235,45 @@ struct TranscriptHistoryCard: View {
     }
 }
 
-private struct LabeledRow: View {
+private struct CardHeader: View {
+    let eyebrow: String
     let title: String
-    let value: String
+    let detail: String
 
     var body: some View {
-        HStack {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(eyebrow)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
             Text(title)
-                .font(.subheadline)
-                .foregroundStyle(AppTheme.muted)
-            Spacer()
-            Text(value)
-                .font(.subheadline.weight(.semibold))
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(AppTheme.ink)
+            Text(detail)
+                .font(.callout)
+                .foregroundStyle(AppTheme.muted)
         }
     }
 }
 
-private struct MetricTile: View {
+private struct KeyValueTile: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.muted)
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.ink)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .insetSurface()
+    }
+}
+
+private struct CompactMetricTile: View {
     let title: String
     let value: String
     let unit: String
@@ -308,6 +283,7 @@ private struct MetricTile: View {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.muted)
+
             HStack(alignment: .lastTextBaseline, spacing: 4) {
                 Text(value)
                     .font(.system(size: 28, weight: .bold))
@@ -322,17 +298,70 @@ private struct MetricTile: View {
     }
 }
 
+private struct FeedbackCountTile: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.muted)
+            Text(value)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(AppTheme.ink)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .insetSurface()
+    }
+}
+
+private struct HistorySessionRow: View {
+    let session: DictationSession
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(session.sourceAppName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.ink)
+                StatusPill(title: session.feedback.title, tint: session.feedback == .accepted ? AppTheme.success : AppTheme.warning)
+                Spacer()
+                Text(session.createdAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.muted)
+            }
+
+            Text(session.finalText)
+                .font(.body.weight(.medium))
+                .foregroundStyle(AppTheme.ink)
+                .lineLimit(3)
+
+            Text(session.transcriptPreview)
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.muted)
+                .lineLimit(2)
+
+            Text("\(session.words) words · \(Int(session.durationSeconds))s · \(session.mode.title)")
+                .font(.caption)
+                .foregroundStyle(AppTheme.muted)
+        }
+        .padding(.vertical, 12)
+    }
+}
+
 private struct FlowTagCloud: View {
     let tags: [String]
 
     var body: some View {
-        HStack(spacing: 8) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 8)], alignment: .leading, spacing: 8) {
             ForEach(tags, id: \.self) { tag in
                 Text(tag)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(AppTheme.accent)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(AppTheme.accentSoft, in: Capsule())
             }
         }

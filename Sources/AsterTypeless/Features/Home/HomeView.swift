@@ -5,23 +5,15 @@ struct HomeView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 20) {
                 header
-
-                HStack(alignment: .top, spacing: 16) {
-                    QuickStartCard(model: model)
-                    DictationReportCard(overview: model.overview)
-                }
-
-                HStack(alignment: .top, spacing: 16) {
-                    PersonaReportCard(report: model.personaReport)
-                    FeedbackHubCard(model: model)
-                }
-
+                QuickStartCard(model: model, overview: model.overview)
+                PersonaReportCard(report: model.personaReport)
+                FeedbackHubCard(model: model)
                 TranscriptHistoryCard(sessions: model.sessions)
             }
             .padding(24)
-            .frame(maxWidth: 1040)
+            .frame(maxWidth: 760)
             .frame(maxWidth: .infinity)
         }
         .background(background)
@@ -38,7 +30,7 @@ struct HomeView: View {
                 }
             }
         }
-        .frame(minWidth: 920, minHeight: 720)
+        .frame(minWidth: 820, minHeight: 720)
     }
 
     private var header: some View {
