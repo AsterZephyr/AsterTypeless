@@ -4,6 +4,15 @@ struct FloatingBarView: View {
     @ObservedObject var model: TypelessAppModel
 
     var body: some View {
+        if usesStandaloneVoiceBar {
+            FnVoiceBarView(model: model)
+                .padding(12)
+        } else {
+            expandedPanel
+        }
+    }
+
+    private var expandedPanel: some View {
         VStack(alignment: .leading, spacing: model.quickBar.isCompactLayout ? 12 : 14) {
             header
 
@@ -25,6 +34,15 @@ struct FloatingBarView: View {
         .shadow(color: Color.black.opacity(0.08), radius: 20, y: 10)
         .padding(12)
         .frame(width: model.quickBar.isCompactLayout ? 308 : 404)
+    }
+
+    private var usesStandaloneVoiceBar: Bool {
+        switch model.quickBar.phase {
+        case .armed, .recording, .processing:
+            return true
+        case .idle, .ready:
+            return false
+        }
     }
 
     private var header: some View {

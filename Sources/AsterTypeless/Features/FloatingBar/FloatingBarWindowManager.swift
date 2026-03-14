@@ -30,6 +30,9 @@ final class FloatingBarWindowManager {
             panel.standardWindowButton(.closeButton)?.isHidden = true
             panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
             panel.standardWindowButton(.zoomButton)?.isHidden = true
+            panel.isOpaque = false
+            panel.backgroundColor = .clear
+            panel.hasShadow = false
             panel.contentView = NSHostingView(rootView: FloatingBarView(model: model))
             self.panel = panel
         } else {
@@ -38,8 +41,12 @@ final class FloatingBarWindowManager {
 
         panel?.setContentSize(targetSize)
         centerPanel()
-        panel?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        if shouldUseStandaloneVoiceBar(for: model.quickBar) {
+            panel?.orderFrontRegardless()
+        } else {
+            panel?.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 
     func dismiss() {
@@ -49,20 +56,42 @@ final class FloatingBarWindowManager {
     private func centerPanel() {
         guard let screen = NSScreen.main, let panel else { return }
         let frame = screen.visibleFrame
-        panel.setFrameOrigin(
-            NSPoint(
+        let origin: NSPoint
+
+        if let model, shouldUseStandaloneVoiceBar(for: model.quickBar) {
+            origin = NSPoint(
+                x: frame.maxX - panel.frame.width - 48,
+                y: frame.maxY - panel.frame.height - 42
+            )
+        } else {
+            origin = NSPoint(
                 x: frame.midX - (panel.frame.width / 2),
                 y: frame.maxY - panel.frame.height - 70
             )
-        )
+        }
+
+        panel.setFrameOrigin(origin)
     }
 
     private func panelSize(for quickBar: QuickBarState) -> NSSize {
+        if shouldUseStandaloneVoiceBar(for: quickBar) {
+            return NSSize(width: 274, height: 92)
+        }
+
         if quickBar.isCompactLayout {
             return NSSize(width: 332, height: 228)
         }
 
         return NSSize(width: 428, height: 430)
+    }
+
+    private func shouldUseStandaloneVoiceBar(for quickBar: QuickBarState) -> Bool {
+        switch quickBar.phase {
+        case .armed, .recording, .processing:
+            return true
+        case .idle, .ready:
+            return false
+        }
     }
 }
 

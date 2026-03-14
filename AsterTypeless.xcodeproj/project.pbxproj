@@ -15,6 +15,7 @@
 		570911DC84B7D9840A4FEFF5 /* TranscriptStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00AD365F693CF7A633328B7E /* TranscriptStore.swift */; };
 		5991CF2C7DA489CB8F04DF30 /* FallbackShortcutBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198A32D2D580E17AB5794697 /* FallbackShortcutBridge.swift */; };
 		5C991554FFF2E30FBABB06A5 /* HotkeyBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A335BA5E01388AF947CD101 /* HotkeyBridge.swift */; };
+		60D73B698751DC45FF542D3F /* FnVoiceBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEED232C49F13D25A1DBED1D /* FnVoiceBarView.swift */; };
 		7843888A8CE65FBABB601EB4 /* FloatingBarWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EE51ED17F52EA893FAAAC1F /* FloatingBarWindowManager.swift */; };
 		7FD79375165137FD2FB6C0D0 /* DashboardCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = F98B4F6E54A115184E3A6215 /* DashboardCards.swift */; };
 		8088DE34C2718C3F0292759F /* ReadinessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58998E7BCB1803DF74F4B63B /* ReadinessCard.swift */; };
@@ -54,6 +55,7 @@
 		CC188BB78BE566E1F1607293 /* QuickActionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionEngine.swift; sourceTree = "<group>"; };
 		D9DB26D223E3419D3EE1FF97 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		DB6E58206A82CDAC24C9C01D /* TypelessAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypelessAppModel.swift; sourceTree = "<group>"; };
+		DEED232C49F13D25A1DBED1D /* FnVoiceBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FnVoiceBarView.swift; sourceTree = "<group>"; };
 		F20A82AD5C94079C92273AA2 /* StreamingTranscriptEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingTranscriptEngine.swift; sourceTree = "<group>"; };
 		F5A21A5054947174236DE1BA /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		F98B4F6E54A115184E3A6215 /* DashboardCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCards.swift; sourceTree = "<group>"; };
@@ -167,6 +169,7 @@
 				B65C1CD4237C634BE9F78E2F /* AudioPulseView.swift */,
 				651B5574B8EDD5286F40DB25 /* FloatingBarView.swift */,
 				0EE51ED17F52EA893FAAAC1F /* FloatingBarWindowManager.swift */,
+				DEED232C49F13D25A1DBED1D /* FnVoiceBarView.swift */,
 			);
 			path = FloatingBar;
 			sourceTree = "<group>";
@@ -249,6 +252,7 @@
 				5991CF2C7DA489CB8F04DF30 /* FallbackShortcutBridge.swift in Sources */,
 				9B6FF56C2449689F926430F2 /* FloatingBarView.swift in Sources */,
 				7843888A8CE65FBABB601EB4 /* FloatingBarWindowManager.swift in Sources */,
+				60D73B698751DC45FF542D3F /* FnVoiceBarView.swift in Sources */,
 				2DD1388F56B881D8E6A44CA7 /* HomeView.swift in Sources */,
 				5C991554FFF2E30FBABB06A5 /* HotkeyBridge.swift in Sources */,
 				8C7931E7980AE5B1755F9721 /* InsertionCompatibilityStore.swift in Sources */,
