@@ -2,7 +2,6 @@ import SwiftUI
 
 struct CaptureHeroView: View {
     @ObservedObject var model: TypelessAppModel
-    let selectedSession: DictationSession?
     let isFloating: Bool
 
     var body: some View {
@@ -14,22 +13,22 @@ struct CaptureHeroView: View {
             ZStack {
                 Circle()
                     .fill(AppTheme.brand100.opacity(0.5))
-                    .frame(width: 400, height: 400)
+                    .frame(width: 380, height: 380)
                     .blur(radius: 80)
 
-                VStack(spacing: 30) {
+                VStack(spacing: 28) {
                     captureButton
                         .offset(y: isFloating ? -10 : 0)
 
                     VStack(spacing: 12) {
                         Text("Ready to Capture")
-                            .font(.system(size: 30, weight: .semibold))
+                            .font(.system(size: 24, weight: .semibold))
                             .foregroundStyle(Color(red: 30 / 255, green: 41 / 255, blue: 59 / 255))
 
                         HStack(spacing: 8) {
                             Text("Press")
                                 .foregroundStyle(Color(red: 100 / 255, green: 116 / 255, blue: 139 / 255))
-                            ShortcutKeyStack(shortcut: model.settings.fallbackShortcut)
+                            ShortcutKeyStack(tokens: ["⌘", "Space"])
                             Text("to start speaking")
                                 .foregroundStyle(Color(red: 100 / 255, green: 116 / 255, blue: 139 / 255))
                         }
@@ -133,7 +132,7 @@ struct CaptureHeroView: View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(Color.green)
-            Text(statusBadgeText)
+            Text("Auto-saves immediately on close")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Color(red: 100 / 255, green: 116 / 255, blue: 139 / 255))
         }
@@ -147,18 +146,6 @@ struct CaptureHeroView: View {
             Capsule(style: .continuous)
                 .stroke(Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255).opacity(0.75), lineWidth: 1)
         }
-    }
-
-    private var statusBadgeText: String {
-        if model.quickBar.isRecording {
-            return "Capturing partial transcript live"
-        }
-
-        if let selectedSession {
-            return "Last note from \(selectedSession.sourceAppName) is ready to reuse"
-        }
-
-        return "Auto-saves immediately on close"
     }
 
     @ViewBuilder
@@ -260,7 +247,7 @@ private struct MiniWaveLevels: View {
 }
 
 private struct ShortcutKeyStack: View {
-    let shortcut: String
+    let tokens: [String]
 
     var body: some View {
         HStack(spacing: 4) {
@@ -281,20 +268,6 @@ private struct ShortcutKeyStack: View {
                     .shadow(color: Color.black.opacity(0.03), radius: 4, y: 1)
             }
         }
-    }
-
-    private var tokens: [String] {
-        let cleaned = shortcut
-            .replacingOccurrences(of: "CommandOrControl", with: "⌘")
-            .replacingOccurrences(of: "Control", with: "⌃")
-            .replacingOccurrences(of: "Option", with: "⌥")
-            .replacingOccurrences(of: "Shift", with: "⇧")
-            .replacingOccurrences(of: "+", with: " + ")
-
-        return cleaned
-            .split(separator: " ")
-            .filter { $0 != "+" }
-            .map(String.init)
     }
 }
 

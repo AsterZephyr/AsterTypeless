@@ -11,6 +11,7 @@ struct AsterTypelessApp: App {
                     model.bootstrap()
                 }
         }
+        .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultSize(width: 1040, height: 760)
 

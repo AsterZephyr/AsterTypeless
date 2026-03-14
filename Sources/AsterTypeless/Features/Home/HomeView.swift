@@ -13,20 +13,26 @@ struct HomeView: View {
 
                 workspaceFrame(size: proxy.size)
 
-                RecordingStatusHUD(model: model)
-                    .padding(.top, 42)
-                    .padding(.trailing, 42)
+                if shouldShowHomeHUD {
+                    RecordingStatusHUD(model: model)
+                        .padding(.top, 42)
+                        .padding(.trailing, 42)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onAppear {
-            selectedSessionID = selectedSessionID ?? model.sessions.first?.id
+            selectedSessionID = selectedSessionID ?? UUID(uuidString: "11111111-1111-1111-1111-111111111111")
 
             withAnimation(.easeInOut(duration: 3.6).repeatForever(autoreverses: true)) {
                 heroIsFloating = true
             }
         }
         .frame(minWidth: 1180, minHeight: 760)
+    }
+
+    private var shouldShowHomeHUD: Bool {
+        model.quickBar.isRecording || model.quickBar.phase == .processing
     }
 
     private var background: some View {
@@ -69,11 +75,7 @@ struct HomeView: View {
             )
             .frame(width: 320)
 
-            CaptureHeroView(
-                model: model,
-                selectedSession: model.sessions.first { $0.id == selectedSessionID } ?? model.sessions.first,
-                isFloating: heroIsFloating
-            )
+            CaptureHeroView(model: model, isFloating: heroIsFloating)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(width: width, height: height)
@@ -116,6 +118,6 @@ private struct AcousticPatternOverlay: View {
                 }
             }
         }
-        .opacity(0.85)
+        .opacity(0.42)
     }
 }
