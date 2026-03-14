@@ -7,20 +7,20 @@ struct HomeView: View {
     @State private var heroIsFloating = false
 
     var body: some View {
-        GeometryReader { _ in
-            ZStack(alignment: .topTrailing) {
-                background
+        ZStack {
+            background
 
-                workspaceFrame
+            workspaceFrame
 
-                if shouldShowHomeHUD {
-                    RecordingStatusHUD(model: model)
-                        .padding(.top, 48)
-                        .padding(.trailing, 48)
-                }
+            if shouldShowHomeHUD {
+                RecordingStatusHUD(model: model)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .padding(.top, 48)
+                    .padding(.trailing, 48)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
         .onAppear {
             selectedSessionID = selectedSessionID ?? UUID(uuidString: "11111111-1111-1111-1111-111111111111")
 
@@ -28,7 +28,7 @@ struct HomeView: View {
                 heroIsFloating = true
             }
         }
-        .frame(minWidth: 1180, minHeight: 760)
+        .frame(minWidth: 960, minHeight: 640)
     }
 
     private var shouldShowHomeHUD: Bool {
@@ -36,30 +36,16 @@ struct HomeView: View {
     }
 
     private var background: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 238 / 255, green: 242 / 255, blue: 255 / 255),
-                    Color.white,
-                    Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            Circle()
-                .fill(AppTheme.brand100.opacity(0.58))
-                .frame(width: 600, height: 600)
-                .blur(radius: 100)
-                .offset(x: 430, y: -260)
-
-            Circle()
-                .fill(Color(red: 219 / 255, green: 234 / 255, blue: 254 / 255).opacity(0.56))
-                .frame(width: 500, height: 500)
-                .blur(radius: 80)
-                .offset(x: -360, y: 300)
-        }
+        LinearGradient(
+            colors: [
+                Color(red: 238 / 255, green: 242 / 255, blue: 255 / 255),
+                Color.white,
+                Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
     }
 
     private var workspaceFrame: some View {
@@ -72,24 +58,19 @@ struct HomeView: View {
             .frame(width: 320)
 
             CaptureHeroView(model: model, isFloating: heroIsFloating)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 960, height: 640)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.white.opacity(0.75))
-        )
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.white.opacity(0.6), lineWidth: 1)
-        }
-        .overlay {
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white.opacity(0.75))
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .topTrailing) {
             AcousticPatternOverlay()
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .frame(width: 400, height: 400)
+                .offset(x: -40, y: -40)
+                .opacity(0.3)
                 .allowsHitTesting(false)
         }
-        .shadow(color: Color.black.opacity(0.15), radius: 40, y: 20)
+        .clipped()
     }
 }
 

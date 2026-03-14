@@ -13,7 +13,7 @@ struct AsterTypelessApp: App {
                 }
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 1440, height: 880)
+        .defaultSize(width: 1120, height: 760)
 
         MenuBarExtra("AsterTypeless", systemImage: "waveform.badge.mic") {
             MenuBarStatusView(model: model)
