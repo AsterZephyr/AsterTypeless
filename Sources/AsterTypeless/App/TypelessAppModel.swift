@@ -24,6 +24,7 @@ final class TypelessAppModel: ObservableObject {
     private let hotkeyBridge = HotkeyBridge()
     private let fallbackShortcutBridge = FallbackShortcutBridge()
     private let audioMonitor = AudioInputMonitor()
+    private let streamingTranscriptEngine = StreamingTranscriptEngine()
     private lazy var floatingBarManager = FloatingBarWindowManager(model: self)
     private var lastCaptureArmedAt: Date = .distantPast
     private let captureArmCooldown: TimeInterval = 0.35
@@ -64,6 +65,8 @@ final class TypelessAppModel: ObservableObject {
         quickBar.targetBundleIdentifier = selection.bundleIdentifier
         quickBar.selectedContextPreview = selection.selectedText.isEmpty ? selection.surroundingText : selection.selectedText
         quickBar.transcriptDraft = captureMode == .holdToTalk ? "" : selection.selectedText
+        quickBar.partialTranscript = ""
+        quickBar.transcriptSourceLabel = ""
         quickBar.generatedText = ""
         quickBar.generatedSourceLabel = ""
         quickBar.hasDetectedSpeech = false
@@ -82,6 +85,9 @@ final class TypelessAppModel: ObservableObject {
         quickBar.hasDetectedSpeech = false
         quickBar.capturedDuration = 0
         quickBar.holdDuration = 0
+        quickBar.partialTranscript = ""
+        quickBar.transcriptSourceLabel = ""
+        streamingTranscriptEngine.stop(finalize: false)
         audioMonitor.stopMonitoring()
         floatingBarManager.dismiss()
     }
@@ -103,6 +109,7 @@ final class TypelessAppModel: ObservableObject {
                 quickBar.hasDetectedSpeech = false
                 quickBar.capturedDuration = 0
                 quickBar.statusText = statusTextForRecording()
+                beginStreamingTranscript()
                 floatingBarManager.present()
             } else {
                 refreshPermissions()
@@ -117,10 +124,16 @@ final class TypelessAppModel: ObservableObject {
         let activeCaptureMode = captureMode ?? quickBar.captureMode
         let hadSpeech = quickBar.hasDetectedSpeech
         let holdDuration = audioMonitor.elapsedSeconds
+        let finalTranscript = streamingTranscriptEngine.stop()
         audioMonitor.stopMonitoring()
         quickBar.isRecording = false
         quickBar.holdDuration = holdDuration
         quickBar.capturedDuration = holdDuration
+
+        if quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           !finalTranscript.isEmpty {
+            quickBar.transcriptDraft = finalTranscript
+        }
 
         if activeCaptureMode == .holdToTalk && !hadSpeech && quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             dismissQuickBar()
@@ -135,7 +148,7 @@ final class TypelessAppModel: ObservableObject {
     func runQuickAction() {
         quickBar.phase = .processing
         if quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            quickBar.transcriptDraft = inferredDraft()
+            quickBar.transcriptDraft = quickBar.partialTranscript.isEmpty ? inferredDraft() : quickBar.partialTranscript
         }
 
         let execution = quickActionEngine.execute(
@@ -223,6 +236,7 @@ final class TypelessAppModel: ObservableObject {
                 self.quickBar.liveLevel = level
                 self.quickBar.smoothedLevel = smoothedLevel
                 self.quickBar.isSpeaking = isSpeaking
+                self.streamingTranscriptEngine.updateSpeechActivity(isSpeaking: isSpeaking)
                 if isSpeaking {
                     self.quickBar.hasDetectedSpeech = true
                 }
@@ -448,6 +462,10 @@ final class TypelessAppModel: ObservableObject {
     }
 
     private func inferredDraft() -> String {
+        if !quickBar.partialTranscript.isEmpty {
+            return quickBar.partialTranscript
+        }
+
         if !quickBar.selectedContextPreview.isEmpty {
             return quickBar.selectedContextPreview
         }
@@ -471,6 +489,34 @@ final class TypelessAppModel: ObservableObject {
 
         lastCaptureArmedAt = now
         return true
+    }
+
+    private func beginStreamingTranscript() {
+        let selection = SelectionContext(
+            focusedAppName: quickBar.targetAppName,
+            bundleIdentifier: quickBar.targetBundleIdentifier,
+            selectedText: quickBar.transcriptDraft,
+            surroundingText: quickBar.selectedContextPreview,
+            capturedAt: .now
+        )
+
+        streamingTranscriptEngine.start(
+            mode: quickBar.mode,
+            selection: selection,
+            providerRuntime: providerRuntime
+        ) { [weak self] update in
+            guard let self else { return }
+            self.quickBar.partialTranscript = update.text
+            self.quickBar.transcriptSourceLabel = update.source.title
+
+            if self.quickBar.isRecording {
+                self.quickBar.transcriptDraft = update.text
+            }
+
+            if update.isFinal, !update.text.isEmpty {
+                self.quickBar.transcriptDraft = update.text
+            }
+        }
     }
 
     private func refreshReadiness() {

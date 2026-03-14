@@ -332,6 +332,8 @@ struct QuickBarState {
     var hasDetectedSpeech: Bool = false
     var capturedDuration: Double = 0
     var transcriptDraft: String = ""
+    var partialTranscript: String = ""
+    var transcriptSourceLabel: String = ""
     var generatedText: String = ""
     var generatedSourceLabel: String = ""
     var statusText: String = "按 Fn 或点击按钮开始。"
@@ -345,6 +347,7 @@ struct QuickBarState {
         captureMode == .holdToTalk
             && generatedText.isEmpty
             && transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && partialTranscript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && (phase == .armed || phase == .recording || phase == .processing)
     }
 }

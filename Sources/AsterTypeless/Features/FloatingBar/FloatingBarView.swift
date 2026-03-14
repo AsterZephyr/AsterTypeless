@@ -73,6 +73,10 @@ struct FloatingBarView: View {
                 Text("本次按住 \(String(format: "%.1f", model.quickBar.holdDuration)) 秒")
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(AppTheme.muted)
+            } else if model.quickBar.isRecording, !model.quickBar.transcriptSourceLabel.isEmpty {
+                Text("实时文本 · \(model.quickBar.transcriptSourceLabel)")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(AppTheme.muted)
             }
         }
         .frame(maxWidth: .infinity)
@@ -102,6 +106,19 @@ struct FloatingBarView: View {
                         .stroke(AppTheme.insetCardBorder, lineWidth: 1)
                 )
                 .frame(minHeight: 98)
+
+            if model.quickBar.isRecording, !model.quickBar.partialTranscript.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(model.quickBar.transcriptSourceLabel.isEmpty ? "实时转写" : "实时转写 · \(model.quickBar.transcriptSourceLabel)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.accent)
+                    Text(model.quickBar.partialTranscript)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(AppTheme.ink)
+                        .lineLimit(4)
+                }
+                .insetSurface()
+            }
 
             if !model.quickBar.generatedText.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
