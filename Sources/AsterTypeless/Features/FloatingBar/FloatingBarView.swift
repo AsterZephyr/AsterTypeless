@@ -17,9 +17,9 @@ struct FloatingBarView: View {
             }
         }
         .padding(model.quickBar.isCompactLayout ? 16 : 18)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius + 8, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius + 8, style: .continuous)
                 .stroke(AppTheme.cardBorder, lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.08), radius: 20, y: 10)
@@ -87,17 +87,18 @@ struct FloatingBarView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .controlSize(.large)
 
             TextEditor(text: $model.quickBar.transcriptDraft)
                 .font(.body)
                 .scrollContentBackground(.hidden)
                 .padding(10)
                 .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppTheme.insetCornerRadius, style: .continuous)
                         .fill(AppTheme.insetCard)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppTheme.insetCornerRadius, style: .continuous)
                         .stroke(AppTheme.insetCardBorder, lineWidth: 1)
                 )
                 .frame(minHeight: 98)
@@ -112,8 +113,7 @@ struct FloatingBarView: View {
                         .foregroundStyle(AppTheme.ink)
                         .lineLimit(4)
                 }
-                .padding(12)
-                .background(AppTheme.accentSoft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .insetSurface()
             }
         }
     }
@@ -124,18 +124,24 @@ struct FloatingBarView: View {
                 model.quickBar.isRecording ? model.stopRecording() : model.startRecording()
             }
             .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.roundedRectangle)
+            .controlSize(.large)
             .tint(model.quickBar.isRecording ? AppTheme.warning : AppTheme.accent)
 
             Button("运行") {
                 model.runQuickAction()
             }
             .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.roundedRectangle)
+            .controlSize(.large)
             .tint(AppTheme.accent)
 
             Button("关闭") {
                 model.dismissQuickBar()
             }
             .buttonStyle(.bordered)
+            .buttonBorderShape(.roundedRectangle)
+            .controlSize(.large)
 
             Spacer()
         }

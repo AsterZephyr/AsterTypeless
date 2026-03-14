@@ -4,137 +4,210 @@ struct SettingsView: View {
     @ObservedObject var model: TypelessAppModel
 
     var body: some View {
-        Form {
-            Section("输入方式") {
-                TextField("主触发键", text: $model.settings.primaryTrigger)
-                TextField("回退快捷键", text: $model.settings.fallbackShortcut)
-                TextField("麦克风", text: $model.settings.microphoneName)
-                TextField("输出语言", text: $model.settings.outputLanguage)
-                HStack {
-                    Text("回退绑定")
-                    Spacer()
-                    Text(model.fallbackShortcutRegistered ? "已绑定" : "未绑定")
-                        .foregroundStyle(model.fallbackShortcutRegistered ? AppTheme.success : AppTheme.warning)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                header
+
+                VStack(alignment: .leading, spacing: 22) {
+                    inputSection
+
+                    Divider()
+
+                    permissionsSection
+
+                    Divider()
+
+                    behaviorSection
+
+                    Divider()
+
+                    diagnosticsSection
                 }
+                .cardSurface()
+            }
+            .padding(24)
+            .frame(width: 560, alignment: .leading)
+        }
+        .background(AppTheme.backgroundTop)
+        .frame(width: 560, height: 520)
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("设置")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
+            Text("把权限、触发方式和应用行为收进一个原生面板。")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(AppTheme.ink)
+            Text("这里保留需要配置的内容；联调用的状态只放在最下面的诊断区。")
+                .font(.callout)
+                .foregroundStyle(AppTheme.muted)
+        }
+    }
+
+    private var inputSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsSectionHeader(
+                title: "输入方式",
+                detail: "主触发键、回退快捷键和输出语言都收在这里。"
+            )
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                SettingsTextField(title: "主触发键", text: $model.settings.primaryTrigger)
+                SettingsTextField(title: "回退快捷键", text: $model.settings.fallbackShortcut)
+                SettingsTextField(title: "麦克风", text: $model.settings.microphoneName)
+                SettingsTextField(title: "输出语言", text: $model.settings.outputLanguage)
+            }
+
+            HStack(spacing: 10) {
+                SettingsValueTile(
+                    title: "回退绑定",
+                    value: model.fallbackShortcutRegistered ? "已绑定" : "未绑定",
+                    tint: model.fallbackShortcutRegistered ? AppTheme.success : AppTheme.warning
+                )
+
+                Spacer()
+
                 Button("重新绑定回退快捷键") {
                     model.refreshShortcutBindings()
                 }
                 .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle)
+                .controlSize(.large)
+            }
+        }
+    }
+
+    private var permissionsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsSectionHeader(
+                title: "系统权限",
+                detail: "只要权限没开全，跨 App 写回和 Fn 监听就不会稳定。"
+            )
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+                SettingsValueTile(title: "辅助功能", value: model.permissions.accessibility.label, tint: color(for: model.permissions.accessibility))
+                SettingsValueTile(title: "麦克风", value: model.permissions.microphone.label, tint: color(for: model.permissions.microphone))
+                SettingsValueTile(title: "Fn 监听", value: model.permissions.inputMonitoring.label, tint: color(for: model.permissions.inputMonitoring))
             }
 
-            Section("系统权限") {
-                HStack {
-                    Text("辅助功能")
-                    Spacer()
-                    Text(model.permissions.accessibility.label)
+            HStack(spacing: 10) {
+                Button("请求辅助功能权限") {
+                    model.requestAccessibilityPermission()
                 }
-                HStack {
-                    Text("麦克风")
-                    Spacer()
-                    Text(model.permissions.microphone.label)
-                }
-                HStack {
-                    Text("Fn 监听")
-                    Spacer()
-                    Text(model.permissions.inputMonitoring.label)
-                }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.roundedRectangle)
+                .controlSize(.large)
+                .tint(AppTheme.accent)
 
-                HStack {
-                    Button("请求辅助功能权限") {
-                        model.requestAccessibilityPermission()
-                    }
-                    .buttonStyle(.bordered)
-
-                    Button("请求 Fn 权限") {
-                        model.requestInputMonitoringPermission()
-                    }
-                    .buttonStyle(.bordered)
+                Button("请求 Fn 权限") {
+                    model.requestInputMonitoringPermission()
                 }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle)
+                .controlSize(.large)
             }
+        }
+    }
 
-            Section("应用行为") {
-                HStack {
-                    Text("文本处理方案")
-                    Spacer()
-                    Text(model.settings.providerDisplayName)
+    private var behaviorSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsSectionHeader(
+                title: "应用行为",
+                detail: "这里放长期配置，不再混进临时调试状态。"
+            )
+
+            HStack(spacing: 10) {
+                SettingsValueTile(title: "文本处理方案", value: model.settings.providerDisplayName, tint: AppTheme.ink)
+
+                Toggle(isOn: $model.settings.launchAtLogin) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("开机启动")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.muted)
+                        Text("打开 Mac 后自动准备就绪")
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.muted)
+                    }
                 }
-                Toggle("开机启动", isOn: $model.settings.launchAtLogin)
+                .toggleStyle(.switch)
+                .insetSurface()
             }
+        }
+    }
 
-            Section("开发与诊断") {
-                DisclosureGroup("展开调试信息") {
-                    HStack {
-                        Text("运行状态")
-                        Spacer()
-                        Text(model.providerRuntime.executionMode.title)
+    private var diagnosticsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsSectionHeader(
+                title: "开发与诊断",
+                detail: "这些内容只留给当前原型联调，不应该回到首页。"
+            )
+
+            DisclosureGroup("展开调试信息") {
+                VStack(alignment: .leading, spacing: 12) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 10)], spacing: 10) {
+                        SettingsValueTile(title: "运行状态", value: model.providerRuntime.executionMode.title, tint: AppTheme.ink)
+                        SettingsValueTile(title: "配置来源", value: model.providerRuntime.sourceDescription, tint: AppTheme.ink)
+                        SettingsValueTile(title: "Deepgram", value: model.providerRuntime.deepgramConfigured ? "已配置" : "未配置", tint: model.providerRuntime.deepgramConfigured ? AppTheme.success : AppTheme.warning)
+                        SettingsValueTile(title: "OpenAI", value: model.providerRuntime.openAIConfigured ? "已配置" : "未配置", tint: model.providerRuntime.openAIConfigured ? AppTheme.success : AppTheme.warning)
                     }
-
-                    HStack {
-                        Text("配置来源")
-                        Spacer()
-                        Text(model.providerRuntime.sourceDescription)
-                    }
-
-                    providerRow(title: "Deepgram", configured: model.providerRuntime.deepgramConfigured)
-                    providerRow(title: "OpenAI", configured: model.providerRuntime.openAIConfigured)
 
                     if !model.providerRuntime.deepgramModel.isEmpty {
-                        Text("Deepgram: \(model.providerRuntime.deepgramModel) · \(model.providerRuntime.deepgramLanguage)")
+                        SettingsDiagnosticLine(text: "Deepgram: \(model.providerRuntime.deepgramModel) · \(model.providerRuntime.deepgramLanguage)")
                     }
 
                     if !model.providerRuntime.openAIModel.isEmpty {
-                        Text("OpenAI: \(model.providerRuntime.openAIModel)")
+                        SettingsDiagnosticLine(text: "OpenAI: \(model.providerRuntime.openAIModel)")
                     }
 
                     if !model.providerRuntime.openAITranscribeModel.isEmpty {
-                        Text("OpenAI Transcribe: \(model.providerRuntime.openAITranscribeModel)")
+                        SettingsDiagnosticLine(text: "OpenAI Transcribe: \(model.providerRuntime.openAITranscribeModel)")
                     }
-
-                    Divider()
-
-                    Text("这些内容只用于当前原型联调，不应该出现在首页。")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
 
                     ForEach(model.readinessReport.items) { item in
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
                                 Text(item.title)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(AppTheme.ink)
                                 Spacer()
                                 Text(item.level.title)
+                                    .font(.caption.weight(.semibold))
                                     .foregroundStyle(color(for: item.level))
                             }
+
                             Text(item.detail)
-                                .font(.system(size: 12))
-                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.muted)
                         }
-                        .padding(.vertical, 2)
+                        .insetSurface()
                     }
 
                     if !model.providerRuntime.lastError.isEmpty {
-                        Text("错误: \(model.providerRuntime.lastError)")
-                            .foregroundStyle(.red)
+                        SettingsDiagnosticLine(text: "错误: \(model.providerRuntime.lastError)", tint: .red)
                     }
 
                     Button("刷新运行时配置") {
                         model.refreshRuntimeConfiguration()
                     }
                     .buttonStyle(.bordered)
+                    .buttonBorderShape(.roundedRectangle)
+                    .controlSize(.large)
                 }
+                .padding(.top, 12)
             }
         }
-        .formStyle(.grouped)
-        .padding(20)
-        .frame(width: 520, height: 420)
     }
 
-    @ViewBuilder
-    private func providerRow(title: String, configured: Bool) -> some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Text(configured ? "已配置" : "未配置")
-                .foregroundStyle(configured ? AppTheme.success : AppTheme.warning)
+    private func color(for state: PermissionState) -> Color {
+        switch state {
+        case .granted:
+            return AppTheme.success
+        case .required:
+            return AppTheme.warning
+        case .unavailable:
+            return AppTheme.muted
         }
     }
 
@@ -147,5 +220,69 @@ struct SettingsView: View {
         case .blocked:
             return AppTheme.accent
         }
+    }
+}
+
+private struct SettingsSectionHeader: View {
+    let title: String
+    let detail: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(AppTheme.ink)
+            Text(detail)
+                .font(.callout)
+                .foregroundStyle(AppTheme.muted)
+        }
+    }
+}
+
+private struct SettingsTextField: View {
+    let title: String
+    @Binding var text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.muted)
+            TextField(title, text: $text)
+                .textFieldStyle(.roundedBorder)
+        }
+        .insetSurface()
+    }
+}
+
+private struct SettingsValueTile: View {
+    let title: String
+    let value: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.muted)
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(tint)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .insetSurface()
+    }
+}
+
+private struct SettingsDiagnosticLine: View {
+    let text: String
+    var tint: Color = AppTheme.muted
+
+    var body: some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(tint)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .insetSurface()
     }
 }
