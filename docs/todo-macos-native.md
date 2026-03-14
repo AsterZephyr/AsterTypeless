@@ -36,6 +36,9 @@
 - 浮窗尺寸已按紧凑态 / 展开态动态调整
 - 音频电平反馈已升级到实时抖动原型
 - `idle / armed / recording / processing / ready` 状态机已接通原型
+- 下一步补独立 `non-activating` 小浮框，让它在主窗口之外也能单独跟随录音状态存在
+- 把实时 waveform / level meter 从“会动”升级到“更像系统级语音反馈”的层级
+- 接 partial transcript，让浮窗在说话时不只是抖动，还能逐步出现文字
 - 继续往 Typeless 的浮窗质感打磨
 
 ### P1 跨 App 能力
@@ -50,6 +53,8 @@
 - 接 `Deepgram` 做语音识别
 - 接 `OpenAI` 做 rewrite / orchestration
 - 接流式状态到浮窗
+- 允许 `OpenRouter` 只作为文本模型出口，不承担实时语音入口
+- API 接入说明单独维护在 `docs/api-provider-guide-2026-03-14.md`
 
 ### P1 首页信息架构
 
