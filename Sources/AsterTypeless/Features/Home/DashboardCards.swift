@@ -17,6 +17,7 @@ struct QuickStartCard: View {
                     model.presentQuickBar(trigger: "手动")
                 }
                 .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.roundedRectangle)
                 .controlSize(.large)
                 .tint(AppTheme.accent)
 
@@ -24,6 +25,7 @@ struct QuickStartCard: View {
                     Label("打开设置", systemImage: "gearshape")
                 }
                 .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle)
                 .controlSize(.large)
 
                 Spacer()
@@ -361,7 +363,6 @@ private struct FlowTagCloud: View {
                     .foregroundStyle(AppTheme.accent)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(AppTheme.accentSoft, in: Capsule())
             }
         }

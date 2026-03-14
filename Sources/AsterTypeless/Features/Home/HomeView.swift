@@ -24,10 +24,17 @@ struct HomeView: View {
                 } label: {
                     Label("快速口述", systemImage: "mic.fill")
                 }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.roundedRectangle)
+                .controlSize(.large)
 
                 SettingsLink {
-                    Label("设置", systemImage: "gearshape")
+                    Image(systemName: "gearshape")
                 }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle)
+                .controlSize(.large)
+                .help("设置")
             }
         }
         .frame(minWidth: 820, minHeight: 720)
