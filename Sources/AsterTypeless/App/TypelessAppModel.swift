@@ -160,25 +160,9 @@ final class TypelessAppModel: ObservableObject {
         quickBar.generatedText = execution.text
         quickBar.generatedSourceLabel = execution.source.title
         quickBar.phase = .ready
-        quickBar.statusText = execution.source.detail
+        quickBar.statusText = "正在把结果写回到 \(quickBar.targetAppName.isEmpty ? "当前输入框" : quickBar.targetAppName)…"
 
-        let insertionResult = accessibilityBridge.insert(
-            text: quickBar.generatedText,
-            preferredBundleIdentifier: quickBar.targetBundleIdentifier
-        )
-
-        let insertionAttempt = InsertionAttempt(
-            createdAt: .now,
-            appName: insertionResult.appName.isEmpty ? quickBar.targetAppName : insertionResult.appName,
-            bundleIdentifier: insertionResult.bundleIdentifier.isEmpty ? quickBar.targetBundleIdentifier : insertionResult.bundleIdentifier,
-            method: insertionResult.method,
-            success: insertionResult.success,
-            detail: insertionResult.detail
-        )
-        insertionCompatibilityStore.append(insertionAttempt)
-        insertionAttempts = insertionCompatibilityStore.loadAttempts()
-
-        let session = DictationSession(
+        let sessionSnapshot = DictationSession(
             createdAt: .now,
             sourceAppName: quickBar.targetAppName,
             mode: quickBar.mode,
@@ -190,10 +174,36 @@ final class TypelessAppModel: ObservableObject {
             feedback: .accepted
         )
 
-        transcriptStore.append(session)
-        sessions = transcriptStore.loadSessions()
-        recomputeDashboard()
-        dismissQuickBar()
+        let generatedText = quickBar.generatedText
+        let targetBundleIdentifier = quickBar.targetBundleIdentifier
+        let targetAppName = quickBar.targetAppName
+
+        floatingBarManager.dismiss()
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            let insertionResult = await self.accessibilityBridge.insert(
+                text: generatedText,
+                preferredBundleIdentifier: targetBundleIdentifier
+            )
+
+            let insertionAttempt = InsertionAttempt(
+                createdAt: .now,
+                appName: insertionResult.appName.isEmpty ? targetAppName : insertionResult.appName,
+                bundleIdentifier: insertionResult.bundleIdentifier.isEmpty ? targetBundleIdentifier : insertionResult.bundleIdentifier,
+                method: insertionResult.method,
+                success: insertionResult.success,
+                detail: insertionResult.detail
+            )
+
+            self.insertionCompatibilityStore.append(insertionAttempt)
+            self.insertionAttempts = self.insertionCompatibilityStore.loadAttempts()
+            self.transcriptStore.append(sessionSnapshot)
+            self.sessions = self.transcriptStore.loadSessions()
+            self.recomputeDashboard()
+            self.dismissQuickBar()
+        }
     }
 
     func openSystemPrivacySettings() {

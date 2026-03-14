@@ -4,6 +4,9 @@ import Foundation
 
 @MainActor
 final class AccessibilityBridge {
+    private let directInsertRetryDelays: [UInt64] = [140_000_000, 220_000_000]
+    private let clipboardRetryDelays: [UInt64] = [120_000_000, 220_000_000]
+
     struct InsertionResult {
         var appName: String
         var bundleIdentifier: String
@@ -58,15 +61,8 @@ final class AccessibilityBridge {
         )
     }
 
-    func insert(text: String, preferredBundleIdentifier: String?) -> InsertionResult {
-        if let preferredBundleIdentifier, !preferredBundleIdentifier.isEmpty {
-            NSRunningApplication.runningApplications(withBundleIdentifier: preferredBundleIdentifier)
-                .first?
-                .activate(options: [])
-            usleep(180_000)
-        }
-
-        let target = frontmostAppInfo()
+    func insert(text: String, preferredBundleIdentifier: String?) async -> InsertionResult {
+        let target = await activatePreferredTarget(bundleIdentifier: preferredBundleIdentifier)
 
         guard accessibilityPermission(prompt: false) == .granted else {
             return InsertionResult(
@@ -78,24 +74,41 @@ final class AccessibilityBridge {
             )
         }
 
-        if let element = focusedElement(), insertViaValueAttribute(text: text, into: element) {
-            return InsertionResult(
-                appName: target.name,
-                bundleIdentifier: target.bundleIdentifier,
-                method: .accessibilityValue,
-                success: true,
-                detail: "通过 AXValue 直接写回"
-            )
+        for (index, delay) in directInsertRetryDelays.enumerated() {
+            if index > 0 {
+                try? await Task.sleep(nanoseconds: delay)
+            }
+
+            if let element = focusedElement(), insertViaValueAttribute(text: text, into: element) {
+                let attemptDetail = index == 0 ? "通过 AXValue 直接写回" : "通过 AXValue 重试后写回"
+                return InsertionResult(
+                    appName: target.name,
+                    bundleIdentifier: target.bundleIdentifier,
+                    method: .accessibilityValue,
+                    success: true,
+                    detail: attemptDetail
+                )
+            }
         }
 
-        if pasteViaClipboard(text: text) {
-            return InsertionResult(
-                appName: target.name,
-                bundleIdentifier: target.bundleIdentifier,
-                method: .clipboardFallback,
-                success: true,
-                detail: "AX 直写失败，已回退到剪贴板粘贴"
-            )
+        for (index, delay) in clipboardRetryDelays.enumerated() {
+            if index > 0 {
+                try? await Task.sleep(nanoseconds: delay)
+                _ = await activatePreferredTarget(bundleIdentifier: target.bundleIdentifier)
+            }
+
+            if await pasteViaClipboard(text: text) {
+                let attemptDetail = index == 0
+                    ? "AX 直写失败，已回退到剪贴板粘贴"
+                    : "AX 直写失败，剪贴板重试后完成写回"
+                return InsertionResult(
+                    appName: target.name,
+                    bundleIdentifier: target.bundleIdentifier,
+                    method: .clipboardFallback,
+                    success: true,
+                    detail: attemptDetail
+                )
+            }
         }
 
         return InsertionResult(
@@ -103,8 +116,19 @@ final class AccessibilityBridge {
             bundleIdentifier: target.bundleIdentifier,
             method: .failed,
             success: false,
-            detail: "AX 与剪贴板两条路径都未成功"
+            detail: "目标 App 已回焦，但 AX 与剪贴板两条路径都未成功"
         )
+    }
+
+    private func activatePreferredTarget(bundleIdentifier: String?) async -> (name: String, bundleIdentifier: String) {
+        if let bundleIdentifier, !bundleIdentifier.isEmpty,
+           let targetApp = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first {
+            targetApp.activate(options: [])
+            try? await Task.sleep(nanoseconds: 180_000_000)
+            return (targetApp.localizedName ?? "", targetApp.bundleIdentifier ?? bundleIdentifier)
+        }
+
+        return frontmostAppInfo()
     }
 
     private func frontmostAppInfo() -> (name: String, bundleIdentifier: String) {
@@ -218,9 +242,9 @@ final class AccessibilityBridge {
         return true
     }
 
-    private func pasteViaClipboard(text: String) -> Bool {
+    private func pasteViaClipboard(text: String) async -> Bool {
         let pasteboard = NSPasteboard.general
-        let previousText = pasteboard.string(forType: .string)
+        let snapshot = pasteboardSnapshot(from: pasteboard)
 
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
@@ -233,12 +257,37 @@ final class AccessibilityBridge {
         keyDown?.post(tap: .cghidEventTap)
         keyUp?.post(tap: .cghidEventTap)
 
-        usleep(120_000)
-        pasteboard.clearContents()
-        if let previousText {
-            pasteboard.setString(previousText, forType: .string)
-        }
+        try? await Task.sleep(nanoseconds: 120_000_000)
+        restorePasteboard(snapshot, to: pasteboard)
 
         return keyDown != nil && keyUp != nil
+    }
+
+    private func pasteboardSnapshot(from pasteboard: NSPasteboard) -> [[NSPasteboard.PasteboardType: Data]] {
+        (pasteboard.pasteboardItems ?? []).map { item in
+            var entry: [NSPasteboard.PasteboardType: Data] = [:]
+            for type in item.types {
+                if let data = item.data(forType: type) {
+                    entry[type] = data
+                }
+            }
+            return entry
+        }
+    }
+
+    private func restorePasteboard(_ snapshot: [[NSPasteboard.PasteboardType: Data]], to pasteboard: NSPasteboard) {
+        pasteboard.clearContents()
+
+        guard !snapshot.isEmpty else { return }
+
+        let items = snapshot.map { itemSnapshot in
+            let item = NSPasteboardItem()
+            for (type, data) in itemSnapshot {
+                item.setData(data, forType: type)
+            }
+            return item
+        }
+
+        pasteboard.writeObjects(items)
     }
 }
