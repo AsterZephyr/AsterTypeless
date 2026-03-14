@@ -25,8 +25,10 @@
 		9B6FF56C2449689F926430F2 /* FloatingBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651B5574B8EDD5286F40DB25 /* FloatingBarView.swift */; };
 		9DA6E37690B886DDF280E343 /* StreamingTranscriptEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20A82AD5C94079C92273AA2 /* StreamingTranscriptEngine.swift */; };
 		AFEC5A70F468CE20D4B59E96 /* AccessibilityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E57B3142E0BC8FBB29A3F5F /* AccessibilityBridge.swift */; };
+		C02020EA91354AADCEB954C0 /* TranscriptSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF7689C7417CBBBFE8A5AC5 /* TranscriptSidebarView.swift */; };
 		C3CC0F3241A36EB6721E9362 /* QuickActionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC188BB78BE566E1F1607293 /* QuickActionEngine.swift */; };
 		CF113BFAE3623CEBAD264ED1 /* AudioPulseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B65C1CD4237C634BE9F78E2F /* AudioPulseView.swift */; };
+		DDCED248F82C01E21BB2C76B /* CaptureHeroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 549CFDD315C678C2690774E5 /* CaptureHeroView.swift */; };
 		FE17D818FEC5F942AD95E06C /* AudioInputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A6631D8F7944AC7AA418F0 /* AudioInputMonitor.swift */; };
 /* End PBXBuildFile section */
 
@@ -37,11 +39,13 @@
 		0EE51ED17F52EA893FAAAC1F /* FloatingBarWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingBarWindowManager.swift; sourceTree = "<group>"; };
 		198A32D2D580E17AB5794697 /* FallbackShortcutBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallbackShortcutBridge.swift; sourceTree = "<group>"; };
 		4E57B3142E0BC8FBB29A3F5F /* AccessibilityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityBridge.swift; sourceTree = "<group>"; };
+		549CFDD315C678C2690774E5 /* CaptureHeroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureHeroView.swift; sourceTree = "<group>"; };
 		584274AFFE82B4111F0BF3E1 /* InsertionCompatibilityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsertionCompatibilityStore.swift; sourceTree = "<group>"; };
 		58998E7BCB1803DF74F4B63B /* ReadinessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessCard.swift; sourceTree = "<group>"; };
 		5E006B1620B4F22747E5E989 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		651B5574B8EDD5286F40DB25 /* FloatingBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingBarView.swift; sourceTree = "<group>"; };
 		69F10EEDFF94920E73E816A2 /* MenuBarStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarStatusView.swift; sourceTree = "<group>"; };
+		6AF7689C7417CBBBFE8A5AC5 /* TranscriptSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptSidebarView.swift; sourceTree = "<group>"; };
 		86A6631D8F7944AC7AA418F0 /* AudioInputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioInputMonitor.swift; sourceTree = "<group>"; };
 		877B19E49DD1C651B7E12897 /* AsterTypelessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsterTypelessApp.swift; sourceTree = "<group>"; };
 		91778E90B71821634659DA34 /* AsterTypeless.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AsterTypeless.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -83,9 +87,11 @@
 		4BBBDC4956100EBAB5CC62F0 /* Home */ = {
 			isa = PBXGroup;
 			children = (
+				549CFDD315C678C2690774E5 /* CaptureHeroView.swift */,
 				F98B4F6E54A115184E3A6215 /* DashboardCards.swift */,
 				5E006B1620B4F22747E5E989 /* HomeView.swift */,
 				58998E7BCB1803DF74F4B63B /* ReadinessCard.swift */,
+				6AF7689C7417CBBBFE8A5AC5 /* TranscriptSidebarView.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -237,6 +243,7 @@
 				98DFA6006020C0760672CFB9 /* AsterTypelessApp.swift in Sources */,
 				FE17D818FEC5F942AD95E06C /* AudioInputMonitor.swift in Sources */,
 				CF113BFAE3623CEBAD264ED1 /* AudioPulseView.swift in Sources */,
+				DDCED248F82C01E21BB2C76B /* CaptureHeroView.swift in Sources */,
 				7FD79375165137FD2FB6C0D0 /* DashboardCards.swift in Sources */,
 				20DCC7385646F312824A95F0 /* DomainModels.swift in Sources */,
 				5991CF2C7DA489CB8F04DF30 /* FallbackShortcutBridge.swift in Sources */,
@@ -251,6 +258,7 @@
 				070A0B87069F3A0C849D9E94 /* RuntimeConfigService.swift in Sources */,
 				258F71B73BF583999A7DD2C8 /* SettingsView.swift in Sources */,
 				9DA6E37690B886DDF280E343 /* StreamingTranscriptEngine.swift in Sources */,
+				C02020EA91354AADCEB954C0 /* TranscriptSidebarView.swift in Sources */,
 				570911DC84B7D9840A4FEFF5 /* TranscriptStore.swift in Sources */,
 				495E7370C77705A531F3D114 /* TypelessAppModel.swift in Sources */,
 			);

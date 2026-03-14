@@ -252,6 +252,16 @@ final class TypelessAppModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+
+        audioMonitor.$elapsedSeconds
+            .receive(on: RunLoop.main)
+            .sink { [weak self] elapsedSeconds in
+                guard let self else { return }
+                if self.quickBar.isRecording {
+                    self.quickBar.capturedDuration = elapsedSeconds
+                }
+            }
+            .store(in: &cancellables)
     }
 
     private func startHotkeyMonitoringIfPossible() {
