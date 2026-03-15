@@ -175,6 +175,7 @@ final class TypelessAppModel: ObservableObject {
             guard let self else { return }
 
             let wavData = await self.audioMonitor.collectWAVData()
+            print("[Pipeline] WAV data: \(wavData?.count ?? 0) bytes")
             let finalTranscript = self.streamingTranscriptEngine.stop()
             self.audioMonitor.stopMonitoring()
             self.quickBar.isRecording = false
@@ -210,15 +211,24 @@ final class TypelessAppModel: ObservableObject {
                     guard let self else { return }
                     self.quickBar.partialTranscript = update.text
                     self.quickBar.transcriptSourceLabel = update.source.title
-                    if update.isFinal && !update.text.isEmpty && !update.text.starts(with: "正在") && !update.text.starts(with: "转写失败") && !update.text.starts(with: "未检测") {
-                        self.quickBar.transcriptDraft = update.text
-                        self.quickBar.phase = .ready
-                        self.quickBar.statusText = self.statusTextForStop(captureMode: activeCaptureMode, hadSpeech: hadSpeech)
-                        self.floatingBarManager.present()
+                    if update.isFinal {
+                        let trimmed = update.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty {
+                            self.quickBar.transcriptDraft = trimmed
+                            self.quickBar.statusText = "转写完成，正在处理..."
+                            // Auto-run quick action after transcription
+                            self.runQuickAction()
+                        } else {
+                            // Empty transcription -- go to ready state for manual input
+                            self.quickBar.phase = .ready
+                            self.quickBar.statusText = "未检测到语音内容，可以手动输入"
+                            self.floatingBarManager.present()
+                        }
                     }
                 }
                 self.streamingTranscriptEngine.transcribeAudio(wavData: wavData)
             } else {
+                // No provider -- go to ready for manual editing
                 self.quickBar.phase = .ready
                 self.quickBar.statusText = self.statusTextForStop(captureMode: activeCaptureMode, hadSpeech: hadSpeech)
                 self.floatingBarManager.present()
@@ -271,6 +281,8 @@ final class TypelessAppModel: ObservableObject {
             self.quickBar.phase = .ready
             self.quickBar.statusText = "正在把结果写回到 \(self.quickBar.targetAppName.isEmpty ? "当前输入框" : self.quickBar.targetAppName)…"
 
+            print("[Pipeline] LLM done: \(execution.text.prefix(80))... source=\(execution.source.title)")
+
             let sessionSnapshot = DictationSession(
                 createdAt: .now,
                 sourceAppName: self.quickBar.targetAppName,
@@ -289,10 +301,12 @@ final class TypelessAppModel: ObservableObject {
 
             self.floatingBarManager.dismiss()
 
+            print("[Pipeline] Inserting text into \(targetAppName) (\(targetBundleIdentifier))...")
             let insertionResult = await self.accessibilityBridge.insert(
                 text: generatedText,
                 preferredBundleIdentifier: targetBundleIdentifier
             )
+            print("[Pipeline] Insert result: success=\(insertionResult.success), method=\(insertionResult.method), detail=\(insertionResult.detail)")
 
             let insertionAttempt = InsertionAttempt(
                 createdAt: .now,
