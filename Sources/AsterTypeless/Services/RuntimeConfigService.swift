@@ -121,22 +121,38 @@ final class RuntimeConfigService {
         var directories: [URL] = []
         let fileManager = FileManager.default
 
+        // 1. Environment override
         if let override = ProcessInfo.processInfo.environment["ASTERTYPELESS_RUNTIME_CONFIG"], !override.isEmpty {
             let overrideURL = URL(fileURLWithPath: override)
             directories.append(overrideURL.deletingLastPathComponent())
         }
 
+        // 2. Application Support directory
+        if let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            directories.append(appSupport.appendingPathComponent("AsterTypeless", isDirectory: true))
+        }
+
+        // 3. Current directory and parents
         var current = URL(fileURLWithPath: fileManager.currentDirectoryPath, isDirectory: true)
         directories.append(current)
-
         for _ in 0..<6 {
             current.deleteLastPathComponent()
             directories.append(current)
         }
 
+        // 4. Bundle parent directories (covers DerivedData builds)
         if let bundleParent = Bundle.main.bundleURL.deletingLastPathComponent().deletingLastPathComponent() as URL? {
             directories.append(bundleParent)
         }
+
+        // 5. Well-known source code directories
+        let home = fileManager.homeDirectoryForCurrentUser
+        let knownPaths = [
+            home.appendingPathComponent("code/AsterTypeless"),
+            home.appendingPathComponent("Developer/AsterTypeless"),
+            home.appendingPathComponent("Projects/AsterTypeless"),
+        ]
+        directories.append(contentsOf: knownPaths)
 
         return deduplicated(directories)
     }

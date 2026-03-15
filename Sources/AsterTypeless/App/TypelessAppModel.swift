@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Combine
 import Foundation
 
@@ -42,6 +43,33 @@ final class TypelessAppModel: ObservableObject {
         refreshShortcutBindings()
         refreshQuickBarBindings()
         startHotkeyMonitoringIfPossible()
+        printDiagnostics()
+    }
+
+    func printDiagnostics() {
+        let lines = [
+            "========== AsterTypeless Diagnostics ==========",
+            "Accessibility: \(permissions.accessibility)",
+            "Input Monitoring: \(permissions.inputMonitoring)",
+            "Microphone: \(permissions.microphone)",
+            "AXIsProcessTrusted: \(ApplicationServices.AXIsProcessTrusted())",
+            "Provider: \(providerRuntime.preferredProvider)",
+            "OpenAI configured: \(providerRuntime.openAIConfigured)",
+            "OpenAI baseURL: \(providerRuntime.openAIBaseURL)",
+            "OpenAI model: \(providerRuntime.openAIModel)",
+            "STT baseURL: \(providerRuntime.deepgramBaseURL)",
+            "STT model: \(providerRuntime.effectiveSTTModel)",
+            "canUseOpenAI: \(providerRuntime.canUseOpenAI)",
+            "canUseOpenAITranscribe: \(providerRuntime.canUseOpenAITranscribe)",
+            "Execution mode: \(providerRuntime.executionMode)",
+            "App path: \(Bundle.main.bundlePath)",
+            "================================================",
+        ]
+        let text = lines.joined(separator: "\n")
+        // Print to console
+        for line in lines { print(line) }
+        // Also write to /tmp for easy access
+        try? text.write(toFile: "/tmp/aster_diag.txt", atomically: true, encoding: .utf8)
     }
 
     func refreshPermissions(promptAccessibility: Bool = false, promptInputMonitoring: Bool = false) {
