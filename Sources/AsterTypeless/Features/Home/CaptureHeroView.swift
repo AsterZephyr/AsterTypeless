@@ -135,22 +135,47 @@ struct CaptureHeroView: View {
 
     private var statusBadge: some View {
         HStack(spacing: 8) {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(Color.green)
-            Text("Auto-saves immediately on close")
+            Image(systemName: statusBadgeIcon)
+                .foregroundStyle(statusBadgeColor)
+            Text(statusBadgeText)
                 .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Color(red: 100 / 255, green: 116 / 255, blue: 139 / 255))
+                .foregroundStyle(AppTheme.textSecondary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(
             Capsule(style: .continuous)
-                .fill(Color.white.opacity(0.5))
+                .fill(AppTheme.surface.opacity(0.5))
         )
         .overlay {
             Capsule(style: .continuous)
-                .stroke(Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255).opacity(0.75), lineWidth: 1)
+                .stroke(AppTheme.border.opacity(0.75), lineWidth: 1)
         }
+    }
+
+    private var statusBadgeIcon: String {
+        if model.permissions.accessibility != .granted { return "exclamationmark.triangle.fill" }
+        if model.providerRuntime.canUseOpenAI { return "checkmark.circle.fill" }
+        return "info.circle.fill"
+    }
+
+    private var statusBadgeColor: Color {
+        if model.permissions.accessibility != .granted { return AppTheme.warning }
+        if model.providerRuntime.canUseOpenAI { return AppTheme.success }
+        return AppTheme.muted
+    }
+
+    private var statusBadgeText: String {
+        if model.permissions.accessibility != .granted {
+            return "Accessibility permission required"
+        }
+        if model.permissions.microphone != .granted {
+            return "Microphone permission required"
+        }
+        if model.providerRuntime.canUseOpenAI {
+            return "Provider connected -- ready to dictate"
+        }
+        return "Running in local mock mode"
     }
 
     @ViewBuilder

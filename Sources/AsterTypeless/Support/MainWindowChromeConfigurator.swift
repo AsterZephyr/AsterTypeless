@@ -26,8 +26,9 @@ struct MainWindowChromeConfigurator: NSViewRepresentable {
         window.isOpaque = false
         window.toolbar = nil
 
-        window.standardWindowButton(.closeButton)?.isHidden = true
-        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        window.standardWindowButton(.zoomButton)?.isHidden = true
+        // Keep standard window buttons visible and functional
+        window.standardWindowButton(.closeButton)?.isHidden = false
+        window.standardWindowButton(.miniaturizeButton)?.isHidden = false
+        window.standardWindowButton(.zoomButton)?.isHidden = false
     }
 }

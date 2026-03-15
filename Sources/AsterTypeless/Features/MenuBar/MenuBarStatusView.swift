@@ -6,26 +6,14 @@ struct MenuBarStatusView: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 244 / 255, green: 247 / 255, blue: 252 / 255),
-                    Color.white,
-                    Color(red: 236 / 255, green: 242 / 255, blue: 250 / 255),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            VStack(alignment: .leading, spacing: 16) {
-                header
-                quickActionSection
-                statusSection
-            }
-            .padding(18)
+        VStack(alignment: .leading, spacing: 16) {
+            header
+            quickActionSection
+            statusSection
         }
+        .padding(18)
         .frame(width: 356)
-        .background(Color.white.opacity(0.96))
+        .background(AppTheme.backgroundTop)
     }
 
     private var header: some View {
@@ -54,7 +42,8 @@ struct MenuBarStatusView: View {
 
             Button {
                 NSApp.activate(ignoringOtherApps: true)
-                model.presentQuickBar(trigger: "菜单栏")
+                model.presentQuickBar(trigger: "菜单栏", captureMode: .manual)
+                model.startRecording(captureMode: .manual)
             } label: {
                 Label("Start dictation", systemImage: "mic.fill")
                     .frame(maxWidth: .infinity, alignment: .leading)

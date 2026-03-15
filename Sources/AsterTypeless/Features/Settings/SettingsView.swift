@@ -37,7 +37,7 @@ struct SettingsView: View {
             .frame(width: 560, alignment: .leading)
         }
         .background(AppTheme.backgroundTop)
-        .frame(width: 560, height: 520)
+        .frame(width: 560, height: 720)
     }
 
     private var header: some View {
@@ -64,7 +64,9 @@ struct SettingsView: View {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 SettingsTextField(title: "主触发键", text: $model.settings.primaryTrigger)
                 SettingsTextField(title: "回退快捷键", text: $model.settings.fallbackShortcut)
-                SettingsTextField(title: "麦克风", text: $model.settings.microphoneName)
+                    .onChange(of: model.settings.fallbackShortcut) { _ in
+                        model.refreshShortcutBindings()
+                    }
                 SettingsTextField(title: "输出语言", text: $model.settings.outputLanguage)
             }
 

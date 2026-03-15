@@ -7,7 +7,10 @@ struct TranscriptSidebarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            trafficLights
+            // Leave space for native traffic lights
+            Spacer()
+                .frame(height: 52)
+
             searchField
 
             ScrollView {
@@ -119,17 +122,6 @@ struct TranscriptSidebarView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 20)
-    }
-
-    private var trafficLights: some View {
-        HStack(spacing: 8) {
-            Circle().fill(Color(red: 248 / 255, green: 113 / 255, blue: 113 / 255)).frame(width: 12, height: 12)
-            Circle().fill(Color(red: 250 / 255, green: 204 / 255, blue: 21 / 255)).frame(width: 12, height: 12)
-            Circle().fill(Color(red: 74 / 255, green: 222 / 255, blue: 128 / 255)).frame(width: 12, height: 12)
-            Spacer()
-        }
-        .frame(height: 56)
-        .padding(.horizontal, 16)
     }
 
     private var searchField: some View {
