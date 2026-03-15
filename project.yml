@@ -20,8 +20,8 @@ targets:
     deploymentTarget: "14.0"
     sources:
       - path: Sources/AsterTypeless
-    resources:
-      - path: App/Resources
+      - path: App/Resources/Assets.xcassets
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.asterzephyr.astertypeless

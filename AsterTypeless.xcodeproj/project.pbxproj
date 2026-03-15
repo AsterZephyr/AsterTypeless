@@ -35,6 +35,7 @@
 		CF113BFAE3623CEBAD264ED1 /* AudioPulseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B65C1CD4237C634BE9F78E2F /* AudioPulseView.swift */; };
 		DDCED248F82C01E21BB2C76B /* CaptureHeroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 549CFDD315C678C2690774E5 /* CaptureHeroView.swift */; };
 		DF3AEDA075ED65064D5849AC /* ProviderRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A8B45A87F990525D2A6037 /* ProviderRegistry.swift */; };
+		E2E2D1401FEFC2387FEFA5E8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AD164896C37FAF203B8BC548 /* Assets.xcassets */; };
 		FE17D818FEC5F942AD95E06C /* AudioInputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A6631D8F7944AC7AA418F0 /* AudioInputMonitor.swift */; };
 /* End PBXBuildFile section */
 
@@ -60,6 +61,7 @@
 		976F888D9F28F7ED712A7DB1 /* RuntimeConfigService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeConfigService.swift; sourceTree = "<group>"; };
 		A301461C20A741FC70053578 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		A6BE1D9EE26A34422AAE23BC /* ProviderSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderSettingsView.swift; sourceTree = "<group>"; };
+		AD164896C37FAF203B8BC548 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B14D92DE1CE389B29914810F /* MainWindowChromeConfigurator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowChromeConfigurator.swift; sourceTree = "<group>"; };
 		B65C1CD4237C634BE9F78E2F /* AudioPulseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPulseView.swift; sourceTree = "<group>"; };
 		CC188BB78BE566E1F1607293 /* QuickActionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionEngine.swift; sourceTree = "<group>"; };
@@ -72,6 +74,15 @@
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		0C5E977DB5D911B773D8A2E8 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				AD164896C37FAF203B8BC548 /* Assets.xcassets */,
+			);
+			name = Resources;
+			path = App/Resources;
+			sourceTree = "<group>";
+		};
 		0D6780B2D226DE6F71BE72B8 /* App */ = {
 			isa = PBXGroup;
 			children = (
@@ -131,6 +142,7 @@
 			isa = PBXGroup;
 			children = (
 				BB25FFA338D3F5064314738E /* AsterTypeless */,
+				0C5E977DB5D911B773D8A2E8 /* Resources */,
 				0FF3CE262896DE25CE197766 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -213,6 +225,7 @@
 			buildConfigurationList = 2844CA731C71C8BFF6CBAD17 /* Build configuration list for PBXNativeTarget "AsterTypeless" */;
 			buildPhases = (
 				772036DA6CE1CDC56AE940DB /* Sources */,
+				86794BF121B25B66026C6E83 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -258,6 +271,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		86794BF121B25B66026C6E83 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E2E2D1401FEFC2387FEFA5E8 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		772036DA6CE1CDC56AE940DB /* Sources */ = {
