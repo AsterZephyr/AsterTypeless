@@ -25,6 +25,10 @@ struct SettingsView: View {
 
                     Divider()
 
+                    providerSection
+
+                    Divider()
+
                     diagnosticsSection
                 }
                 .cardSurface()
@@ -154,6 +158,17 @@ struct SettingsView: View {
                 }
             }
             .pickerStyle(.segmented)
+        }
+    }
+
+    private var providerSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsSectionHeader(
+                title: "AI Provider 配置",
+                detail: "配置语音转写 (STT) 和文本生成 (LLM) 的 API 接入。支持 OpenAI、千问、Groq、Deepgram。"
+            )
+
+            ProviderSettingsView(model: model)
         }
     }
 

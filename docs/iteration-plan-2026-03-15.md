@@ -129,57 +129,76 @@
 
 ## 各文件功能实现度评估
 
-| 文件 | 实现度 | 缺失 |
+| 文件 | 实现度 | 状态 |
 |------|--------|------|
-| AsterTypelessApp.swift | 95% | 基本完整 |
-| TypelessAppModel.swift | 70% | 逻辑框架完整，但 quickAction/transcript 都走 mock |
-| HomeView.swift | 90% | 布局已修复，缺 dark mode 适配 |
-| CaptureHeroView.swift | 80% | moon.stars 按钮无功能 |
-| TranscriptSidebarView.swift | 40% | 全部假数据 |
-| DashboardCards.swift | 10% | 已写但未接入 HomeView |
-| ReadinessCard.swift | 10% | 已写但未接入 HomeView |
-| FloatingBarView.swift | 70% | UI 完整，数据是 mock |
-| FnVoiceBarView.swift | 70% | 同上 |
-| SettingsView.swift | 60% | UI 完整，多数控件无真实效果 |
-| MenuBarStatusView.swift | 60% | 基本可用，部分按钮无效 |
-| StreamingTranscriptEngine.swift | 5% | 纯 mock，不做真实 ASR |
-| QuickActionEngine.swift | 5% | 纯 mock，不调 LLM |
-| AudioInputMonitor.swift | 90% | 音频采集完整，缺送 buffer 给 provider |
+| AsterTypelessApp.swift | 98% | Onboarding sheet 已接入 |
+| TypelessAppModel.swift | 90% | 真实 STT/LLM 已串联，多 provider 支持 |
+| HomeView.swift | 95% | 语义色适配，dark mode 基本可用 |
+| CaptureHeroView.swift | 95% | 外观切换按钮、快捷键提示、实时统计 |
+| TranscriptSidebarView.swift | 90% | 真实数据，日期分组，搜索，空状态 |
+| DashboardCards.swift | 10% | 已写但未接入 HomeView (低优先级) |
+| ReadinessCard.swift | 10% | 已写但未接入 HomeView (低优先级) |
+| FloatingBarView.swift | 85% | UI 完整，有 key 时走真实数据 |
+| FnVoiceBarView.swift | 85% | 同上 |
+| SettingsView.swift | 90% | 外观切换、provider 配置 UI、权限区 |
+| ProviderSettingsView.swift | 95% | 多 provider 选择、API key 配置、状态显示 |
+| OnboardingView.swift | 95% | 5 步引导：欢迎、麦克风、辅助功能、输入监听、完成 |
+| MenuBarStatusView.swift | 70% | 基本可用 |
+| OpenAIClient.swift | 95% | Chat Completion + Audio Transcription |
+| ProviderRegistry.swift | 95% | 多 provider 定义、配置、持久化 |
+| StreamingTranscriptEngine.swift | 85% | 有 key 走真实 API，无 key 走 mock |
+| QuickActionEngine.swift | 85% | 有 key 走真实 API，无 key 走 mock |
+| AudioInputMonitor.swift | 95% | PCM 采集、WAV 导出、实时电平 |
 | AccessibilityBridge.swift | 80% | 核心逻辑完整，需要更多 App 兼容测试 |
 | HotkeyBridge.swift | 85% | 基本可用，边界 case 需打磨 |
-| FallbackShortcutBridge.swift | 80% | Carbon 热键已接，格式校验可加强 |
+| FallbackShortcutBridge.swift | 80% | Carbon 热键已接 |
 | RuntimeConfigService.swift | 90% | 已完成 |
+| ProviderConfigStore.swift | 95% | JSON 持久化到 Application Support |
 | TranscriptStore.swift | 90% | 已完成 (JSON) |
 | InsertionCompatibilityStore.swift | 90% | 已完成 (JSON) |
-| AppTheme.swift | 50% | 缺 dark mode，大量颜色硬编码在各 View 里而非统一管理 |
+| AppTheme.swift | 85% | 语义色 token + dark mode + 外观切换 |
+| App Icon | 100% | 声波指纹设计，10 种尺寸 |
 
 ---
 
-## 建议迭代顺序
+## 已完成的迭代
 
-### Sprint 1: 打通真实语音链路 (最高优先级)
+### Sprint 1: 打通真实语音链路 -- DONE
 
-1. 配置真实 API key 到 `Config/Runtime.local.plist`
-2. 重写 `StreamingTranscriptEngine` 接入真实 STT
-3. 重写 `QuickActionEngine` 接入真实 LLM
-4. 验证: 说话 -> 浮窗出文字 -> 写回目标 App
+### Sprint 2: 数据层真实化 -- DONE
 
-### Sprint 2: 数据层真实化
+### Sprint 3: 主题与设置 -- DONE
 
-1. Sidebar 切换到真实 sessions 数据源
-2. 录音后增加确认/编辑步骤
-3. Dashboard 卡片 (DashboardCards / ReadinessCard) 接入主页或做成可切换 tab
+### Sprint 4: 产品完善 -- DONE (大部分)
 
-### Sprint 3: 主题与设置
+1. Onboarding 权限引导 -- DONE
+2. App Icon -- DONE
+3. 多 Provider 体系 (OpenAI/千问/Groq/Deepgram) -- DONE
+4. Provider 配置 UI -- DONE
 
-1. 建立统一的颜色 token 系统 (替代散落的 RGB 硬编码)
-2. 适配 dark mode
-3. 补齐 Settings 页面的真实绑定 (launchAtLogin, 麦克风选择, key 配置)
-4. 日夜模式切换按钮
+## 剩余待做
 
-### Sprint 4: 产品完善
+### 需要 API key 才能验证
 
-1. Onboarding 权限引导
-2. App Icon 和品牌资源
-3. 跨 App 兼容性系统测试 (Cursor, VS Code, Slack, Notion, Chrome, Arc)
-4. Archive / notarization / 发布流程
+1. 端到端真实链路验证 (说话 -> 转写 -> 生成 -> 写回)
+2. Deepgram WebSocket 实时流式转写 (目前只接了 OpenAI-compatible batch 转写)
+
+### 独立可做
+
+1. DashboardCards / ReadinessCard 接入主页 (低优先级)
+2. CaptureHeroView / TranscriptSidebarView 中的剩余硬编码 RGB 替换
+3. launchAtLogin 接 SMAppService (需要代码签名)
+4. 麦克风设备枚举与选择
+5. 跨 App 兼容性系统测试 (Cursor, VS Code, Slack, Notion, Chrome, Arc)
+6. Archive / notarization / 发布流程
+7. 本地数据从 JSON 升级到 SwiftData
+
+### 支持的 Provider 矩阵
+
+| Provider | LLM Chat | STT | 实时流式 | OpenAI 兼容 |
+|----------|----------|-----|----------|------------|
+| OpenAI | Yes | Yes (batch) | No | Yes |
+| 千问 (Qwen/DashScope) | Yes | - | - | Yes (chat) |
+| Groq | Yes | Yes (batch) | No | Yes |
+| Deepgram | - | Yes | Yes (WebSocket) | No (需单独适配) |
+| Azure OpenAI | Yes | Yes (batch) | No | 部分 (URL/auth 不同) |

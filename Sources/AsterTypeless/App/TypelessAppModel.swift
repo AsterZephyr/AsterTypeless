@@ -16,6 +16,7 @@ final class TypelessAppModel: ObservableObject {
     @Published var readinessReport = ReadinessReport.placeholder
     @Published var fallbackShortcutRegistered = false
     @Published var appearanceMode: AppTheme.AppearanceMode = .system
+    @Published var providerConfig = ProviderConfiguration.default
 
     private let transcriptStore = TranscriptStore()
     private let insertionCompatibilityStore = InsertionCompatibilityStore()
@@ -26,12 +27,14 @@ final class TypelessAppModel: ObservableObject {
     private let fallbackShortcutBridge = FallbackShortcutBridge()
     private let audioMonitor = AudioInputMonitor()
     private let streamingTranscriptEngine = StreamingTranscriptEngine()
+    private let providerConfigStore = ProviderConfigStore()
     private lazy var floatingBarManager = FloatingBarWindowManager(model: self)
     private var lastCaptureArmedAt: Date = .distantPast
     private let captureArmCooldown: TimeInterval = 0.35
 
     func bootstrap() {
         refreshRuntimeConfiguration()
+        loadProviderConfig()
         sessions = transcriptStore.loadSessions()
         insertionAttempts = insertionCompatibilityStore.loadAttempts()
         recomputeDashboard()
@@ -53,6 +56,19 @@ final class TypelessAppModel: ObservableObject {
         } else {
             hotkeyBridge.stopMonitoring()
         }
+    }
+
+    func loadProviderConfig() {
+        if let saved = providerConfigStore.load() {
+            providerConfig = saved
+        } else {
+            // Migrate from legacy plist-based config
+            providerConfig = ProviderConfiguration.fromLegacy(providerRuntime)
+        }
+    }
+
+    func saveProviderConfig() {
+        providerConfigStore.save(providerConfig)
     }
 
     func presentQuickBar(trigger: String, captureMode: QuickBarCaptureMode = .manual) {
@@ -282,6 +298,10 @@ final class TypelessAppModel: ObservableObject {
             appearanceMode = .system
         }
         AppTheme.apply(appearance: appearanceMode)
+    }
+
+    func requestMicrophonePermission() async -> Bool {
+        await audioMonitor.requestPermission()
     }
 
     func requestAccessibilityPermission() {
