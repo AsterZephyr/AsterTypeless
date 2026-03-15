@@ -248,7 +248,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					23F218F1C9F0777A0DB5E73A = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = 8TW3VF36W7;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -453,7 +453,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/Config/AsterTypeless.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 8TW3VF36W7;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Config/Info.plist;
@@ -474,7 +474,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/Config/AsterTypeless.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 8TW3VF36W7;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Config/Info.plist;
