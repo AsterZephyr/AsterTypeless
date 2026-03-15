@@ -16,15 +16,20 @@ enum QuickActionExecutionSource: String, Codable {
         }
     }
 
-    var detail: String {
-        switch self {
-        case .mockLocal:
-            return "当前没有真实 key，本次走本地 mock 链路。"
-        case .providerDeferred:
-            return "Provider 已具备配置，但真实网络链路还没接入，本次先走本地占位结果。"
-        case .openAILive:
-            return "通过 OpenAI API 生成真实结果。"
+    /// Remove <think>...</think> blocks that some reasoning models (e.g. Qwen3) output.
+    private static func stripThinkingTags(_ text: String) -> String {
+        guard text.contains("<think>") else { return text }
+        // Remove everything between <think> and </think> (inclusive), greedy
+        var result = text
+        while let startRange = result.range(of: "<think>") {
+            if let endRange = result.range(of: "</think>", range: startRange.upperBound..<result.endIndex) {
+                result.removeSubrange(startRange.lowerBound...endRange.upperBound)
+            } else {
+                // Unclosed <think> tag -- remove from <think> to end
+                result.removeSubrange(startRange.lowerBound..<result.endIndex)
+            }
         }
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
@@ -95,7 +100,9 @@ final class QuickActionEngine {
                 temperature: 0.7
             )
 
-            let trimmed = result.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Strip Qwen3-style <think>...</think> reasoning tags
+            let cleaned = Self.stripThinkingTags(result)
+            let trimmed = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty {
                 return QuickActionExecutionResult(text: trimmed, source: .openAILive)
             } else {
@@ -146,5 +153,19 @@ final class QuickActionEngine {
             直接回答问题，不要重复问题本身。
             """
         }
+    }
+
+    /// Remove <think>...</think> blocks that some reasoning models (e.g. Qwen3) output.
+    private static func stripThinkingTags(_ text: String) -> String {
+        guard text.contains("<think>") else { return text }
+        var result = text
+        while let startRange = result.range(of: "<think>") {
+            if let endRange = result.range(of: "</think>", range: startRange.upperBound..<result.endIndex) {
+                result.removeSubrange(startRange.lowerBound...endRange.upperBound)
+            } else {
+                result.removeSubrange(startRange.lowerBound..<result.endIndex)
+            }
+        }
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

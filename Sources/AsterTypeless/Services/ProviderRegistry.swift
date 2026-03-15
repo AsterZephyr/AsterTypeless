@@ -8,6 +8,7 @@ enum LLMProvider: String, CaseIterable, Codable, Identifiable {
     case qwen = "qwen"
     case groq = "groq"
     case azureOpenAI = "azure_openai"
+    case selfHosted = "self_hosted"
 
     var id: String { rawValue }
 
@@ -17,6 +18,7 @@ enum LLMProvider: String, CaseIterable, Codable, Identifiable {
         case .qwen: return "通义千问 (Qwen)"
         case .groq: return "Groq"
         case .azureOpenAI: return "Azure OpenAI"
+        case .selfHosted: return "Self-hosted"
         }
     }
 
@@ -25,7 +27,8 @@ enum LLMProvider: String, CaseIterable, Codable, Identifiable {
         case .openAI: return "https://api.openai.com/v1"
         case .qwen: return "https://dashscope.aliyuncs.com/compatible-mode/v1"
         case .groq: return "https://api.groq.com/openai/v1"
-        case .azureOpenAI: return ""  // user must provide full URL
+        case .azureOpenAI: return ""
+        case .selfHosted: return "http://localhost:8000/v1"
         }
     }
 
@@ -34,7 +37,8 @@ enum LLMProvider: String, CaseIterable, Codable, Identifiable {
         case .openAI: return "gpt-4o-mini"
         case .qwen: return "qwen-plus"
         case .groq: return "llama-3.3-70b-versatile"
-        case .azureOpenAI: return ""  // determined by deployment
+        case .azureOpenAI: return ""
+        case .selfHosted: return ""
         }
     }
 
@@ -50,6 +54,8 @@ enum LLMProvider: String, CaseIterable, Codable, Identifiable {
             return "Get your key at console.groq.com/keys"
         case .azureOpenAI:
             return "Use your Azure resource endpoint + deployment name"
+        case .selfHosted:
+            return "vLLM, Ollama, or any OpenAI-compatible server. API key can be 'not-needed'."
         }
     }
 }
@@ -59,6 +65,7 @@ enum STTProvider: String, CaseIterable, Codable, Identifiable {
     case openAI = "openai"
     case groq = "groq"
     case deepgram = "deepgram"
+    case selfHosted = "self_hosted"
 
     var id: String { rawValue }
 
@@ -67,6 +74,7 @@ enum STTProvider: String, CaseIterable, Codable, Identifiable {
         case .openAI: return "OpenAI Transcribe"
         case .groq: return "Groq Whisper"
         case .deepgram: return "Deepgram"
+        case .selfHosted: return "Self-hosted ASR"
         }
     }
 
@@ -75,6 +83,7 @@ enum STTProvider: String, CaseIterable, Codable, Identifiable {
         case .openAI: return "https://api.openai.com/v1"
         case .groq: return "https://api.groq.com/openai/v1"
         case .deepgram: return "https://api.deepgram.com/v1"
+        case .selfHosted: return "http://localhost:8001/v1"
         }
     }
 
@@ -83,22 +92,21 @@ enum STTProvider: String, CaseIterable, Codable, Identifiable {
         case .openAI: return "gpt-4o-transcribe"
         case .groq: return "whisper-large-v3-turbo"
         case .deepgram: return "nova-2"
+        case .selfHosted: return ""
         }
     }
 
-    /// Whether this provider uses OpenAI-compatible /audio/transcriptions endpoint.
     var usesOpenAITranscriptionFormat: Bool {
         switch self {
-        case .openAI, .groq: return true
+        case .openAI, .groq, .selfHosted: return true
         case .deepgram: return false
         }
     }
 
-    /// Whether this provider supports real-time WebSocket streaming during recording.
     var supportsRealtimeStreaming: Bool {
         switch self {
         case .deepgram: return true
-        case .openAI, .groq: return false
+        case .openAI, .groq, .selfHosted: return false
         }
     }
 
@@ -110,6 +118,8 @@ enum STTProvider: String, CaseIterable, Codable, Identifiable {
             return "Uses the same Groq API key. Batch only (no real-time streaming)."
         case .deepgram:
             return "Get your key at console.deepgram.com. Supports real-time streaming."
+        case .selfHosted:
+            return "Qwen-ASR, Whisper, or any OpenAI-compatible /audio/transcriptions endpoint."
         }
     }
 }

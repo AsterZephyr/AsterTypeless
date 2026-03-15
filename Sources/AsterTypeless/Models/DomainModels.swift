@@ -171,11 +171,35 @@ struct ProviderRuntimeStatus {
     }
 
     var canUseOpenAITranscribe: Bool {
-        canUseOpenAI && !openAITranscribeModel.isEmpty
+        // Can use either: OpenAI's own transcribe, or a separate STT endpoint (stored in deepgram fields)
+        let hasOpenAISTT = canUseOpenAI && !openAITranscribeModel.isEmpty
+        let hasSeparateSTT = deepgramConfigured && !deepgramBaseURL.isEmpty && !deepgramAPIKey.isEmpty
+        return hasOpenAISTT || hasSeparateSTT
+    }
+
+    /// The STT model to use for transcription.
+    var effectiveSTTModel: String {
+        // If a separate STT endpoint is configured (deepgram fields), prefer its model
+        if deepgramConfigured && !deepgramBaseURL.isEmpty && !deepgramModel.isEmpty {
+            return deepgramModel
+        }
+        return openAITranscribeModel
     }
 
     func makeOpenAIClient() -> OpenAIClient? {
         guard canUseOpenAI else { return nil }
+        return OpenAIClient(baseURL: openAIBaseURL, apiKey: openAIAPIKey)
+    }
+
+    /// Make a client specifically for STT. If a separate STT endpoint is configured
+    /// (e.g. self-hosted ASR on a different port), use that; otherwise fall back to the OpenAI client.
+    func makeSTTClient() -> OpenAIClient? {
+        // Prefer dedicated STT endpoint if configured
+        if deepgramConfigured && !deepgramBaseURL.isEmpty && !deepgramAPIKey.isEmpty {
+            return OpenAIClient(baseURL: deepgramBaseURL, apiKey: deepgramAPIKey)
+        }
+        // Fall back to OpenAI endpoint
+        guard canUseOpenAI && !openAITranscribeModel.isEmpty else { return nil }
         return OpenAIClient(baseURL: openAIBaseURL, apiKey: openAIAPIKey)
     }
 

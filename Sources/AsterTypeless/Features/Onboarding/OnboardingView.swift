@@ -5,6 +5,7 @@ struct OnboardingView: View {
     @Binding var isPresented: Bool
 
     @State private var currentStep = 0
+    @State private var refreshTimer: Timer?
 
     private let steps: [OnboardingStep] = [
         OnboardingStep(
@@ -23,13 +24,13 @@ struct OnboardingView: View {
             icon: "hand.raised.fill",
             title: "Accessibility",
             subtitle: "Required for writing text into other apps.",
-            detail: "AsterTypeless uses Accessibility APIs to insert transcribed text into the currently focused text field."
+            detail: "Open System Settings, go to Privacy & Security > Accessibility, click the '+' button, and add AsterTypeless from the Applications folder or DerivedData build output."
         ),
         OnboardingStep(
             icon: "keyboard",
             title: "Input Monitoring",
             subtitle: "Required for Fn key detection.",
-            detail: "This lets us detect when you press the Fn key to start dictation. You can also use a keyboard shortcut as fallback."
+            detail: "Open System Settings, go to Privacy & Security > Input Monitoring, and toggle AsterTypeless on. You can also skip this and use a keyboard shortcut instead."
         ),
         OnboardingStep(
             icon: "checkmark.seal.fill",
@@ -77,11 +78,11 @@ struct OnboardingView: View {
                     .font(.callout)
                     .foregroundStyle(AppTheme.textSecondary)
                     .multilineTextAlignment(.center)
-                    .frame(maxWidth: 360)
+                    .frame(maxWidth: 380)
 
                 // Permission status for steps 1-3
                 if currentStep >= 1 && currentStep <= 3 {
-                    permissionStatus
+                    permissionStatusView
                 }
             }
 
@@ -89,9 +90,17 @@ struct OnboardingView: View {
 
             // Actions
             HStack(spacing: 12) {
-                if currentStep > 0 {
+                if currentStep > 0 && currentStep < steps.count - 1 {
                     Button("Back") {
                         withAnimation { currentStep -= 1 }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                }
+
+                if currentStep >= 2 && currentStep <= 3 && currentPermissionState != .granted {
+                    Button("Skip") {
+                        withAnimation { currentStep += 1 }
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.large)
@@ -108,6 +117,7 @@ struct OnboardingView: View {
                     .tint(AppTheme.accent)
                 } else {
                     Button("Get Started") {
+                        stopRefreshTimer()
                         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
                         isPresented = false
                     }
@@ -119,18 +129,28 @@ struct OnboardingView: View {
             .padding(.horizontal, 32)
             .padding(.bottom, 32)
         }
-        .frame(width: 480, height: 420)
+        .frame(width: 520, height: 460)
         .background(AppTheme.backgroundTop)
+        .onDisappear {
+            stopRefreshTimer()
+        }
+    }
+
+    private var currentPermissionState: PermissionState {
+        switch currentStep {
+        case 1: return model.permissions.microphone
+        case 2: return model.permissions.accessibility
+        case 3: return model.permissions.inputMonitoring
+        default: return .granted
+        }
     }
 
     private var stepIconColor: Color {
         switch currentStep {
         case 0: return AppTheme.accent
-        case 1: return model.permissions.microphone == .granted ? AppTheme.success : AppTheme.warning
-        case 2: return model.permissions.accessibility == .granted ? AppTheme.success : AppTheme.warning
-        case 3: return model.permissions.inputMonitoring == .granted ? AppTheme.success : AppTheme.warning
         case 4: return AppTheme.success
-        default: return AppTheme.accent
+        default:
+            return currentPermissionState == .granted ? AppTheme.success : AppTheme.warning
         }
     }
 
@@ -140,33 +160,42 @@ struct OnboardingView: View {
         case 1:
             return model.permissions.microphone == .granted ? "Next" : "Grant Microphone"
         case 2:
-            return model.permissions.accessibility == .granted ? "Next" : "Open System Settings"
+            return model.permissions.accessibility == .granted ? "Next" : "Open Accessibility Settings"
         case 3:
-            return model.permissions.inputMonitoring == .granted ? "Next" : "Open System Settings"
+            return model.permissions.inputMonitoring == .granted ? "Next" : "Open Input Monitoring Settings"
         default: return "Next"
         }
     }
 
     @ViewBuilder
-    private var permissionStatus: some View {
-        let state: PermissionState = {
-            switch currentStep {
-            case 1: return model.permissions.microphone
-            case 2: return model.permissions.accessibility
-            case 3: return model.permissions.inputMonitoring
-            default: return .required
-            }
-        }()
+    private var permissionStatusView: some View {
+        let state = currentPermissionState
 
-        HStack(spacing: 8) {
-            Circle()
-                .fill(state == .granted ? Color.green : Color.orange)
-                .frame(width: 10, height: 10)
-            Text(state == .granted ? "Permission granted" : "Permission needed")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(state == .granted ? AppTheme.success : AppTheme.warning)
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(state == .granted ? Color.green : Color.orange)
+                    .frame(width: 10, height: 10)
+                Text(state == .granted ? "Permission granted" : "Waiting for permission...")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(state == .granted ? AppTheme.success : AppTheme.warning)
+            }
+
+            if state != .granted && (currentStep == 2 || currentStep == 3) {
+                Text("After enabling in System Settings, come back here. Status refreshes automatically.")
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.muted)
+                    .multilineTextAlignment(.center)
+            }
+
+            if state != .granted && currentStep == 2 {
+                Text("Note: Debug builds may need to be re-added after each rebuild.")
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.warning)
+                    .multilineTextAlignment(.center)
+            }
         }
-        .padding(.top, 8)
+        .padding(.top, 4)
     }
 
     private func performStepAction() {
@@ -187,25 +216,47 @@ struct OnboardingView: View {
             }
         case 2:
             if model.permissions.accessibility == .granted {
+                stopRefreshTimer()
                 withAnimation { currentStep += 1 }
             } else {
+                // Prompt the system dialog first
                 model.refreshPermissions(promptAccessibility: true)
-                if model.permissions.accessibility != .granted {
-                    model.openSystemPrivacySettings()
-                }
+                // Then open the correct settings page
+                model.openAccessibilitySettings()
+                startRefreshTimer()
             }
         case 3:
             if model.permissions.inputMonitoring == .granted {
+                stopRefreshTimer()
                 withAnimation { currentStep += 1 }
             } else {
                 model.refreshPermissions(promptInputMonitoring: true)
-                if model.permissions.inputMonitoring != .granted {
-                    model.openSystemPrivacySettings()
-                }
+                model.openInputMonitoringSettings()
+                startRefreshTimer()
             }
         default:
             withAnimation { currentStep += 1 }
         }
+    }
+
+    private func startRefreshTimer() {
+        stopRefreshTimer()
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { _ in
+            Task { @MainActor in
+                model.refreshPermissions()
+                if currentPermissionState == .granted {
+                    stopRefreshTimer()
+                    withAnimation {
+                        currentStep += 1
+                    }
+                }
+            }
+        }
+    }
+
+    private func stopRefreshTimer() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
     }
 }
 

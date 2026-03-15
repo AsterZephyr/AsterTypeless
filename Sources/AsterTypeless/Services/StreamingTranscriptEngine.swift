@@ -74,12 +74,12 @@ final class StreamingTranscriptEngine {
     func transcribeAudio(wavData: Data) {
         guard let runtime = providerRuntime,
               runtime.canUseOpenAITranscribe,
-              let client = runtime.makeOpenAIClient()
+              let client = runtime.makeSTTClient()
         else {
             return
         }
 
-        let model = runtime.openAITranscribeModel
+        let model = runtime.effectiveSTTModel
         let language = runtime.deepgramLanguage.isEmpty ? nil : String(runtime.deepgramLanguage.prefix(2))
 
         transcriptionTask = Task { [weak self] in

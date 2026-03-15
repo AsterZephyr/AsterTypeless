@@ -87,8 +87,8 @@ final class OpenAIClient: Sendable {
         self.baseURL = baseURL.hasSuffix("/") ? String(baseURL.dropLast()) : baseURL
         self.apiKey = apiKey
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 60
-        config.timeoutIntervalForResource = 300
+        config.timeoutIntervalForRequest = 120
+        config.timeoutIntervalForResource = 600
         self.session = URLSession(configuration: config)
     }
 
@@ -185,8 +185,24 @@ final class OpenAIClient: Sendable {
         let (data, response) = try await session.data(for: urlRequest)
         try validateHTTPResponse(response, data: data)
 
-        let transcription = try JSONDecoder().decode(TranscriptionResponse.self, from: data)
-        return transcription.text
+        // Try standard OpenAI format first, then fall back to plain text or other formats
+        if let transcription = try? JSONDecoder().decode(TranscriptionResponse.self, from: data) {
+            return transcription.text
+        }
+
+        // Some servers return {"text": "..."} with extra fields, or just a string
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let text = json["text"] as? String {
+            return text
+        }
+
+        // Last resort: treat response as plain text
+        if let text = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !text.isEmpty {
+            return text
+        }
+
+        throw OpenAIClientError.apiError(statusCode: 200, message: "Empty transcription response")
     }
 
     // MARK: - Audio Transcription (streaming)
@@ -242,7 +258,11 @@ final class OpenAIClient: Sendable {
         let url = URL(string: baseURL + path)!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        // Only set auth header if an API key is provided and not a placeholder
+        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedKey.isEmpty && trimmedKey != "not-needed" && trimmedKey != "none" {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
         if body != nil {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = body
