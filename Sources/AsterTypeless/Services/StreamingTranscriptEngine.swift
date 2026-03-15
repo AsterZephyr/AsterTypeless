@@ -3,6 +3,7 @@ import Foundation
 enum StreamingTranscriptSource {
     case localPlaceholder
     case providerPlaceholder
+    case openAITranscribe
 
     var title: String {
         switch self {
@@ -10,6 +11,8 @@ enum StreamingTranscriptSource {
             return "本地流式占位"
         case .providerPlaceholder:
             return "Provider-ready 占位"
+        case .openAITranscribe:
+            return "OpenAI Transcribe"
         }
     }
 }
@@ -30,6 +33,10 @@ final class StreamingTranscriptEngine {
     private var source: StreamingTranscriptSource = .localPlaceholder
     private var onUpdate: ((StreamingTranscriptUpdate) -> Void)?
 
+    // Provider state
+    private var providerRuntime: ProviderRuntimeStatus?
+    private var transcriptionTask: Task<Void, Never>?
+
     func start(
         mode: QuickActionMode,
         selection: SelectionContext,
@@ -39,15 +46,85 @@ final class StreamingTranscriptEngine {
         stop(finalize: false)
 
         self.onUpdate = onUpdate
-        source = providerRuntime.executionMode == .mockReady ? .localPlaceholder : .providerPlaceholder
-        tokens = transcriptTemplate(mode: mode, selection: selection)
-        emittedTokens = []
-        quietTicks = 0
-        isSpeechActive = false
+        self.providerRuntime = providerRuntime
 
-        timer = Timer.scheduledTimer(withTimeInterval: 0.16, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.tick()
+        if providerRuntime.canUseOpenAITranscribe {
+            // Real provider mode: we'll transcribe when audio is available
+            source = .openAITranscribe
+            emittedTokens = []
+            tokens = []
+        } else {
+            // Mock mode: simulate streaming transcript
+            source = providerRuntime.executionMode == .mockReady ? .localPlaceholder : .providerPlaceholder
+            tokens = transcriptTemplate(mode: mode, selection: selection)
+            emittedTokens = []
+            quietTicks = 0
+            isSpeechActive = false
+
+            timer = Timer.scheduledTimer(withTimeInterval: 0.16, repeats: true) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.tick()
+                }
+            }
+        }
+    }
+
+    /// Transcribe collected audio data using OpenAI Transcribe API.
+    /// Called after recording stops to get the real transcript.
+    func transcribeAudio(wavData: Data) {
+        guard let runtime = providerRuntime,
+              runtime.canUseOpenAITranscribe,
+              let client = runtime.makeOpenAIClient()
+        else {
+            return
+        }
+
+        let model = runtime.openAITranscribeModel
+        let language = runtime.deepgramLanguage.isEmpty ? nil : String(runtime.deepgramLanguage.prefix(2))
+
+        transcriptionTask = Task { [weak self] in
+            guard let self else { return }
+
+            // Emit a "processing" update
+            self.onUpdate?(StreamingTranscriptUpdate(
+                text: "正在转写...",
+                source: .openAITranscribe,
+                isFinal: false
+            ))
+
+            do {
+                let text = try await client.transcribeAudio(
+                    model: model,
+                    audioData: wavData,
+                    language: language
+                )
+
+                guard !Task.isCancelled else { return }
+
+                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    self.emittedTokens = [trimmed]
+                    self.onUpdate?(StreamingTranscriptUpdate(
+                        text: trimmed,
+                        source: .openAITranscribe,
+                        isFinal: true
+                    ))
+                } else {
+                    self.onUpdate?(StreamingTranscriptUpdate(
+                        text: "未检测到语音内容",
+                        source: .openAITranscribe,
+                        isFinal: true
+                    ))
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+
+                let errorMessage = "转写失败: \(error.localizedDescription)"
+                self.onUpdate?(StreamingTranscriptUpdate(
+                    text: errorMessage,
+                    source: .openAITranscribe,
+                    isFinal: true
+                ))
             }
         }
     }
@@ -60,6 +137,8 @@ final class StreamingTranscriptEngine {
     func stop(finalize: Bool = true) -> String {
         timer?.invalidate()
         timer = nil
+        transcriptionTask?.cancel()
+        transcriptionTask = nil
 
         if finalize, !tokens.isEmpty {
             emittedTokens.append(contentsOf: tokens)
@@ -71,8 +150,11 @@ final class StreamingTranscriptEngine {
         onUpdate = nil
         quietTicks = 0
         isSpeechActive = false
+        providerRuntime = nil
         return finalText
     }
+
+    // MARK: - Mock streaming
 
     private func tick() {
         guard !tokens.isEmpty else { return }
@@ -108,7 +190,6 @@ final class StreamingTranscriptEngine {
     private func transcriptTemplate(mode: QuickActionMode, selection: SelectionContext) -> [String] {
         let appName = selection.focusedAppName.isEmpty ? "当前输入框" : selection.focusedAppName
         let selected = normalizedSnippet(from: selection.selectedText)
-        let context = normalizedSnippet(from: selection.surroundingText)
 
         let seed: String
         switch mode {
@@ -125,7 +206,7 @@ final class StreamingTranscriptEngine {
                 ? "继续把这段内容转换成目标语言，同时保留语气和重点。"
                 : "继续翻译选中的内容，保持原意、语气和关键信息。"
         case .ask:
-            seed = context.isEmpty
+            seed = selection.surroundingText.isEmpty
                 ? "先基于当前上下文整理一个可执行的提问方向。"
                 : "基于附近上下文继续整理一个更明确的提问方向。"
         }

@@ -157,12 +157,27 @@ struct ProviderRuntimeStatus {
     var openAIConfigured: Bool
     var deepgramConfigured: Bool
     var openAIBaseURL: String
+    var openAIAPIKey: String
     var deepgramBaseURL: String
+    var deepgramAPIKey: String
     var openAIModel: String
     var openAITranscribeModel: String
     var deepgramModel: String
     var deepgramLanguage: String
     var lastError: String = ""
+
+    var canUseOpenAI: Bool {
+        openAIConfigured && !openAIAPIKey.isEmpty && !openAIBaseURL.isEmpty
+    }
+
+    var canUseOpenAITranscribe: Bool {
+        canUseOpenAI && !openAITranscribeModel.isEmpty
+    }
+
+    func makeOpenAIClient() -> OpenAIClient? {
+        guard canUseOpenAI else { return nil }
+        return OpenAIClient(baseURL: openAIBaseURL, apiKey: openAIAPIKey)
+    }
 
     static let mockOnly = ProviderRuntimeStatus(
         preferredProvider: "Mock",
@@ -172,7 +187,9 @@ struct ProviderRuntimeStatus {
         openAIConfigured: false,
         deepgramConfigured: false,
         openAIBaseURL: "",
+        openAIAPIKey: "",
         deepgramBaseURL: "",
+        deepgramAPIKey: "",
         openAIModel: "",
         openAITranscribeModel: "",
         deepgramModel: "",

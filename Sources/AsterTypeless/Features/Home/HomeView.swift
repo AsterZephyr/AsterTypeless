@@ -22,7 +22,9 @@ struct HomeView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
         .onAppear {
-            selectedSessionID = selectedSessionID ?? UUID(uuidString: "11111111-1111-1111-1111-111111111111")
+            if selectedSessionID == nil {
+                selectedSessionID = model.sessions.first?.id
+            }
 
             withAnimation(.easeInOut(duration: 3.6).repeatForever(autoreverses: true)) {
                 heroIsFloating = true
@@ -36,16 +38,8 @@ struct HomeView: View {
     }
 
     private var background: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 238 / 255, green: 242 / 255, blue: 255 / 255),
-                Color.white,
-                Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255),
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .ignoresSafeArea()
+        AppTheme.backgroundTop
+            .ignoresSafeArea()
     }
 
     private var workspaceFrame: some View {
@@ -61,7 +55,7 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white.opacity(0.75))
+        .background(AppTheme.surface.opacity(0.75))
         .background(.ultraThinMaterial)
         .overlay(alignment: .topTrailing) {
             AcousticPatternOverlay()

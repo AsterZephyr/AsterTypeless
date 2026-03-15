@@ -5,8 +5,6 @@ struct TranscriptSidebarView: View {
     @Binding var searchText: String
     @Binding var selectedSessionID: DictationSession.ID?
 
-    private let conceptSessions = ConceptTranscript.samples
-
     var body: some View {
         VStack(spacing: 0) {
             trafficLights
@@ -14,20 +12,24 @@ struct TranscriptSidebarView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
-                    ForEach(sessionGroups) { group in
-                        VStack(alignment: .leading, spacing: 4) {
-                            groupHeader(group.title)
+                    if model.sessions.isEmpty {
+                        emptyState
+                    } else {
+                        ForEach(sessionGroups) { group in
+                            VStack(alignment: .leading, spacing: 4) {
+                                groupHeader(group.title)
 
-                            ForEach(group.sessions) { session in
-                                Button {
-                                    selectedSessionID = session.id
-                                } label: {
-                                    TranscriptSidebarRow(
-                                        session: session,
-                                        isSelected: session.id == selectedSessionID
-                                    )
+                                ForEach(group.sessions) { session in
+                                    Button {
+                                        selectedSessionID = session.id
+                                    } label: {
+                                        SessionSidebarRow(
+                                            session: session,
+                                            isSelected: session.id == selectedSessionID
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
                     }
@@ -38,47 +40,85 @@ struct TranscriptSidebarView: View {
 
             footer
         }
-        .background(Color.white.opacity(0.40))
+        .background(AppTheme.surface.opacity(0.40))
         .overlay(alignment: .trailing) {
             Rectangle()
-                .fill(Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255).opacity(0.65))
+                .fill(AppTheme.border.opacity(0.65))
                 .frame(width: 1)
         }
     }
 
-    private var filteredSessions: [ConceptTranscript] {
+    // MARK: - Data
+
+    private var filteredSessions: [DictationSession] {
+        let sessions = model.sessions
         guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return conceptSessions
+            return sessions
         }
 
-        return conceptSessions.filter { session in
-            [session.title, session.preview, session.metaPrimary, session.metaSecondary]
+        return sessions.filter { session in
+            [session.sourceAppName, session.transcriptPreview, session.finalText, session.mode.title]
                 .joined(separator: " ")
                 .localizedCaseInsensitiveContains(searchText)
         }
     }
 
-    private var sessionGroups: [SidebarSessionGroup] {
-        let grouped = Dictionary(grouping: filteredSessions) { session in
-            session.sectionTitle
+    private var sessionGroups: [SessionGroup] {
+        let calendar = Calendar.current
+        let now = Date()
+
+        let grouped = Dictionary(grouping: filteredSessions) { session -> String in
+            if calendar.isDateInToday(session.createdAt) {
+                return "Today"
+            } else if calendar.isDateInYesterday(session.createdAt) {
+                return "Yesterday"
+            } else if let weekAgo = calendar.date(byAdding: .day, value: -7, to: now),
+                      session.createdAt > weekAgo {
+                return "This Week"
+            } else {
+                return "Earlier"
+            }
         }
 
-        let order = ["Today", "Yesterday"]
+        let order = ["Today", "Yesterday", "This Week", "Earlier"]
         let sortedKeys = grouped.keys.sorted { lhs, rhs in
             let leftIndex = order.firstIndex(of: lhs) ?? Int.max
             let rightIndex = order.firstIndex(of: rhs) ?? Int.max
-            if leftIndex != rightIndex {
-                return leftIndex < rightIndex
-            }
-            return lhs < rhs
+            return leftIndex < rightIndex
         }
 
         return sortedKeys.map { key in
-            SidebarSessionGroup(
+            SessionGroup(
                 title: key,
-                sessions: grouped[key, default: []]
+                sessions: grouped[key, default: []].sorted { $0.createdAt > $1.createdAt }
             )
         }
+    }
+
+    // MARK: - Subviews
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Spacer()
+                .frame(height: 40)
+
+            Image(systemName: "waveform.badge.mic")
+                .font(.system(size: 36, weight: .light))
+                .foregroundStyle(Color(red: 148 / 255, green: 163 / 255, blue: 184 / 255))
+
+            VStack(spacing: 6) {
+                Text("No transcripts yet")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color(red: 51 / 255, green: 65 / 255, blue: 85 / 255))
+
+                Text("Start a dictation to see your history here.")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(Color(red: 100 / 255, green: 116 / 255, blue: 139 / 255))
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 20)
     }
 
     private var trafficLights: some View {
@@ -150,63 +190,63 @@ struct TranscriptSidebarView: View {
                     .frame(width: 8, height: 8)
                     .shadow(color: Color.green.opacity(0.45), radius: 5)
 
-                Text("Engine Ready")
+                Text(model.providerRuntime.canUseOpenAI ? "Provider Ready" : "Engine Ready")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color(red: 71 / 255, green: 85 / 255, blue: 105 / 255))
             }
 
             Spacer()
 
-            Text(appVersionLabel)
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundStyle(Color(red: 148 / 255, green: 163 / 255, blue: 184 / 255))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color.white.opacity(0.45))
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .stroke(Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255).opacity(0.9), lineWidth: 1)
-                }
+            if !model.sessions.isEmpty {
+                Text("\(model.sessions.count) sessions")
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Color(red: 148 / 255, green: 163 / 255, blue: 184 / 255))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color.white.opacity(0.45))
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .stroke(Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255).opacity(0.9), lineWidth: 1)
+                    }
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 16)
         .background(Color.white.opacity(0.30))
     }
-
-    private var appVersionLabel: String {
-        "v2.1.0"
-    }
 }
 
-private struct SidebarSessionGroup: Identifiable {
+// MARK: - Supporting types
+
+private struct SessionGroup: Identifiable {
     let id = UUID()
     let title: String
-    let sessions: [ConceptTranscript]
+    let sessions: [DictationSession]
 }
 
-private struct TranscriptSidebarRow: View {
-    let session: ConceptTranscript
+private struct SessionSidebarRow: View {
+    let session: DictationSession
     let isSelected: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
-                Text(session.title)
+                Text(session.sourceAppName.isEmpty ? session.mode.title : session.sourceAppName)
                     .font(.system(size: 13.5, weight: isSelected ? .semibold : .medium))
                     .foregroundStyle(isSelected ? Color(red: 30 / 255, green: 41 / 255, blue: 59 / 255) : Color(red: 51 / 255, green: 65 / 255, blue: 85 / 255))
                     .lineLimit(1)
 
                 Spacer(minLength: 10)
 
-                Text(session.timestampLabel)
+                Text(timestampLabel)
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(Color(red: 148 / 255, green: 163 / 255, blue: 184 / 255))
             }
 
-            Text(session.preview)
+            Text(session.transcriptPreview.isEmpty ? session.finalText : session.transcriptPreview)
                 .font(.system(size: 12, weight: .regular))
                 .foregroundStyle(Color(red: 100 / 255, green: 116 / 255, blue: 139 / 255))
                 .lineLimit(isSelected ? 2 : 1)
@@ -214,8 +254,8 @@ private struct TranscriptSidebarRow: View {
 
             if isSelected {
                 HStack(spacing: 8) {
-                    badge(text: session.metaPrimary, icon: "waveform")
-                    badge(text: session.metaSecondary, icon: "tag")
+                    badge(text: durationLabel, icon: "waveform")
+                    badge(text: session.mode.title, icon: "tag")
                 }
                 .padding(.top, 2)
             }
@@ -246,6 +286,27 @@ private struct TranscriptSidebarRow: View {
         .shadow(color: isSelected ? Color.black.opacity(0.06) : .clear, radius: 12, y: 6)
     }
 
+    private var timestampLabel: String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(session.createdAt) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "HH:mm"
+            return formatter.string(from: session.createdAt)
+        } else if calendar.isDateInYesterday(session.createdAt) {
+            return "Yesterday"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MM/dd"
+            return formatter.string(from: session.createdAt)
+        }
+    }
+
+    private var durationLabel: String {
+        let minutes = Int(session.durationSeconds) / 60
+        let seconds = Int(session.durationSeconds) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+
     private func badge(text: String, icon: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
@@ -265,62 +326,4 @@ private struct TranscriptSidebarRow: View {
                 .stroke(icon == "waveform" ? AppTheme.brand100 : Color.clear, lineWidth: 1)
         }
     }
-}
-
-private struct ConceptTranscript: Identifiable {
-    let id: UUID
-    let sectionTitle: String
-    let title: String
-    let timestampLabel: String
-    let preview: String
-    let metaPrimary: String
-    let metaSecondary: String
-
-    static let samples: [ConceptTranscript] = [
-        ConceptTranscript(
-            id: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
-            sectionTitle: "Today",
-            title: "Docker Compose Setup",
-            timestampLabel: "10:42 AM",
-            preview: "Note to self: The database container isn't persisting volumes correctly. Need to update the docker-compose.yml to mount a local directory for postgres data.",
-            metaPrimary: "0:45",
-            metaSecondary: "Dev"
-        ),
-        ConceptTranscript(
-            id: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!,
-            sectionTitle: "Today",
-            title: "API Rate Limiting",
-            timestampLabel: "09:15 AM",
-            preview: "We should implement a sliding window rate limiter on the public API endpoints before launch to prevent abuse.",
-            metaPrimary: "0:31",
-            metaSecondary: "Infra"
-        ),
-        ConceptTranscript(
-            id: UUID(uuidString: "33333333-3333-3333-3333-333333333333")!,
-            sectionTitle: "Yesterday",
-            title: "Weekly Standup Update",
-            timestampLabel: "Yesterday",
-            preview: "Finished the React migration for the dashboard. Blocked on design assets for the new settings modal.",
-            metaPrimary: "0:28",
-            metaSecondary: "Team"
-        ),
-        ConceptTranscript(
-            id: UUID(uuidString: "44444444-4444-4444-4444-444444444444")!,
-            sectionTitle: "Yesterday",
-            title: "Feature Idea: Webhooks",
-            timestampLabel: "Yesterday",
-            preview: "What if we allowed users to register webhooks that trigger when a new transcription finishes? Could be useful for Zapier integrations.",
-            metaPrimary: "0:39",
-            metaSecondary: "Idea"
-        ),
-        ConceptTranscript(
-            id: UUID(uuidString: "55555555-5555-5555-5555-555555555555")!,
-            sectionTitle: "Yesterday",
-            title: "Bug Report: Safari Audio",
-            timestampLabel: "Mon",
-            preview: "Audio context isn't resuming properly on Safari after backgrounding. Needs investigation.",
-            metaPrimary: "0:21",
-            metaSecondary: "Bug"
-        ),
-    ]
 }

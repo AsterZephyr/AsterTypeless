@@ -26,14 +26,18 @@ struct CaptureHeroView: View {
                         HStack(spacing: 8) {
                             Text("Press")
                                 .foregroundStyle(Color(red: 100 / 255, green: 116 / 255, blue: 139 / 255))
-                            ShortcutKeyStack(tokens: ["⌘", "Space"])
-                            Text("to start speaking")
+                            ShortcutKeyStack(tokens: ["Fn"])
+                            Text("or click to start")
                                 .foregroundStyle(Color(red: 100 / 255, green: 116 / 255, blue: 139 / 255))
                         }
                         .font(.system(size: 14, weight: .medium))
                     }
 
                     statusBadge
+
+                    if !model.sessions.isEmpty {
+                        quickStats
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
@@ -55,7 +59,13 @@ struct CaptureHeroView: View {
             Spacer()
 
             HStack(spacing: 12) {
-                buttonIcon("moon.stars")
+                Button {
+                    model.cycleAppearance()
+                } label: {
+                    buttonIcon(model.appearanceMode.icon)
+                }
+                .buttonStyle(.plain)
+                .help("Switch appearance: \(model.appearanceMode.title)")
 
                 SettingsLink {
                     buttonIcon("gearshape")
@@ -157,6 +167,35 @@ struct CaptureHeroView: View {
                 Circle()
                     .stroke(Color.white.opacity(0.48), lineWidth: 1)
             }
+    }
+
+    private var quickStats: some View {
+        HStack(spacing: 20) {
+            statItem(value: "\(model.overview.totalWords)", label: "words")
+            statItem(value: "\(model.sessions.count)", label: "sessions")
+            statItem(value: "\(model.overview.savedMinutes)m", label: "saved")
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white.opacity(0.35))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color(red: 226 / 255, green: 232 / 255, blue: 240 / 255).opacity(0.6), lineWidth: 1)
+        }
+    }
+
+    private func statItem(value: String, label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                .foregroundStyle(Color(red: 30 / 255, green: 41 / 255, blue: 59 / 255))
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Color(red: 148 / 255, green: 163 / 255, blue: 184 / 255))
+        }
     }
 }
 

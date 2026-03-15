@@ -4,6 +4,9 @@ import SwiftUI
 enum AppTheme {
     static let cardCornerRadius: CGFloat = 14
     static let insetCornerRadius: CGFloat = 12
+
+    // MARK: - Brand palette (static, same in light/dark)
+
     static let brand50 = Color(red: 239 / 255, green: 242 / 255, blue: 1.0)
     static let brand100 = Color(red: 224 / 255, green: 230 / 255, blue: 1.0)
     static let brand200 = Color(red: 198 / 255, green: 209 / 255, blue: 1.0)
@@ -15,6 +18,9 @@ enum AppTheme {
     static let brand800 = Color(red: 41 / 255, green: 36 / 255, blue: 188 / 255)
     static let brand900 = Color(red: 37 / 255, green: 34 / 255, blue: 148 / 255)
     static let brand950 = Color(red: 21 / 255, green: 19 / 255, blue: 86 / 255)
+
+    // MARK: - Semantic colors (adapt to light/dark via system)
+
     static let backgroundTop = Color(nsColor: .windowBackgroundColor)
     static let backgroundBottom = Color(nsColor: .windowBackgroundColor)
     static let card = Color(nsColor: .controlBackgroundColor)
@@ -27,6 +33,56 @@ enum AppTheme {
     static let muted = Color(nsColor: .secondaryLabelColor)
     static let success = Color(nsColor: .systemGreen)
     static let warning = Color(nsColor: .systemOrange)
+
+    // MARK: - Surface colors (semantic, adapt to appearance)
+
+    /// Primary text: slate-800 in light, white in dark
+    static let textPrimary = Color(nsColor: .labelColor)
+    /// Secondary text: slate-600 in light, gray in dark
+    static let textSecondary = Color(nsColor: .secondaryLabelColor)
+    /// Tertiary text: slate-400 in light, dim gray in dark
+    static let textTertiary = Color(nsColor: .tertiaryLabelColor)
+    /// Surface background (cards, sidebar)
+    static let surface = Color(nsColor: .controlBackgroundColor)
+    /// Subtle border
+    static let border = Color(nsColor: .separatorColor)
+    /// Elevated surface (overlays, popovers)
+    static let surfaceElevated = Color(nsColor: .underPageBackgroundColor)
+
+    // MARK: - Appearance management
+
+    enum AppearanceMode: String, CaseIterable {
+        case system
+        case light
+        case dark
+
+        var title: String {
+            switch self {
+            case .system: return "Auto"
+            case .light: return "Light"
+            case .dark: return "Dark"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .system: return "circle.lefthalf.filled"
+            case .light: return "sun.max"
+            case .dark: return "moon.stars"
+            }
+        }
+    }
+
+    static func apply(appearance: AppearanceMode) {
+        switch appearance {
+        case .system:
+            NSApp.appearance = nil
+        case .light:
+            NSApp.appearance = NSAppearance(named: .aqua)
+        case .dark:
+            NSApp.appearance = NSAppearance(named: .darkAqua)
+        }
+    }
 }
 
 struct CardSurface: ViewModifier {

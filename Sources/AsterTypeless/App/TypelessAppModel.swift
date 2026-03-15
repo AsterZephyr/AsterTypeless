@@ -15,6 +15,7 @@ final class TypelessAppModel: ObservableObject {
     @Published var insertionOverview = InsertionCompatibilityOverview.empty
     @Published var readinessReport = ReadinessReport.placeholder
     @Published var fallbackShortcutRegistered = false
+    @Published var appearanceMode: AppTheme.AppearanceMode = .system
 
     private let transcriptStore = TranscriptStore()
     private let insertionCompatibilityStore = InsertionCompatibilityStore()
@@ -124,25 +125,61 @@ final class TypelessAppModel: ObservableObject {
         let activeCaptureMode = captureMode ?? quickBar.captureMode
         let hadSpeech = quickBar.hasDetectedSpeech
         let holdDuration = audioMonitor.elapsedSeconds
-        let finalTranscript = streamingTranscriptEngine.stop()
-        audioMonitor.stopMonitoring()
-        quickBar.isRecording = false
-        quickBar.holdDuration = holdDuration
-        quickBar.capturedDuration = holdDuration
 
-        if quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-           !finalTranscript.isEmpty {
-            quickBar.transcriptDraft = finalTranscript
+        // Collect audio before stopping the monitor
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            let wavData = await self.audioMonitor.collectWAVData()
+            let finalTranscript = self.streamingTranscriptEngine.stop()
+            self.audioMonitor.stopMonitoring()
+            self.quickBar.isRecording = false
+            self.quickBar.holdDuration = holdDuration
+            self.quickBar.capturedDuration = holdDuration
+
+            if self.quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               !finalTranscript.isEmpty {
+                self.quickBar.transcriptDraft = finalTranscript
+            }
+
+            if activeCaptureMode == .holdToTalk && !hadSpeech && self.quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                self.dismissQuickBar()
+                return
+            }
+
+            // If we have real provider and audio data, trigger transcription
+            if let wavData, self.providerRuntime.canUseOpenAITranscribe {
+                self.quickBar.phase = .processing
+                self.quickBar.statusText = "正在转写录音..."
+                self.floatingBarManager.present()
+                self.streamingTranscriptEngine.start(
+                    mode: self.quickBar.mode,
+                    selection: SelectionContext(
+                        focusedAppName: self.quickBar.targetAppName,
+                        bundleIdentifier: self.quickBar.targetBundleIdentifier,
+                        selectedText: self.quickBar.transcriptDraft,
+                        surroundingText: self.quickBar.selectedContextPreview,
+                        capturedAt: .now
+                    ),
+                    providerRuntime: self.providerRuntime
+                ) { [weak self] update in
+                    guard let self else { return }
+                    self.quickBar.partialTranscript = update.text
+                    self.quickBar.transcriptSourceLabel = update.source.title
+                    if update.isFinal && !update.text.isEmpty && !update.text.starts(with: "正在") && !update.text.starts(with: "转写失败") && !update.text.starts(with: "未检测") {
+                        self.quickBar.transcriptDraft = update.text
+                        self.quickBar.phase = .ready
+                        self.quickBar.statusText = self.statusTextForStop(captureMode: activeCaptureMode, hadSpeech: hadSpeech)
+                        self.floatingBarManager.present()
+                    }
+                }
+                self.streamingTranscriptEngine.transcribeAudio(wavData: wavData)
+            } else {
+                self.quickBar.phase = .ready
+                self.quickBar.statusText = self.statusTextForStop(captureMode: activeCaptureMode, hadSpeech: hadSpeech)
+                self.floatingBarManager.present()
+            }
         }
-
-        if activeCaptureMode == .holdToTalk && !hadSpeech && quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            dismissQuickBar()
-            return
-        }
-
-        quickBar.phase = .ready
-        quickBar.statusText = statusTextForStop(captureMode: activeCaptureMode, hadSpeech: hadSpeech)
-        floatingBarManager.present()
     }
 
     func runQuickAction() {
@@ -151,37 +188,62 @@ final class TypelessAppModel: ObservableObject {
             quickBar.transcriptDraft = quickBar.partialTranscript.isEmpty ? inferredDraft() : quickBar.partialTranscript
         }
 
-        let execution = quickActionEngine.execute(
-            mode: quickBar.mode,
-            draft: quickBar.transcriptDraft,
-            settings: settings,
-            providerRuntime: providerRuntime
+        let mode = quickBar.mode
+        let draft = quickBar.transcriptDraft
+        let currentSettings = settings
+        let runtime = providerRuntime
+        let context = SelectionContext(
+            focusedAppName: quickBar.targetAppName,
+            bundleIdentifier: quickBar.targetBundleIdentifier,
+            selectedText: quickBar.transcriptDraft,
+            surroundingText: quickBar.selectedContextPreview,
+            capturedAt: .now
         )
-        quickBar.generatedText = execution.text
-        quickBar.generatedSourceLabel = execution.source.title
-        quickBar.phase = .ready
-        quickBar.statusText = "正在把结果写回到 \(quickBar.targetAppName.isEmpty ? "当前输入框" : quickBar.targetAppName)…"
-
-        let sessionSnapshot = DictationSession(
-            createdAt: .now,
-            sourceAppName: quickBar.targetAppName,
-            mode: quickBar.mode,
-            transcriptPreview: quickBar.transcriptDraft,
-            finalText: quickBar.generatedText,
-            durationSeconds: effectiveCapturedDuration,
-            words: quickBar.generatedText.split(whereSeparator: \.isWhitespace).count,
-            savedMinutes: max(1, Double(quickBar.generatedText.count) / 38),
-            feedback: .accepted
-        )
-
-        let generatedText = quickBar.generatedText
-        let targetBundleIdentifier = quickBar.targetBundleIdentifier
-        let targetAppName = quickBar.targetAppName
-
-        floatingBarManager.dismiss()
 
         Task { @MainActor [weak self] in
             guard let self else { return }
+
+            let execution: QuickActionExecutionResult
+            if runtime.canUseOpenAI {
+                self.quickBar.statusText = "正在通过 OpenAI 生成结果..."
+                execution = await self.quickActionEngine.executeAsync(
+                    mode: mode,
+                    draft: draft,
+                    settings: currentSettings,
+                    providerRuntime: runtime,
+                    context: context
+                )
+            } else {
+                execution = self.quickActionEngine.execute(
+                    mode: mode,
+                    draft: draft,
+                    settings: currentSettings,
+                    providerRuntime: runtime
+                )
+            }
+
+            self.quickBar.generatedText = execution.text
+            self.quickBar.generatedSourceLabel = execution.source.title
+            self.quickBar.phase = .ready
+            self.quickBar.statusText = "正在把结果写回到 \(self.quickBar.targetAppName.isEmpty ? "当前输入框" : self.quickBar.targetAppName)…"
+
+            let sessionSnapshot = DictationSession(
+                createdAt: .now,
+                sourceAppName: self.quickBar.targetAppName,
+                mode: self.quickBar.mode,
+                transcriptPreview: self.quickBar.transcriptDraft,
+                finalText: self.quickBar.generatedText,
+                durationSeconds: self.effectiveCapturedDuration,
+                words: self.quickBar.generatedText.split(whereSeparator: \.isWhitespace).count,
+                savedMinutes: max(1, Double(self.quickBar.generatedText.count) / 38),
+                feedback: .accepted
+            )
+
+            let generatedText = self.quickBar.generatedText
+            let targetBundleIdentifier = self.quickBar.targetBundleIdentifier
+            let targetAppName = self.quickBar.targetAppName
+
+            self.floatingBarManager.dismiss()
 
             let insertionResult = await self.accessibilityBridge.insert(
                 text: generatedText,
@@ -210,6 +272,16 @@ final class TypelessAppModel: ObservableObject {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    func cycleAppearance() {
+        let modes = AppTheme.AppearanceMode.allCases
+        if let index = modes.firstIndex(of: appearanceMode) {
+            appearanceMode = modes[(index + 1) % modes.count]
+        } else {
+            appearanceMode = .system
+        }
+        AppTheme.apply(appearance: appearanceMode)
     }
 
     func requestAccessibilityPermission() {

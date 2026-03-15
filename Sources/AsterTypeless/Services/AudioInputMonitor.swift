@@ -1,6 +1,23 @@
 import AVFoundation
 import Foundation
 
+/// Thread-safe storage for PCM audio buffers collected during recording.
+private actor PCMBufferStore {
+    private var buffers: [Data] = []
+
+    func append(_ data: Data) {
+        buffers.append(data)
+    }
+
+    func collectAll() -> [Data] {
+        buffers
+    }
+
+    func clear() {
+        buffers.removeAll()
+    }
+}
+
 @MainActor
 final class AudioInputMonitor: ObservableObject {
     @Published private(set) var microphonePermission: PermissionState = .required
@@ -12,6 +29,7 @@ final class AudioInputMonitor: ObservableObject {
     private let engine = AVAudioEngine()
     private var startDate: Date?
     private var timer: Timer?
+    private let bufferStore = PCMBufferStore()
 
     func refreshPermissionState() {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
@@ -50,6 +68,7 @@ final class AudioInputMonitor: ObservableObject {
         }
 
         stopMonitoring()
+        await bufferStore.clear()
 
         let inputNode = engine.inputNode
         let format = inputNode.inputFormat(forBus: 0)
@@ -89,7 +108,29 @@ final class AudioInputMonitor: ObservableObject {
         elapsedSeconds = 0
     }
 
-    private func process(buffer: AVAudioPCMBuffer) {
+    /// Collect all captured PCM data as a WAV file suitable for OpenAI transcription API.
+    func collectWAVData() async -> Data? {
+        let captured = await bufferStore.collectAll()
+        guard !captured.isEmpty else { return nil }
+
+        let rawPCM = captured.reduce(Data()) { $0 + $1 }
+        guard !rawPCM.isEmpty else { return nil }
+
+        let inputFormat = engine.inputNode.inputFormat(forBus: 0)
+        return createWAVFile(
+            pcmData: rawPCM,
+            sampleRate: UInt32(inputFormat.sampleRate),
+            channels: UInt16(inputFormat.channelCount),
+            bitsPerSample: 16
+        )
+    }
+
+    /// Clear collected PCM buffers.
+    func clearBuffers() async {
+        await bufferStore.clear()
+    }
+
+    private nonisolated func process(buffer: AVAudioPCMBuffer) {
         guard let channelData = buffer.floatChannelData?[0] else {
             return
         }
@@ -99,6 +140,21 @@ final class AudioInputMonitor: ObservableObject {
             return
         }
 
+        // Convert float samples to 16-bit PCM and store
+        var pcmData = Data(capacity: frameCount * 2)
+        for index in 0 ..< frameCount {
+            let sample = channelData[index]
+            let clamped = max(-1.0, min(1.0, sample))
+            var int16Sample = Int16(clamped * 32767)
+            pcmData.append(Data(bytes: &int16Sample, count: 2))
+        }
+
+        let store = bufferStore
+        Task {
+            await store.append(pcmData)
+        }
+
+        // Compute RMS for level metering
         var sum: Float = 0
         for index in 0 ..< frameCount {
             let sample = channelData[index]
@@ -108,10 +164,41 @@ final class AudioInputMonitor: ObservableObject {
         let rms = sqrt(sum / Float(frameCount))
         let normalized = min(max(Double(rms) * 18, 0), 1)
 
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
             self.level = normalized
             self.smoothedLevel = (self.smoothedLevel * 0.72) + (normalized * 0.28)
             self.isSpeaking = self.smoothedLevel > 0.08
         }
+    }
+
+    private func createWAVFile(pcmData: Data, sampleRate: UInt32, channels: UInt16, bitsPerSample: UInt16) -> Data {
+        let byteRate = sampleRate * UInt32(channels) * UInt32(bitsPerSample / 8)
+        let blockAlign = channels * (bitsPerSample / 8)
+        let dataSize = UInt32(pcmData.count)
+        let fileSize = 36 + dataSize
+
+        var header = Data()
+
+        // RIFF header
+        header.append("RIFF".data(using: .ascii)!)
+        header.append(withUnsafeBytes(of: fileSize.littleEndian) { Data($0) })
+        header.append("WAVE".data(using: .ascii)!)
+
+        // fmt subchunk
+        header.append("fmt ".data(using: .ascii)!)
+        header.append(withUnsafeBytes(of: UInt32(16).littleEndian) { Data($0) })
+        header.append(withUnsafeBytes(of: UInt16(1).littleEndian) { Data($0) })
+        header.append(withUnsafeBytes(of: channels.littleEndian) { Data($0) })
+        header.append(withUnsafeBytes(of: sampleRate.littleEndian) { Data($0) })
+        header.append(withUnsafeBytes(of: byteRate.littleEndian) { Data($0) })
+        header.append(withUnsafeBytes(of: blockAlign.littleEndian) { Data($0) })
+        header.append(withUnsafeBytes(of: bitsPerSample.littleEndian) { Data($0) })
+
+        // data subchunk
+        header.append("data".data(using: .ascii)!)
+        header.append(withUnsafeBytes(of: dataSize.littleEndian) { Data($0) })
+
+        return header + pcmData
     }
 }

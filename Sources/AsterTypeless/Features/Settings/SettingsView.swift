@@ -21,6 +21,10 @@ struct SettingsView: View {
 
                     Divider()
 
+                    appearanceSection
+
+                    Divider()
+
                     diagnosticsSection
                 }
                 .cardSurface()
@@ -121,19 +125,35 @@ struct SettingsView: View {
             HStack(spacing: 10) {
                 SettingsValueTile(title: "文本处理方案", value: model.settings.providerDisplayName, tint: AppTheme.ink)
 
-                Toggle(isOn: $model.settings.launchAtLogin) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("开机启动")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(AppTheme.muted)
-                        Text("打开 Mac 后自动准备就绪")
-                            .font(.caption)
-                            .foregroundStyle(AppTheme.muted)
-                    }
-                }
-                .toggleStyle(.switch)
-                .insetSurface()
+                SettingsValueTile(
+                    title: "Provider 状态",
+                    value: model.providerRuntime.canUseOpenAI ? "已配置" : "未配置",
+                    tint: model.providerRuntime.canUseOpenAI ? AppTheme.success : AppTheme.warning
+                )
             }
+        }
+    }
+
+    private var appearanceSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsSectionHeader(
+                title: "外观",
+                detail: "在浅色、深色和跟随系统之间切换。"
+            )
+
+            Picker("外观模式", selection: Binding(
+                get: { model.appearanceMode },
+                set: { newValue in
+                    model.appearanceMode = newValue
+                    AppTheme.apply(appearance: newValue)
+                }
+            )) {
+                ForEach(AppTheme.AppearanceMode.allCases, id: \.self) { mode in
+                    Label(mode.title, systemImage: mode.icon)
+                        .tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
         }
     }
 
