@@ -18,15 +18,29 @@ private actor PCMBufferStore {
     }
 }
 
+/// Receives level updates from the audio thread and posts to main thread.
+fileprivate final class AudioLevelRelay: @unchecked Sendable {
+    weak var target: AudioInputMonitor?
+
+    func update(_ normalized: Double) {
+        DispatchQueue.main.async { [weak self] in
+            guard let monitor = self?.target else { return }
+            monitor.level = normalized
+            monitor.smoothedLevel = (monitor.smoothedLevel * 0.72) + (normalized * 0.28)
+            monitor.isSpeaking = monitor.smoothedLevel > 0.08
+        }
+    }
+}
+
 /// Processes audio buffers on the audio thread, outside MainActor.
 /// This avoids Swift 6 strict concurrency violations from installTap callbacks.
 private final class AudioTapProcessor: @unchecked Sendable {
     private let bufferStore: PCMBufferStore
-    private let onLevelUpdate: @Sendable (Double) -> Void
+    private let levelRelay: AudioLevelRelay
 
-    init(bufferStore: PCMBufferStore, onLevelUpdate: @escaping @Sendable (Double) -> Void) {
+    init(bufferStore: PCMBufferStore, levelRelay: AudioLevelRelay) {
         self.bufferStore = bufferStore
-        self.onLevelUpdate = onLevelUpdate
+        self.levelRelay = levelRelay
     }
 
     func process(buffer: AVAudioPCMBuffer, time: AVAudioTime) {
@@ -57,16 +71,16 @@ private final class AudioTapProcessor: @unchecked Sendable {
 
         let rms = sqrt(sum / Float(frameCount))
         let normalized = min(max(Double(rms) * 18, 0), 1)
-        onLevelUpdate(normalized)
+        levelRelay.update(normalized)
     }
 }
 
 @MainActor
 final class AudioInputMonitor: ObservableObject {
     @Published private(set) var microphonePermission: PermissionState = .required
-    @Published private(set) var level: Double = 0
-    @Published private(set) var smoothedLevel: Double = 0
-    @Published private(set) var isSpeaking: Bool = false
+    @Published var level: Double = 0
+    @Published var smoothedLevel: Double = 0
+    @Published var isSpeaking: Bool = false
     @Published private(set) var elapsedSeconds: Double = 0
 
     private let engine = AVAudioEngine()
@@ -117,20 +131,17 @@ final class AudioInputMonitor: ObservableObject {
         let inputNode = engine.inputNode
         let format = inputNode.inputFormat(forBus: 0)
 
-        // Create processor that handles audio on the audio thread
-        let processor = AudioTapProcessor(bufferStore: bufferStore) { [weak self] normalized in
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                self.level = normalized
-                self.smoothedLevel = (self.smoothedLevel * 0.72) + (normalized * 0.28)
-                self.isSpeaking = self.smoothedLevel > 0.08
-            }
-        }
+        // Create relay and processor completely outside MainActor closures
+        let relay = AudioLevelRelay()
+        relay.target = self
+        let processor = AudioTapProcessor(bufferStore: bufferStore, levelRelay: relay)
         tapProcessor = processor
 
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, time in
+        // IMPORTANT: @Sendable closure to prevent inheriting MainActor isolation
+        let tapHandler: @Sendable (AVAudioPCMBuffer, AVAudioTime) -> Void = { buffer, time in
             processor.process(buffer: buffer, time: time)
         }
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format, block: tapHandler)
 
         do {
             engine.prepare()
