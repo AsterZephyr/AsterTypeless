@@ -1,157 +1,184 @@
 # AsterTypeless
 
-一个只面向 macOS 的 Typeless 开源版骨架。
+A native macOS voice-to-text tool. Press Fn, speak, and your words are transcribed and inserted at the cursor position in any app.
 
-这次重构已经把之前的 Electron / React / Node 运行时全部移除，仓库现在只保留：
+Built with SwiftUI, AppKit, and Accessibility APIs. Supports multiple AI providers for speech recognition and text processing.
 
-- `SwiftUI`：首页、设置页、浮动输入条
-- `AppKit / Accessibility / CoreGraphics`：全局触发、权限、焦点输入框读取与写回
-- `Xcode macOS App target`：后续用于打包、签名、权限、资源和发布
-- `本地持久化`：先用 JSON store 承接首页统计与最近转录
-- `研究文档`：保留 clean-room 研究和 UX 审计，方便后续继续演进
+## Features
 
-## 当前方向
+- **Fn-triggered dictation** -- press Fn to start, release to finish. Text is written back to the focused input field automatically.
+- **Multi-provider STT** -- OpenAI Transcribe, Groq Whisper, Deepgram (real-time WebSocket), or any self-hosted OpenAI-compatible ASR server (e.g. Qwen3-ASR via vLLM).
+- **Multi-provider LLM** -- OpenAI, Qwen (DashScope), Groq, Azure OpenAI, or self-hosted (e.g. Qwen3 via vLLM). Supports dictation cleanup, rewriting, translation, and Q&A modes.
+- **Cross-app text insertion** -- writes back via Accessibility API (AXValue), with clipboard paste as fallback. Works across most macOS apps.
+- **Floating dictation bar** -- compact overlay shows recording status, audio levels, and transcription progress.
+- **Dark mode** -- full light/dark/auto appearance support with system semantic colors.
+- **Menu bar access** -- quick start dictation or open the main window from the menu bar.
+- **Privacy-first** -- all audio processing is done through your configured API provider. Nothing is stored or sent without your knowledge.
 
-项目现在不再做“网页壳桌面端”，而是直接按原生 macOS 工具来组织：
+## Screenshots
 
-- 首页是概览 Hub，不承担高频输入动作
-- 高频输入交给小浮窗
-- 浮窗要能显示说话时的实时状态
-- 目标体验是 `Fn` 唤起、说完即写回当前输入框
+*(Coming soon)*
 
-当前已经确认的正式路线：
+## Requirements
 
-1. `SwiftUI` 做界面
-2. `AppKit + AXUIElement + CGEventTap` 做系统桥
-3. `Xcode macOS App target` 做打包、签名、权限、资源和发布
+- macOS 14.0+
+- Xcode 16+
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (for regenerating the project file)
 
-## 目录结构
+## Quick Start
 
-```text
-App/
-  Config/             Info.plist / entitlements
-  Resources/          Asset Catalog 等资源
+### 1. Clone and build
 
+```bash
+git clone https://github.com/AsterZephyr/AsterTypeless.git
+cd AsterTypeless
+xcodegen generate
+xcodebuild -scheme AsterTypeless build
+```
+
+### 2. Deploy
+
+```bash
+./Scripts/deploy.sh
+```
+
+This builds the app, copies it to `/Applications/AsterTypeless.app`, and launches it. On first run, you'll need to grant permissions (see below).
+
+### 3. Grant permissions
+
+The app needs three macOS permissions:
+
+| Permission | Purpose | How to grant |
+|---|---|---|
+| **Microphone** | Voice capture | System prompt on first use |
+| **Accessibility** | Read/write text in other apps | System Settings > Privacy & Security > Accessibility |
+| **Input Monitoring** | Fn key detection | System Settings > Privacy & Security > Input Monitoring |
+
+An onboarding wizard guides you through these on first launch.
+
+### 4. Configure an AI provider
+
+Copy the sample config and add your provider details:
+
+```bash
+cp Config/Runtime.sample.plist Config/Runtime.local.plist
+# Edit Config/Runtime.local.plist with your API keys
+```
+
+Or configure providers in-app via **Settings > AI Provider**.
+
+#### Self-hosted example (vLLM + Qwen3)
+
+```xml
+<dict>
+    <key>OpenAIBaseURL</key>
+    <string>http://YOUR_SERVER:8000/v1</string>
+    <key>OpenAIAPIKey</key>
+    <string>not-needed</string>
+    <key>OpenAIModel</key>
+    <string>/data0/models/Qwen3-1.7B</string>
+    <key>DeepgramBaseURL</key>
+    <string>http://YOUR_SERVER:8001/v1</string>
+    <key>DeepgramAPIKey</key>
+    <string>not-needed</string>
+    <key>DeepgramModel</key>
+    <string>/data0/models/Qwen3-ASR-1.7B</string>
+</dict>
+```
+
+The config file is searched in these locations:
+1. `~/Library/Application Support/AsterTypeless/Config/`
+2. Project source directory
+3. Environment variable `ASTERTYPELESS_RUNTIME_CONFIG`
+
+## Supported Providers
+
+| Provider | LLM | STT | Real-time streaming | OpenAI-compatible |
+|---|---|---|---|---|
+| OpenAI | gpt-4o-mini | gpt-4o-transcribe | No | Yes |
+| Qwen (DashScope) | qwen-plus | -- | -- | Yes (chat) |
+| Groq | llama-3.3-70b | whisper-large-v3-turbo | No | Yes |
+| Deepgram | -- | nova-2 | Yes (WebSocket) | No |
+| Azure OpenAI | Configurable | Configurable | No | Partial |
+| Self-hosted | Any | Any | No | Yes (vLLM, Ollama) |
+
+## Architecture
+
+```
 Sources/AsterTypeless/
-  App/                应用状态与主入口状态机
-  Features/Home/      首页概览
-  Features/FloatingBar/ 浮动输入条
-  Features/Settings/  设置页
-  Models/             领域模型
-  Services/           音频、权限、Accessibility、热键、本地存储
-  Support/            视觉主题与通用样式
-
-Config/
-  Runtime.sample.plist  预留给后续 provider / key 配置
-
-Scripts/
-  generate_xcode_project.sh
-
-project.yml           Xcode project spec
-
-docs/
-  research.md
-  ux-audit-2026-03-13.md
-  architecture-macos-swiftui.md
-  todo-macos-native.md
+  App/                  Application lifecycle, state machine (TypelessAppModel)
+  Features/
+    Home/               Main window: sidebar + capture hero
+    FloatingBar/        Floating dictation overlay (NSPanel)
+    Settings/           Settings window with provider config UI
+    MenuBar/            Menu bar extra
+    Onboarding/         First-launch permission wizard
+  Models/               Domain models (DictationSession, QuickBarState, etc.)
+  Services/
+    OpenAIClient        HTTP client for chat completion + audio transcription
+    DeepgramStreamingClient  WebSocket client for real-time STT
+    ProviderRegistry    Multi-provider configuration and persistence
+    StreamingTranscriptEngine  ASR orchestration (real or mock)
+    QuickActionEngine   LLM orchestration (real or mock)
+    AudioInputMonitor   Microphone capture, PCM buffer, WAV export
+    AccessibilityBridge AX text read/write, clipboard fallback
+    HotkeyBridge        Fn key tap/hold/double-tap detection
+    FallbackShortcutBridge  Carbon global hotkey registration
+    RuntimeConfigService  Plist-based provider config loading
+    TranscriptStore     Local session persistence (JSON)
+  Support/              Theme system (AppTheme), window chrome config
 ```
 
-## 当前已实现
+## Pipeline
 
-- 原生 `SwiftUI` 主窗口
-- 原生 `SwiftUI` 设置页
-- 原生 `NSPanel` 浮动输入条
-- 麦克风权限检测与实时音量采样
-- 音频电平平滑值与更紧凑的实时抖动反馈
-- `Fn` 的 `tap / hold / double tap` 原型语义
-- 单击开始或结束、长按说话、双击进入或退出 hands-free 原型
-- 浮窗按录音模式在紧凑态和展开态之间动态切换
-- Accessibility 权限检测
-- 当前前台 App 与焦点元素上下文读取
-- 选中文本读取
-- 文本写回焦点输入框
-- 失败时回落到剪贴板粘贴
-- 写回方式与成功率已开始记录到本地兼容矩阵
-- 本地口述记录、首页统计、个人画像占位数据
+The end-to-end flow when you press Fn and speak:
 
-## 当前还没做完
+```
+Fn press -> startRecording -> AudioInputMonitor (PCM capture)
+                                |
+Fn release -> stopRecording -> collectWAVData()
+                                |
+                          StreamingTranscriptEngine.transcribeAudio(wav)
+                                |
+                          POST /v1/audio/transcriptions -> ASR server
+                                |
+                          QuickActionEngine.executeAsync(transcript)
+                                |
+                          POST /v1/chat/completions -> LLM server
+                                |  (strip <think> tags if Qwen3)
+                          AccessibilityBridge.insert(text)
+                                |
+                          AXValue write or clipboard paste -> target app
+```
 
-- 真正的 `OpenAI + Deepgram` 网络调用链
-- `Fn` 的 `tap / hold / double tap` 继续打磨到更稳定的 Typeless 级体验
-- 跨更多 macOS App 的稳定写回兼容性
-- 浮窗实时音频反馈继续打磨成更接近 Typeless 的形态
-- 首页更进一步收紧成 Typeless 那种更克制的原生信息架构
+## Development
 
-## 运行方式
-
-### 1. 用 Xcode 打开
-
-现在最推荐直接打开 [AsterTypeless.xcodeproj](/Users/hxz/code/AsterTypeless/AsterTypeless.xcodeproj)。
-
-[Package.swift](/Users/hxz/code/AsterTypeless/Package.swift) 仍然保留，主要用于快速本地验证和轻量编译。
-
-仓库里已经补了 App target 所需的外围件：
-
-- [project.yml](/Users/hxz/code/AsterTypeless/project.yml)
-- [AsterTypeless.xcodeproj](/Users/hxz/code/AsterTypeless/AsterTypeless.xcodeproj)
-- [Info.plist](/Users/hxz/code/AsterTypeless/App/Config/Info.plist)
-- [AsterTypeless.entitlements](/Users/hxz/code/AsterTypeless/App/Config/AsterTypeless.entitlements)
-- [generate_xcode_project.sh](/Users/hxz/code/AsterTypeless/Scripts/generate_xcode_project.sh)
-
-本机在 2026-03-14 已经验证通过：
-
-- `swift build`
-- `xcodebuild -project AsterTypeless.xcodeproj -scheme AsterTypeless -configuration Debug -sdk macosx build`
-
-### 2. 命令行构建
+### Regenerate Xcode project
 
 ```bash
-cd /Users/hxz/code/AsterTypeless
-swift build
+xcodegen generate
 ```
 
-或者直接走 Xcode 工程：
+### Build from command line
 
 ```bash
-xcodebuild -project /Users/hxz/code/AsterTypeless/AsterTypeless.xcodeproj -scheme AsterTypeless -configuration Debug -sdk macosx build
+xcodebuild -scheme AsterTypeless build
 ```
 
-当前这台机器的 Xcode 环境已经在 2026-03-14 修复并验证通过。上面的两条构建命令都可以正常跑完。
+### Deploy to /Applications (preserves permissions)
 
-### 3. Runtime Provider 配置
+```bash
+./Scripts/deploy.sh
+```
 
-当前 App 已经支持本地读取运行时 provider 配置，并在首页 / 设置页显示当前是：
+### Debug pipeline
 
-- `Mock`
-- `半配置`
-- `可联调`
+After using the app, check `/tmp/aster_pipeline.log` for the full pipeline trace with timestamps.
 
-读取顺序如下：
+### Project file
 
-1. `Config/Runtime.local.plist`
-2. `Config/Runtime.sample.plist`
+The project uses [XcodeGen](https://github.com/yonaskolb/XcodeGen) with `project.yml`. After adding new files, run `xcodegen generate` to update the `.xcodeproj`.
 
-其中 [Runtime.local.plist](/Users/hxz/code/AsterTypeless/Config/Runtime.local.plist) 已加入 `.gitignore`，适合后续放真实 key；sample 文件只保留占位配置，在 [Runtime.sample.plist](/Users/hxz/code/AsterTypeless/Config/Runtime.sample.plist)。
+## License
 
-## 设计原则
-
-- 只做 macOS，不再考虑跨平台桌面壳
-- 首页做概览，不做重操作台
-- 高频动作收进浮窗
-- 功能层优先原生化，再谈 provider 接入
-- 尽量避免“大而全”的 dashboard 观感
-
-## 后续技术路线
-
-1. 继续打磨正式的 Xcode App target，并补 Archive / 发布链路。
-2. 把实时音频反馈做成 Typeless 风格的小体积生命体征。
-3. 继续抛光 `tap / hold / double tap / hands-free` 的交互细节。
-4. 接入 `Deepgram + OpenAI` 主链路，并把流式状态接进浮窗。
-5. 把首页继续压缩成更像 macOS 菜单栏工具的概览页。
-
-## 保留文档
-
-- clean-room 研究记录：[research.md](/Users/hxz/code/AsterTypeless/docs/research.md)
-- UX 审计记录：[ux-audit-2026-03-13.md](/Users/hxz/code/AsterTypeless/docs/ux-audit-2026-03-13.md)
-- 新架构说明：[architecture-macos-swiftui.md](/Users/hxz/code/AsterTypeless/docs/architecture-macos-swiftui.md)
-- 原生路线 TODO：[todo-macos-native.md](/Users/hxz/code/AsterTypeless/docs/todo-macos-native.md)
+MIT
