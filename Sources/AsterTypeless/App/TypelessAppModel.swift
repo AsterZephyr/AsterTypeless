@@ -34,12 +34,16 @@ final class TypelessAppModel: ObservableObject {
     private let captureArmCooldown: TimeInterval = 0.35
 
     func bootstrap() {
+        // Init log file first so all subsequent log() calls work
+        try? "=== Pipeline Log Started ===\n".write(toFile: "/tmp/aster_pipeline.log", atomically: true, encoding: .utf8)
+        Self.log("bootstrap start")
         refreshRuntimeConfiguration()
         loadProviderConfig()
         sessions = transcriptStore.loadSessions()
         insertionAttempts = insertionCompatibilityStore.loadAttempts()
         recomputeDashboard()
         refreshPermissions()
+        Self.log("permissions refreshed: ax=\(permissions.accessibility) im=\(permissions.inputMonitoring) mic=\(permissions.microphone)")
         refreshShortcutBindings()
         refreshQuickBarBindings()
         startHotkeyMonitoringIfPossible()
@@ -68,21 +72,24 @@ final class TypelessAppModel: ObservableObject {
         let text = lines.joined(separator: "\n")
         for line in lines { print(line) }
         try? text.write(toFile: "/tmp/aster_diag.txt", atomically: true, encoding: .utf8)
-        // Clear pipeline log on fresh boot
-        try? "".write(toFile: "/tmp/aster_pipeline.log", atomically: true, encoding: .utf8)
+        Self.log("diagnostics written")
     }
 
     static func log(_ msg: String) {
-        let ts = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss.SSS"
+        let ts = formatter.string(from: Date())
         let line = "[\(ts)] \(msg)\n"
         print(line, terminator: "")
-        if let data = line.data(using: .utf8),
-           let handle = FileHandle(forWritingAtPath: "/tmp/aster_pipeline.log") {
+        let logPath = "/tmp/aster_pipeline.log"
+        if let handle = FileHandle(forWritingAtPath: logPath) {
             handle.seekToEndOfFile()
-            handle.write(data)
+            if let data = line.data(using: .utf8) {
+                handle.write(data)
+            }
             handle.closeFile()
-        } else {
-            try? line.write(toFile: "/tmp/aster_pipeline.log", atomically: false, encoding: .utf8)
+        } else if let data = line.data(using: .utf8) {
+            FileManager.default.createFile(atPath: logPath, contents: data)
         }
     }
 
@@ -430,6 +437,7 @@ final class TypelessAppModel: ObservableObject {
     }
 
     private func startHotkeyMonitoringIfPossible() {
+        Self.log("startHotkeyMonitoringIfPossible: inputMonitoring=\(permissions.inputMonitoring)")
         hotkeyBridge.startMonitoring(
             handlers: .init(
                 onTap: { [weak self] in

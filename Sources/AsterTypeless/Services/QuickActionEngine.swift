@@ -97,7 +97,8 @@ final class QuickActionEngine {
             let result = try await client.chatCompletion(
                 model: model,
                 messages: messages,
-                temperature: 0.7
+                temperature: 0.7,
+                maxTokens: 1024
             )
 
             // Strip Qwen3-style <think>...</think> reasoning tags
@@ -119,6 +120,7 @@ final class QuickActionEngine {
     private func buildSystemPrompt(mode: QuickActionMode, settings: RuntimeSettings, context: SelectionContext) -> String {
         let appName = context.focusedAppName.isEmpty ? "未知 App" : context.focusedAppName
         let lang = settings.outputLanguage
+        let noThink = "不要输出思考过程，不要使用<think>标签，直接输出最终结果。"
 
         switch mode {
         case .dictate:
@@ -127,7 +129,7 @@ final class QuickActionEngine {
             保留用户的原意和语气，修正口语化的表达，使其更流畅。
             目标 App: \(appName)
             输出语言: \(lang)
-            只输出整理后的文本，不要添加任何解释或前缀。
+            只输出整理后的文本，不要添加任何解释或前缀。\(noThink)
             """
         case .rewrite:
             return """
@@ -135,13 +137,13 @@ final class QuickActionEngine {
             减少冗余表达，让文本更像专业写作而不是口语。
             目标 App: \(appName)
             输出语言: \(lang)
-            只输出改写后的文本，不要添加任何解释或前缀。
+            只输出改写后的文本，不要添加任何解释或前缀。\(noThink)
             """
         case .translate:
             return """
             你是一个翻译助手。请把用户提供的内容翻译成 \(lang)。
             保持原文的语气、重点和格式。翻译要自然流畅，不要生硬直译。
-            只输出翻译后的文本，不要添加任何解释或前缀。
+            只输出翻译后的文本，不要添加任何解释或前缀。\(noThink)
             """
         case .ask:
             let surroundingContext = context.surroundingText.isEmpty ? "" : "\n当前附近上下文: \(String(context.surroundingText.prefix(500)))"
@@ -150,7 +152,7 @@ final class QuickActionEngine {
             请给出简洁、有用的回答。\(surroundingContext)
             目标 App: \(appName)
             输出语言: \(lang)
-            直接回答问题，不要重复问题本身。
+            直接回答问题，不要重复问题本身。\(noThink)
             """
         }
     }

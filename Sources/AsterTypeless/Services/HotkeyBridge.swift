@@ -36,8 +36,11 @@ final class HotkeyBridge {
         stopMonitoring()
 
         guard inputMonitoringPermission(prompt: false) == .granted else {
+            TypelessAppModel.log("HotkeyBridge: Input Monitoring not granted, skipping")
             return
         }
+
+        TypelessAppModel.log("HotkeyBridge: starting Fn monitoring")
 
         flagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             self?.handleFlagsChanged(event, handlers: handlers)
@@ -77,6 +80,9 @@ final class HotkeyBridge {
     private func handleFlagsChanged(_ event: NSEvent, handlers: FnMonitorHandlers) {
         let fnActive = event.modifierFlags.contains(.function)
         let hasOtherModifiers = !event.modifierFlags.intersection([.command, .control, .option, .shift, .capsLock]).isEmpty
+        let rawFlags = event.modifierFlags.rawValue
+
+        TypelessAppModel.log("HotkeyBridge: flagsChanged fn=\(fnActive) otherMods=\(hasOtherModifiers) raw=\(rawFlags) keyCode=\(event.keyCode)")
 
         if fnActive && !fnIsDown {
             guard !hasOtherModifiers else {

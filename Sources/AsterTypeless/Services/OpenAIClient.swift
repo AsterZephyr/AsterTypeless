@@ -11,7 +11,13 @@ struct ChatCompletionRequest: Codable, Sendable {
     let model: String
     let messages: [ChatMessage]
     let temperature: Double?
+    let maxTokens: Int?
     let stream: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case model, messages, temperature, stream
+        case maxTokens = "max_tokens"
+    }
 }
 
 struct ChatCompletionChoice: Codable, Sendable {
@@ -97,12 +103,14 @@ final class OpenAIClient: Sendable {
     func chatCompletion(
         model: String,
         messages: [ChatMessage],
-        temperature: Double = 0.7
+        temperature: Double = 0.7,
+        maxTokens: Int = 1024
     ) async throws -> String {
         let request = ChatCompletionRequest(
             model: model,
             messages: messages,
             temperature: temperature,
+            maxTokens: maxTokens,
             stream: false
         )
 
@@ -121,12 +129,14 @@ final class OpenAIClient: Sendable {
         model: String,
         messages: [ChatMessage],
         temperature: Double = 0.7,
+        maxTokens: Int = 1024,
         onDelta: @escaping @Sendable (String) -> Void
     ) async throws -> String {
         let request = ChatCompletionRequest(
             model: model,
             messages: messages,
             temperature: temperature,
+            maxTokens: maxTokens,
             stream: true
         )
 
