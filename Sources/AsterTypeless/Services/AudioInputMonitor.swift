@@ -37,6 +37,7 @@ fileprivate final class AudioLevelRelay: @unchecked Sendable {
 private final class AudioTapProcessor: @unchecked Sendable {
     private let bufferStore: PCMBufferStore
     private let levelRelay: AudioLevelRelay
+    var onPCMChunk: ((Data) -> Void)?  // Optional: for real-time streaming to Deepgram
 
     init(bufferStore: PCMBufferStore, levelRelay: AudioLevelRelay) {
         self.bufferStore = bufferStore
@@ -61,6 +62,9 @@ private final class AudioTapProcessor: @unchecked Sendable {
         Task {
             await bufferStore.append(pcmData)
         }
+
+        // Forward PCM chunk for real-time streaming (e.g. Deepgram)
+        onPCMChunk?(pcmData)
 
         // Compute RMS
         var sum: Float = 0
@@ -190,6 +194,11 @@ final class AudioInputMonitor: ObservableObject {
             channels: UInt16(inputFormat.channelCount),
             bitsPerSample: 16
         )
+    }
+
+    /// Set a callback to receive raw PCM chunks in real-time (for Deepgram streaming).
+    func setStreamingCallback(_ callback: ((Data) -> Void)?) {
+        tapProcessor?.onPCMChunk = callback
     }
 
     /// Clear collected PCM buffers.

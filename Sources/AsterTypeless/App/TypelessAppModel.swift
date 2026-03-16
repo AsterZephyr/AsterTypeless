@@ -66,10 +66,24 @@ final class TypelessAppModel: ObservableObject {
             "================================================",
         ]
         let text = lines.joined(separator: "\n")
-        // Print to console
         for line in lines { print(line) }
-        // Also write to /tmp for easy access
         try? text.write(toFile: "/tmp/aster_diag.txt", atomically: true, encoding: .utf8)
+        // Clear pipeline log on fresh boot
+        try? "".write(toFile: "/tmp/aster_pipeline.log", atomically: true, encoding: .utf8)
+    }
+
+    static func log(_ msg: String) {
+        let ts = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
+        let line = "[\(ts)] \(msg)\n"
+        print(line, terminator: "")
+        if let data = line.data(using: .utf8),
+           let handle = FileHandle(forWritingAtPath: "/tmp/aster_pipeline.log") {
+            handle.seekToEndOfFile()
+            handle.write(data)
+            handle.closeFile()
+        } else {
+            try? line.write(toFile: "/tmp/aster_pipeline.log", atomically: false, encoding: .utf8)
+        }
     }
 
     func refreshPermissions(promptAccessibility: Bool = false, promptInputMonitoring: Bool = false) {
@@ -146,6 +160,7 @@ final class TypelessAppModel: ObservableObject {
             quickBar.captureMode = captureMode
         }
 
+        Self.log("startRecording: captureMode=\(quickBar.captureMode)")
         Task {
             let granted = await audioMonitor.startMonitoring()
             if granted {
@@ -166,6 +181,7 @@ final class TypelessAppModel: ObservableObject {
     }
 
     func stopRecording(for captureMode: QuickBarCaptureMode? = nil) {
+        Self.log("stopRecording called, captureMode=\(captureMode?.rawValue ?? "nil")")
         let activeCaptureMode = captureMode ?? quickBar.captureMode
         let hadSpeech = quickBar.hasDetectedSpeech
         let holdDuration = audioMonitor.elapsedSeconds
@@ -175,7 +191,7 @@ final class TypelessAppModel: ObservableObject {
             guard let self else { return }
 
             let wavData = await self.audioMonitor.collectWAVData()
-            print("[Pipeline] WAV data: \(wavData?.count ?? 0) bytes")
+            Self.log("stopRecording: WAV data=\(wavData?.count ?? 0) bytes, canUseSTT=\(self.providerRuntime.canUseOpenAITranscribe)")
             let finalTranscript = self.streamingTranscriptEngine.stop()
             self.audioMonitor.stopMonitoring()
             self.quickBar.isRecording = false
@@ -209,19 +225,23 @@ final class TypelessAppModel: ObservableObject {
                     providerRuntime: self.providerRuntime
                 ) { [weak self] update in
                     guard let self else { return }
+                    Self.log("ASR update: isFinal=\(update.isFinal), text=\(update.text.prefix(80))")
                     self.quickBar.partialTranscript = update.text
                     self.quickBar.transcriptSourceLabel = update.source.title
                     if update.isFinal {
                         let trimmed = update.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !trimmed.isEmpty {
+                        let isError = trimmed.hasPrefix("转写失败") || trimmed.hasPrefix("未检测")
+                        if !trimmed.isEmpty && !isError {
+                            Self.log("ASR success: \(trimmed.prefix(80))")
                             self.quickBar.transcriptDraft = trimmed
                             self.quickBar.statusText = "转写完成，正在处理..."
                             // Auto-run quick action after transcription
                             self.runQuickAction()
                         } else {
-                            // Empty transcription -- go to ready state for manual input
+                            Self.log("ASR empty or error: \(trimmed.prefix(80))")
+                            // Go to ready state for manual input
                             self.quickBar.phase = .ready
-                            self.quickBar.statusText = "未检测到语音内容，可以手动输入"
+                            self.quickBar.statusText = isError ? trimmed : "未检测到语音内容，可以手动输入"
                             self.floatingBarManager.present()
                         }
                     }
@@ -237,6 +257,7 @@ final class TypelessAppModel: ObservableObject {
     }
 
     func runQuickAction() {
+        Self.log("runQuickAction: mode=\(quickBar.mode), draft=\(quickBar.transcriptDraft.prefix(60))")
         quickBar.phase = .processing
         if quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             quickBar.transcriptDraft = quickBar.partialTranscript.isEmpty ? inferredDraft() : quickBar.partialTranscript
@@ -281,7 +302,7 @@ final class TypelessAppModel: ObservableObject {
             self.quickBar.phase = .ready
             self.quickBar.statusText = "正在把结果写回到 \(self.quickBar.targetAppName.isEmpty ? "当前输入框" : self.quickBar.targetAppName)…"
 
-            print("[Pipeline] LLM done: \(execution.text.prefix(80))... source=\(execution.source.title)")
+            Self.log("LLM done: \(execution.text.prefix(100))... source=\(execution.source.title)")
 
             let sessionSnapshot = DictationSession(
                 createdAt: .now,
@@ -301,12 +322,12 @@ final class TypelessAppModel: ObservableObject {
 
             self.floatingBarManager.dismiss()
 
-            print("[Pipeline] Inserting text into \(targetAppName) (\(targetBundleIdentifier))...")
+            Self.log("Inserting into \(targetAppName) (\(targetBundleIdentifier))...")
             let insertionResult = await self.accessibilityBridge.insert(
                 text: generatedText,
                 preferredBundleIdentifier: targetBundleIdentifier
             )
-            print("[Pipeline] Insert result: success=\(insertionResult.success), method=\(insertionResult.method), detail=\(insertionResult.detail)")
+            Self.log("Insert result: success=\(insertionResult.success), method=\(insertionResult.method), detail=\(insertionResult.detail)")
 
             let insertionAttempt = InsertionAttempt(
                 createdAt: .now,

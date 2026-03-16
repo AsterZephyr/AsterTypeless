@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		070A0B87069F3A0C849D9E94 /* RuntimeConfigService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 976F888D9F28F7ED712A7DB1 /* RuntimeConfigService.swift */; };
 		20DCC7385646F312824A95F0 /* DomainModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ABA3DCDB312BFB9AB55876B /* DomainModels.swift */; };
+		2123A9EEF78B4086A367EEFE /* DeepgramStreamingClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176D3083E213FCD7A625E88C /* DeepgramStreamingClient.swift */; };
 		258F71B73BF583999A7DD2C8 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9DB26D223E3419D3EE1FF97 /* SettingsView.swift */; };
 		2DD1388F56B881D8E6A44CA7 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E006B1620B4F22747E5E989 /* HomeView.swift */; };
 		495E7370C77705A531F3D114 /* TypelessAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB6E58206A82CDAC24C9C01D /* TypelessAppModel.swift */; };
@@ -45,6 +46,7 @@
 		0ABA3DCDB312BFB9AB55876B /* DomainModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainModels.swift; sourceTree = "<group>"; };
 		0EE51ED17F52EA893FAAAC1F /* FloatingBarWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingBarWindowManager.swift; sourceTree = "<group>"; };
 		13A8B45A87F990525D2A6037 /* ProviderRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderRegistry.swift; sourceTree = "<group>"; };
+		176D3083E213FCD7A625E88C /* DeepgramStreamingClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepgramStreamingClient.swift; sourceTree = "<group>"; };
 		198A32D2D580E17AB5794697 /* FallbackShortcutBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallbackShortcutBridge.swift; sourceTree = "<group>"; };
 		4E57B3142E0BC8FBB29A3F5F /* AccessibilityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityBridge.swift; sourceTree = "<group>"; };
 		549CFDD315C678C2690774E5 /* CaptureHeroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureHeroView.swift; sourceTree = "<group>"; };
@@ -125,6 +127,7 @@
 			children = (
 				4E57B3142E0BC8FBB29A3F5F /* AccessibilityBridge.swift */,
 				86A6631D8F7944AC7AA418F0 /* AudioInputMonitor.swift */,
+				176D3083E213FCD7A625E88C /* DeepgramStreamingClient.swift */,
 				198A32D2D580E17AB5794697 /* FallbackShortcutBridge.swift */,
 				0A335BA5E01388AF947CD101 /* HotkeyBridge.swift */,
 				584274AFFE82B4111F0BF3E1 /* InsertionCompatibilityStore.swift */,
@@ -295,6 +298,7 @@
 				CF113BFAE3623CEBAD264ED1 /* AudioPulseView.swift in Sources */,
 				DDCED248F82C01E21BB2C76B /* CaptureHeroView.swift in Sources */,
 				7FD79375165137FD2FB6C0D0 /* DashboardCards.swift in Sources */,
+				2123A9EEF78B4086A367EEFE /* DeepgramStreamingClient.swift in Sources */,
 				20DCC7385646F312824A95F0 /* DomainModels.swift in Sources */,
 				5991CF2C7DA489CB8F04DF30 /* FallbackShortcutBridge.swift in Sources */,
 				9B6FF56C2449689F926430F2 /* FloatingBarView.swift in Sources */,
