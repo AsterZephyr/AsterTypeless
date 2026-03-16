@@ -110,14 +110,55 @@ final class TypelessAppModel: ObservableObject {
     func loadProviderConfig() {
         if let saved = providerConfigStore.load() {
             providerConfig = saved
+            // Only override plist runtime if UI config has real endpoints
+            let hasUIConfig = (saved.activeLLMConfig?.isConfigured ?? false)
+                || (saved.activeSTTConfig?.isConfigured ?? false)
+            if hasUIConfig {
+                syncProviderConfigToRuntime()
+                Self.log("loadProviderConfig: using UI config (has configured endpoints)")
+            } else {
+                Self.log("loadProviderConfig: UI config empty, keeping plist runtime")
+            }
         } else {
-            // Migrate from legacy plist-based config
+            // First run: migrate from legacy plist-based config
             providerConfig = ProviderConfiguration.fromLegacy(providerRuntime)
+            providerConfigStore.save(providerConfig)
+            Self.log("loadProviderConfig: migrated from plist to UI config")
         }
     }
 
     func saveProviderConfig() {
         providerConfigStore.save(providerConfig)
+        syncProviderConfigToRuntime()
+        Self.log("providerConfig saved and synced to runtime")
+    }
+
+    /// Sync ProviderConfiguration (UI-managed) into ProviderRuntimeStatus (pipeline-used).
+    private func syncProviderConfigToRuntime() {
+        let llmConfig = providerConfig.activeLLMConfig
+        let sttConfig = providerConfig.activeSTTConfig
+
+        providerRuntime.openAIBaseURL = llmConfig?.baseURL ?? ""
+        providerRuntime.openAIAPIKey = llmConfig?.apiKey ?? ""
+        providerRuntime.openAIModel = llmConfig?.model ?? ""
+        providerRuntime.openAIConfigured = llmConfig?.isConfigured ?? false
+
+        providerRuntime.deepgramBaseURL = sttConfig?.baseURL ?? ""
+        providerRuntime.deepgramAPIKey = sttConfig?.apiKey ?? ""
+        providerRuntime.deepgramModel = sttConfig?.model ?? ""
+        providerRuntime.openAITranscribeModel = sttConfig?.model ?? ""
+        providerRuntime.deepgramConfigured = sttConfig?.isConfigured ?? false
+
+        providerRuntime.deepgramLanguage = providerConfig.language
+        providerRuntime.preferredProvider = providerConfig.selectedLLM.displayName
+
+        if providerRuntime.canUseOpenAI || providerRuntime.canUseOpenAITranscribe {
+            providerRuntime.executionMode = .providerReady
+        } else {
+            providerRuntime.executionMode = .mockReady
+        }
+
+        providerRuntime.sourceDescription = "Settings UI"
     }
 
     func presentQuickBar(trigger: String, captureMode: QuickBarCaptureMode = .manual) {
