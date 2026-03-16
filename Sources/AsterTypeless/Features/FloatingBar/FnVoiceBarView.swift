@@ -2,163 +2,118 @@ import SwiftUI
 
 struct FnVoiceBarView: View {
     @ObservedObject var model: TypelessAppModel
-    @State private var isHovered = false
 
     var body: some View {
-        HStack(spacing: 14) {
-            MiniWaveStrip(level: model.quickBar.smoothedLevel, isSpeaking: model.quickBar.isSpeaking, phase: model.quickBar.phase)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(statusLabel)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
-                    .textCase(.uppercase)
-                    .tracking(1.2)
-                    .foregroundStyle(Color.white.opacity(0.52))
-
-                Text(displayDuration)
-                    .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .tracking(0.2)
-            }
-
-            Spacer(minLength: 6)
-
-            Button(action: primaryAction) {
-                ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(isHovered ? 0.17 : 0.1))
-
-                    Image(systemName: buttonSymbol)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(buttonTint)
-                }
-                .frame(width: 32, height: 32)
-            }
-            .buttonStyle(.plain)
-            .help(buttonHelp)
+        HStack(spacing: 0) {
+            WaveformPills(
+                level: model.quickBar.smoothedLevel,
+                isSpeaking: model.quickBar.isSpeaking,
+                phase: model.quickBar.phase
+            )
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 12)
-        .frame(width: 250)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
         .background(
-            ZStack {
-                Capsule(style: .continuous)
-                    .fill(.ultraThinMaterial)
-                Capsule(style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.08, green: 0.10, blue: 0.18).opacity(0.94),
-                                Color(red: 0.05, green: 0.07, blue: 0.13).opacity(0.96),
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
+            Capsule(style: .continuous)
+                .fill(
+                    Color(red: 0.06, green: 0.07, blue: 0.12).opacity(0.92)
+                )
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
         )
         .overlay(
             Capsule(style: .continuous)
-                .stroke(AppTheme.brand500.opacity(0.32), lineWidth: 1)
+                .stroke(accentGlow.opacity(0.3), lineWidth: 1)
         )
-        .shadow(color: AppTheme.brand500.opacity(0.22), radius: 28, y: 10)
-        .shadow(color: Color.black.opacity(0.26), radius: 28, y: 14)
-        .scaleEffect(isHovered ? 1.03 : 1)
-        .animation(.spring(duration: 0.28, bounce: 0.24), value: isHovered)
-        .onHover { hovering in
-            isHovered = hovering
-        }
+        .shadow(color: accentGlow.opacity(0.2), radius: 20, y: 6)
+        .shadow(color: Color.black.opacity(0.3), radius: 16, y: 8)
     }
 
-    private var statusLabel: String {
+    private var accentGlow: Color {
         switch model.quickBar.phase {
-        case .armed:
-            return "Listening"
         case .recording:
-            return "Recording"
+            return model.quickBar.isSpeaking ? AppTheme.brand400 : AppTheme.brand600
         case .processing:
-            return "Processing"
-        case .ready:
-            return "Ready"
-        case .idle:
-            return "Standby"
-        }
-    }
-
-    private var displayDuration: String {
-        let duration = max(model.quickBar.capturedDuration, model.quickBar.holdDuration)
-        let minutes = Int(duration) / 60
-        let seconds = Int(duration) % 60
-        let tenths = Int((duration * 10).rounded()) % 10
-        return String(format: "%02d:%02d.%d", minutes, seconds, tenths)
-    }
-
-    private var buttonSymbol: String {
-        switch model.quickBar.phase {
-        case .recording, .processing:
-            return "stop.fill"
-        case .armed, .ready, .idle:
-            return "xmark"
-        }
-    }
-
-    private var buttonTint: Color {
-        switch model.quickBar.phase {
-        case .recording, .processing:
-            return Color(red: 0.99, green: 0.43, blue: 0.43)
-        case .armed, .ready, .idle:
-            return Color.white.opacity(0.82)
-        }
-    }
-
-    private var buttonHelp: String {
-        switch model.quickBar.phase {
-        case .recording, .processing:
-            return "停止当前口述"
-        case .armed, .ready, .idle:
-            return "关闭语音条"
-        }
-    }
-
-    private func primaryAction() {
-        if model.quickBar.isRecording || model.quickBar.phase == .processing {
-            model.stopRecording()
-        } else {
-            model.dismissQuickBar()
+            return Color.orange
+        default:
+            return AppTheme.brand500
         }
     }
 }
 
-private struct MiniWaveStrip: View {
+// MARK: - Waveform
+
+private struct WaveformPills: View {
     let level: Double
     let isSpeaking: Bool
     let phase: QuickBarPhase
 
-    private let multipliers = [0.28, 0.56, 1.0, 0.82, 0.42]
+    // 11 bars, symmetric-ish pattern
+    private let baseHeights: [Double] = [3, 5, 8, 12, 16, 20, 16, 12, 8, 5, 3]
+    private let multipliers: [Double] = [0.2, 0.35, 0.55, 0.75, 0.9, 1.0, 0.9, 0.75, 0.55, 0.35, 0.2]
 
     var body: some View {
-        HStack(alignment: .center, spacing: 3) {
-            ForEach(Array(multipliers.enumerated()), id: \.offset) { index, multiplier in
-                Capsule(style: .continuous)
-                    .fill(AppTheme.brand400)
-                    .frame(width: 4, height: barHeight(multiplier: multiplier, index: index))
-                    .animation(.easeInOut(duration: 0.16), value: level)
-                    .animation(.easeInOut(duration: 0.16), value: phase)
+        HStack(alignment: .center, spacing: 2.5) {
+            ForEach(0 ..< baseHeights.count, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(barColor(index: index))
+                    .frame(width: 3, height: barHeight(index: index))
+                    .animation(.easeInOut(duration: 0.12), value: level)
+                    .animation(.easeInOut(duration: 0.12), value: isSpeaking)
             }
         }
-        .frame(width: 34, height: 24)
+        .frame(height: 28)
     }
 
-    private func barHeight(multiplier: Double, index: Int) -> CGFloat {
-        let minimumHeights = [8.0, 11.0, 18.0, 14.0, 9.0]
-        let base = minimumHeights[index]
+    private func barHeight(index: Int) -> CGFloat {
+        let base = baseHeights[index]
 
-        guard phase == .recording || phase == .processing || phase == .armed else {
-            return CGFloat(base)
+        guard phase == .recording || phase == .armed else {
+            // Processing: gentle pulse
+            if phase == .processing {
+                return CGFloat(base * 0.6 + 2)
+            }
+            return CGFloat(base * 0.3 + 2)
         }
 
-        let activeLevel = isSpeaking ? max(level, 0.16) : 0.12
-        let dynamicHeight = base + (activeLevel * multiplier * 24)
-        return CGFloat(min(24, dynamicHeight))
+        let activeLevel = isSpeaking ? max(level, 0.15) : 0.05
+        let dynamic = base + activeLevel * multipliers[index] * 28
+        return CGFloat(min(28, max(2, dynamic)))
+    }
+
+    private func barColor(index: Int) -> Color {
+        let t = Double(index) / Double(baseHeights.count - 1)
+
+        switch phase {
+        case .recording:
+            // Gradient from cyan to violet, brightness follows level
+            let brightness = isSpeaking ? 0.7 + level * 0.3 : 0.4
+            return gradientColor(t: t).opacity(brightness)
+        case .processing:
+            return Color.orange.opacity(0.5 + sin(Double(index) * 0.8) * 0.2)
+        default:
+            return AppTheme.brand500.opacity(0.3)
+        }
+    }
+
+    private func gradientColor(t: Double) -> Color {
+        // cyan -> blue -> violet
+        if t < 0.5 {
+            let local = t / 0.5
+            return Color(
+                red: 0.02 + local * 0.21,
+                green: 0.71 - local * 0.20,
+                blue: 0.83 + local * 0.13
+            )
+        } else {
+            let local = (t - 0.5) / 0.5
+            return Color(
+                red: 0.23 + local * 0.32,
+                green: 0.51 - local * 0.15,
+                blue: 0.96 - local * 0.0
+            )
+        }
     }
 }
