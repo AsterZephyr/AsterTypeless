@@ -116,7 +116,7 @@ struct RuntimeSettings: Codable {
     var primaryTrigger: String = "Fn"
     var fallbackShortcut: String = "Control + Option + Space"
     var microphoneName: String = "系统默认"
-    var outputLanguage: String = "English"
+    var outputLanguage: String = "中文"
     var providerDisplayName: String = "OpenAI + Deepgram"
     var launchAtLogin: Bool = false
 }
