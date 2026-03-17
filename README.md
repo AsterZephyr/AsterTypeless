@@ -1,184 +1,179 @@
+<div align="center">
+
+<br />
+
 # AsterTypeless
 
-A native macOS voice-to-text tool. Press Fn, speak, and your words are transcribed and inserted at the cursor position in any app.
+### Voice that flows into any app.
 
-Built with SwiftUI, AppKit, and Accessibility APIs. Supports multiple AI providers for speech recognition and text processing.
+Press **Fn**, speak naturally, release. Your words land at the cursor -- polished, in any language, in any app on your Mac.
 
-## Features
+<br />
 
-- **Fn-triggered dictation** -- press Fn to start, release to finish. Text is written back to the focused input field automatically.
-- **Multi-provider STT** -- OpenAI Transcribe, Groq Whisper, Deepgram (real-time WebSocket), or any self-hosted OpenAI-compatible ASR server (e.g. Qwen3-ASR via vLLM).
-- **Multi-provider LLM** -- OpenAI, Qwen (DashScope), Groq, Azure OpenAI, or self-hosted (e.g. Qwen3 via vLLM). Supports dictation cleanup, rewriting, translation, and Q&A modes.
-- **Cross-app text insertion** -- writes back via Accessibility API (AXValue), with clipboard paste as fallback. Works across most macOS apps.
-- **Floating dictation bar** -- compact overlay shows recording status, audio levels, and transcription progress.
-- **Dark mode** -- full light/dark/auto appearance support with system semantic colors.
-- **Menu bar access** -- quick start dictation or open the main window from the menu bar.
-- **Privacy-first** -- all audio processing is done through your configured API provider. Nothing is stored or sent without your knowledge.
+**Native macOS** · **SwiftUI + Accessibility APIs** · **Bring your own AI**
 
-## Screenshots
+<br />
 
-*(Coming soon)*
+[Quick Start](#quick-start) · [Providers](#supported-providers) · [Architecture](#architecture) · [Contributing](#contributing)
 
-## Requirements
+<br />
 
-- macOS 14.0+
-- Xcode 16+
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (for regenerating the project file)
+---
+
+</div>
+
+## What it does
+
+AsterTypeless turns your voice into text and drops it right where your cursor is. No switching apps, no copy-paste, no friction.
+
+```
+You speak          -->  ASR transcribes  -->  LLM polishes  -->  Text appears at cursor
+"帮我回复说周三可以"  -->  "帮我回复说周三可以"  -->  "周三可以的，到时见。"  -->  [typed into Slack]
+```
+
+The entire pipeline runs in under 2 seconds with a self-hosted model.
+
+## Why
+
+macOS has built-in dictation. It works. But it doesn't clean up your speech, doesn't translate on the fly, doesn't let you swap in your own models, and doesn't work with self-hosted AI. AsterTypeless does all of that.
+
+## Core ideas
+
+- **Fn-triggered** -- hold Fn to talk, release to finish. Also supports tap-to-toggle, double-tap for hands-free, and keyboard shortcuts.
+- **Writes back to any app** -- uses Accessibility APIs to insert text at the cursor. Falls back to clipboard paste when AX isn't available.
+- **Bring your own provider** -- OpenAI, Qwen, Groq, Deepgram, Azure, or any self-hosted server with an OpenAI-compatible API (vLLM, Ollama, etc.).
+- **Four modes** -- Dictate (clean up speech), Rewrite (polish selected text), Translate (into any language), Ask (answer questions from context).
+- **Minimal floating bar** -- a tiny waveform capsule appears while recording. No clutter, no chrome.
+- **Dark mode native** -- respects system appearance out of the box.
 
 ## Quick Start
 
-### 1. Clone and build
+**Requirements:** macOS 14+, Xcode 16+, [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 
 ```bash
 git clone https://github.com/AsterZephyr/AsterTypeless.git
 cd AsterTypeless
 xcodegen generate
-xcodebuild -scheme AsterTypeless build
+./Scripts/deploy.sh     # builds, signs, deploys to /Applications, launches
 ```
 
-### 2. Deploy
+First launch opens a permission wizard for **Microphone**, **Accessibility**, and **Input Monitoring**.
 
-```bash
-./Scripts/deploy.sh
-```
+### Connect a provider
 
-This builds the app, copies it to `/Applications/AsterTypeless.app`, and launches it. On first run, you'll need to grant permissions (see below).
+Open **Settings** (gear icon in main window or menu bar) and fill in your endpoint:
 
-### 3. Grant permissions
+| Field | Example |
+|---|---|
+| Base URL | `http://your-server:8000/v1` |
+| API Key | `sk-...` or `not-needed` for self-hosted |
+| Model | `gpt-4o-mini` / `qwen-plus` / `/data0/models/Qwen3-1.7B` |
 
-The app needs three macOS permissions:
+Click **Save** -- takes effect immediately, no restart needed. Hit **Test Connection** to verify.
 
-| Permission | Purpose | How to grant |
-|---|---|---|
-| **Microphone** | Voice capture | System prompt on first use |
-| **Accessibility** | Read/write text in other apps | System Settings > Privacy & Security > Accessibility |
-| **Input Monitoring** | Fn key detection | System Settings > Privacy & Security > Input Monitoring |
-
-An onboarding wizard guides you through these on first launch.
-
-### 4. Configure an AI provider
-
-Copy the sample config and add your provider details:
+You can also configure via plist if you prefer:
 
 ```bash
 cp Config/Runtime.sample.plist Config/Runtime.local.plist
-# Edit Config/Runtime.local.plist with your API keys
+# edit with your values
 ```
-
-Or configure providers in-app via **Settings > AI Provider**.
-
-#### Self-hosted example (vLLM + Qwen3)
-
-```xml
-<dict>
-    <key>OpenAIBaseURL</key>
-    <string>http://YOUR_SERVER:8000/v1</string>
-    <key>OpenAIAPIKey</key>
-    <string>not-needed</string>
-    <key>OpenAIModel</key>
-    <string>/data0/models/Qwen3-1.7B</string>
-    <key>DeepgramBaseURL</key>
-    <string>http://YOUR_SERVER:8001/v1</string>
-    <key>DeepgramAPIKey</key>
-    <string>not-needed</string>
-    <key>DeepgramModel</key>
-    <string>/data0/models/Qwen3-ASR-1.7B</string>
-</dict>
-```
-
-The config file is searched in these locations:
-1. `~/Library/Application Support/AsterTypeless/Config/`
-2. Project source directory
-3. Environment variable `ASTERTYPELESS_RUNTIME_CONFIG`
 
 ## Supported Providers
 
-| Provider | LLM | STT | Real-time streaming | OpenAI-compatible |
+| Provider | Chat (LLM) | Transcription (STT) | Streaming | Notes |
 |---|---|---|---|---|
-| OpenAI | gpt-4o-mini | gpt-4o-transcribe | No | Yes |
-| Qwen (DashScope) | qwen-plus | -- | -- | Yes (chat) |
-| Groq | llama-3.3-70b | whisper-large-v3-turbo | No | Yes |
-| Deepgram | -- | nova-2 | Yes (WebSocket) | No |
-| Azure OpenAI | Configurable | Configurable | No | Partial |
-| Self-hosted | Any | Any | No | Yes (vLLM, Ollama) |
+| **OpenAI** | gpt-4o-mini | gpt-4o-transcribe | -- | Standard API |
+| **Qwen** | qwen-plus, qwen-turbo | -- | -- | Via DashScope, OpenAI-compatible |
+| **Groq** | llama-3.3-70b | whisper-large-v3-turbo | -- | Fast inference |
+| **Deepgram** | -- | nova-2 | WebSocket | Real-time streaming |
+| **Azure OpenAI** | Any deployment | Any deployment | -- | Custom endpoint format |
+| **Self-hosted** | Any | Any | -- | vLLM, Ollama, LocalAI, etc. |
+
+Providers with an OpenAI-compatible `/v1/chat/completions` or `/v1/audio/transcriptions` endpoint work out of the box.
+
+## How it works
+
+```
+                        ┌──────────────────────────────────────────────────┐
+  Fn press ─────────►   │  AudioInputMonitor                               │
+                        │  Records PCM via AVAudioEngine                   │
+  Fn release ───────►   │  Exports WAV                                     │
+                        └──────────────┬───────────────────────────────────┘
+                                       │
+                                       ▼
+                        ┌──────────────────────────────────────────────────┐
+                        │  StreamingTranscriptEngine                        │
+                        │  POST /v1/audio/transcriptions ──► ASR server    │
+                        └──────────────┬───────────────────────────────────┘
+                                       │ transcript
+                                       ▼
+                        ┌──────────────────────────────────────────────────┐
+                        │  QuickActionEngine                                │
+                        │  POST /v1/chat/completions ──► LLM server        │
+                        │  (strips <think> tags for reasoning models)       │
+                        └──────────────┬───────────────────────────────────┘
+                                       │ polished text
+                                       ▼
+                        ┌──────────────────────────────────────────────────┐
+                        │  AccessibilityBridge                              │
+                        │  AXUIElement.setValue ──► target app cursor       │
+                        │  Fallback: clipboard paste via Cmd+V              │
+                        └──────────────────────────────────────────────────┘
+```
 
 ## Architecture
 
 ```
 Sources/AsterTypeless/
-  App/                  Application lifecycle, state machine (TypelessAppModel)
-  Features/
-    Home/               Main window: sidebar + capture hero
-    FloatingBar/        Floating dictation overlay (NSPanel)
-    Settings/           Settings window with provider config UI
-    MenuBar/            Menu bar extra
-    Onboarding/         First-launch permission wizard
-  Models/               Domain models (DictationSession, QuickBarState, etc.)
-  Services/
-    OpenAIClient        HTTP client for chat completion + audio transcription
-    DeepgramStreamingClient  WebSocket client for real-time STT
-    ProviderRegistry    Multi-provider configuration and persistence
-    StreamingTranscriptEngine  ASR orchestration (real or mock)
-    QuickActionEngine   LLM orchestration (real or mock)
-    AudioInputMonitor   Microphone capture, PCM buffer, WAV export
-    AccessibilityBridge AX text read/write, clipboard fallback
-    HotkeyBridge        Fn key tap/hold/double-tap detection
-    FallbackShortcutBridge  Carbon global hotkey registration
-    RuntimeConfigService  Plist-based provider config loading
-    TranscriptStore     Local session persistence (JSON)
-  Support/              Theme system (AppTheme), window chrome config
-```
-
-## Pipeline
-
-The end-to-end flow when you press Fn and speak:
-
-```
-Fn press -> startRecording -> AudioInputMonitor (PCM capture)
-                                |
-Fn release -> stopRecording -> collectWAVData()
-                                |
-                          StreamingTranscriptEngine.transcribeAudio(wav)
-                                |
-                          POST /v1/audio/transcriptions -> ASR server
-                                |
-                          QuickActionEngine.executeAsync(transcript)
-                                |
-                          POST /v1/chat/completions -> LLM server
-                                |  (strip <think> tags if Qwen3)
-                          AccessibilityBridge.insert(text)
-                                |
-                          AXValue write or clipboard paste -> target app
+├── App/                    State machine, bootstrap, pipeline orchestration
+├── Features/
+│   ├── Home/               Main window (sidebar + capture hero)
+│   ├── FloatingBar/        Minimal waveform overlay (NSPanel)
+│   ├── Settings/           Provider config, permissions, appearance
+│   ├── MenuBar/            Menu bar quick actions
+│   └── Onboarding/         First-launch permission wizard
+├── Models/                 Domain types (sessions, quick bar state, settings)
+├── Services/
+│   ├── OpenAIClient        HTTP: chat completions + audio transcription
+│   ├── DeepgramStreamingClient   WebSocket: real-time STT
+│   ├── ProviderRegistry    Multi-provider config + persistence
+│   ├── AudioInputMonitor   AVAudioEngine capture, PCM buffer, WAV export
+│   ├── AccessibilityBridge AX read/write + clipboard fallback
+│   ├── HotkeyBridge        Fn key tap/hold/double-tap via CGEventTap
+│   └── ...                 Transcript store, config service, shortcuts
+└── Support/                Theme tokens, window chrome
 ```
 
 ## Development
 
-### Regenerate Xcode project
-
 ```bash
+# Regenerate Xcode project after adding files
 xcodegen generate
-```
 
-### Build from command line
-
-```bash
+# Build
 xcodebuild -scheme AsterTypeless build
-```
 
-### Deploy to /Applications (preserves permissions)
-
-```bash
+# Deploy (preserves macOS permissions across rebuilds)
 ./Scripts/deploy.sh
+
+# Check pipeline logs after a dictation
+cat /tmp/aster_pipeline.log
 ```
 
-### Debug pipeline
+The deploy script uses `rsync` to update `/Applications/AsterTypeless.app` without breaking the code signature, so macOS permissions (Accessibility, Input Monitoring) persist across rebuilds.
 
-After using the app, check `/tmp/aster_pipeline.log` for the full pipeline trace with timestamps.
+## Roadmap
 
-### Project file
+- [ ] Deepgram real-time streaming during recording (live partial transcripts)
+- [ ] Expanded cross-app compatibility testing (VS Code, Notion, Arc, Slack)
+- [ ] SwiftData migration for local storage
+- [ ] Archive, notarization, and DMG distribution
+- [ ] Configurable Fn behavior (sensitivity, double-tap timeout)
 
-The project uses [XcodeGen](https://github.com/yonaskolb/XcodeGen) with `project.yml`. After adding new files, run `xcodegen generate` to update the `.xcodeproj`.
+## Contributing
+
+PRs welcome. If you're adding a new provider, it only needs to implement the OpenAI-compatible chat or transcription endpoint format.
 
 ## License
 
-MIT
+[MIT](LICENSE)
