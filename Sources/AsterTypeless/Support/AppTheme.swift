@@ -73,6 +73,7 @@ enum AppTheme {
         }
     }
 
+    @MainActor
     static func apply(appearance: AppearanceMode) {
         switch appearance {
         case .system:

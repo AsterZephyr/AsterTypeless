@@ -64,7 +64,7 @@ struct SettingsView: View {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 SettingsTextField(title: "主触发键", text: $model.settings.primaryTrigger)
                 SettingsTextField(title: "回退快捷键", text: $model.settings.fallbackShortcut)
-                    .onChange(of: model.settings.fallbackShortcut) { _ in
+                    .onChange(of: model.settings.fallbackShortcut) { _, _ in
                         model.refreshShortcutBindings()
                     }
                 SettingsTextField(title: "输出语言", text: $model.settings.outputLanguage)
@@ -137,6 +137,30 @@ struct SettingsView: View {
                     tint: model.providerRuntime.canUseOpenAI ? AppTheme.success : AppTheme.warning
                 )
             }
+
+            Toggle("按当前 App 调整输出风格", isOn: Binding(
+                get: { model.providerConfig.contextAwarenessEnabled },
+                set: { newValue in
+                    model.providerConfig.contextAwarenessEnabled = newValue
+                    model.saveProviderConfig()
+                }
+            ))
+
+            Toggle("启用词典自学习", isOn: Binding(
+                get: { model.providerConfig.lexiconLearningEnabled },
+                set: { newValue in
+                    model.providerConfig.lexiconLearningEnabled = newValue
+                    model.saveProviderConfig()
+                }
+            ))
+
+            Toggle("优先稳定写回", isOn: Binding(
+                get: { model.providerConfig.preferStableDelivery },
+                set: { newValue in
+                    model.providerConfig.preferStableDelivery = newValue
+                    model.saveProviderConfig()
+                }
+            ))
         }
     }
 

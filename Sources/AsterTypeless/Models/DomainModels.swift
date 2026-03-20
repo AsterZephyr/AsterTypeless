@@ -330,6 +330,12 @@ struct DictationSession: Codable, Identifiable {
     var words: Int
     var savedMinutes: Double
     var feedback: TranscriptFeedback
+    var rawTranscript: String? = nil
+    var normalizedTranscript: String? = nil
+    var contextSnapshot: VoiceFlowContext? = nil
+    var providerSummary: VoiceFlowProviderSummary? = nil
+    var deliveryResult: InsertionAttempt? = nil
+    var accepted: Bool = false
 }
 
 struct DictationOverview {
@@ -383,6 +389,9 @@ struct QuickBarState {
     var selectedContextPreview: String = ""
     var triggerLabel: String = "Fn"
     var holdDuration: Double = 0
+    var deliveryFailureDetail: String = ""
+    var canRetryDelivery: Bool = false
+    var canCopyRecovery: Bool = false
 
     var isCompactLayout: Bool {
         captureMode == .holdToTalk

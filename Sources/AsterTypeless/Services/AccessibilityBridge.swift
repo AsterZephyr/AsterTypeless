@@ -61,7 +61,40 @@ final class AccessibilityBridge {
         )
     }
 
-    func insert(text: String, preferredBundleIdentifier: String?) async -> InsertionResult {
+    func focusedWindowTitle() -> String {
+        guard accessibilityPermission(prompt: false) == .granted else {
+            return ""
+        }
+
+        let systemWide = AXUIElementCreateSystemWide()
+        var appValue: CFTypeRef?
+        let appError = AXUIElementCopyAttributeValue(systemWide, kAXFocusedApplicationAttribute as CFString, &appValue)
+        guard appError == .success,
+              let appValue,
+              CFGetTypeID(appValue) == AXUIElementGetTypeID()
+        else {
+            return ""
+        }
+
+        let appElement = unsafeDowncast(appValue, to: AXUIElement.self)
+        var windowValue: CFTypeRef?
+        let windowError = AXUIElementCopyAttributeValue(appElement, kAXFocusedWindowAttribute as CFString, &windowValue)
+        guard windowError == .success,
+              let windowValue,
+              CFGetTypeID(windowValue) == AXUIElementGetTypeID()
+        else {
+            return ""
+        }
+
+        let windowElement = unsafeDowncast(windowValue, to: AXUIElement.self)
+        return stringAttribute(of: windowElement, attribute: kAXTitleAttribute as String)
+    }
+
+    func insert(
+        text: String,
+        preferredBundleIdentifier: String?,
+        preferredMethod: InsertionMethod? = nil
+    ) async -> InsertionResult {
         let target = await activatePreferredTarget(bundleIdentifier: preferredBundleIdentifier)
 
         guard accessibilityPermission(prompt: false) == .granted else {
@@ -74,40 +107,19 @@ final class AccessibilityBridge {
             )
         }
 
-        for (index, delay) in directInsertRetryDelays.enumerated() {
-            if index > 0 {
-                try? await Task.sleep(nanoseconds: delay)
-            }
-
-            if let element = focusedElement(), insertViaValueAttribute(text: text, into: element) {
-                let attemptDetail = index == 0 ? "通过 AXValue 直接写回" : "通过 AXValue 重试后写回"
-                return InsertionResult(
-                    appName: target.name,
-                    bundleIdentifier: target.bundleIdentifier,
-                    method: .accessibilityValue,
-                    success: true,
-                    detail: attemptDetail
-                )
-            }
-        }
-
-        for (index, delay) in clipboardRetryDelays.enumerated() {
-            if index > 0 {
-                try? await Task.sleep(nanoseconds: delay)
-                _ = await activatePreferredTarget(bundleIdentifier: target.bundleIdentifier)
-            }
-
-            if await pasteViaClipboard(text: text) {
-                let attemptDetail = index == 0
-                    ? "AX 直写失败，已回退到剪贴板粘贴"
-                    : "AX 直写失败，剪贴板重试后完成写回"
-                return InsertionResult(
-                    appName: target.name,
-                    bundleIdentifier: target.bundleIdentifier,
-                    method: .clipboardFallback,
-                    success: true,
-                    detail: attemptDetail
-                )
+        let methods = orderedMethods(preferredMethod: preferredMethod)
+        for method in methods {
+            switch method {
+            case .accessibilityValue:
+                if let result = await attemptDirectInsert(text: text, target: target) {
+                    return result
+                }
+            case .clipboardFallback:
+                if let result = await attemptClipboardInsert(text: text, target: target) {
+                    return result
+                }
+            case .failed, .unavailable:
+                continue
             }
         }
 
@@ -289,5 +301,63 @@ final class AccessibilityBridge {
         }
 
         pasteboard.writeObjects(items)
+    }
+
+    private func orderedMethods(preferredMethod: InsertionMethod?) -> [InsertionMethod] {
+        switch preferredMethod {
+        case .clipboardFallback:
+            return [.clipboardFallback, .accessibilityValue]
+        default:
+            return [.accessibilityValue, .clipboardFallback]
+        }
+    }
+
+    private func attemptDirectInsert(
+        text: String,
+        target: (name: String, bundleIdentifier: String)
+    ) async -> InsertionResult? {
+        for (index, delay) in directInsertRetryDelays.enumerated() {
+            if index > 0 {
+                try? await Task.sleep(nanoseconds: delay)
+            }
+
+            if let element = focusedElement(), insertViaValueAttribute(text: text, into: element) {
+                let attemptDetail = index == 0 ? "通过 AXValue 直接写回" : "通过 AXValue 重试后写回"
+                return InsertionResult(
+                    appName: target.name,
+                    bundleIdentifier: target.bundleIdentifier,
+                    method: .accessibilityValue,
+                    success: true,
+                    detail: attemptDetail
+                )
+            }
+        }
+        return nil
+    }
+
+    private func attemptClipboardInsert(
+        text: String,
+        target: (name: String, bundleIdentifier: String)
+    ) async -> InsertionResult? {
+        for (index, delay) in clipboardRetryDelays.enumerated() {
+            if index > 0 {
+                try? await Task.sleep(nanoseconds: delay)
+                _ = await activatePreferredTarget(bundleIdentifier: target.bundleIdentifier)
+            }
+
+            if await pasteViaClipboard(text: text) {
+                let attemptDetail = index == 0
+                    ? "AX 直写失败，已回退到剪贴板粘贴"
+                    : "AX 直写失败，剪贴板重试后完成写回"
+                return InsertionResult(
+                    appName: target.name,
+                    bundleIdentifier: target.bundleIdentifier,
+                    method: .clipboardFallback,
+                    success: true,
+                    detail: attemptDetail
+                )
+            }
+        }
+        return nil
     }
 }

@@ -22,16 +22,26 @@ final class TypelessAppModel: ObservableObject {
     private let transcriptStore = TranscriptStore()
     private let insertionCompatibilityStore = InsertionCompatibilityStore()
     private let runtimeConfigService = RuntimeConfigService()
-    private let quickActionEngine = QuickActionEngine()
     private let accessibilityBridge = AccessibilityBridge()
     private let hotkeyBridge = HotkeyBridge()
     private let fallbackShortcutBridge = FallbackShortcutBridge()
     private let audioMonitor = AudioInputMonitor()
-    private let streamingTranscriptEngine = StreamingTranscriptEngine()
     private let providerConfigStore = ProviderConfigStore()
+    private lazy var voiceFlowEngine = VoiceFlowEngine(
+        contextCaptureService: ContextCaptureService(
+            accessibilityBridge: accessibilityBridge,
+            compatibilityStore: insertionCompatibilityStore
+        ),
+        deliveryService: DeliveryService(
+            accessibilityBridge: accessibilityBridge,
+            compatibilityStore: insertionCompatibilityStore
+        )
+    )
     private lazy var floatingBarManager = FloatingBarWindowManager(model: self)
     private var lastCaptureArmedAt: Date = .distantPast
     private let captureArmCooldown: TimeInterval = 0.35
+    private var audioCancellables: Set<AnyCancellable> = []
+    private var flowCancellables: Set<AnyCancellable> = []
 
     func bootstrap() {
         // Init log file first so all subsequent log() calls work
@@ -44,6 +54,7 @@ final class TypelessAppModel: ObservableObject {
         recomputeDashboard()
         refreshPermissions()
         Self.log("permissions refreshed: ax=\(permissions.accessibility) im=\(permissions.inputMonitoring) mic=\(permissions.microphone)")
+        bindVoiceFlowEngine()
         refreshShortcutBindings()
         refreshQuickBarBindings()
         startHotkeyMonitoringIfPossible()
@@ -162,39 +173,19 @@ final class TypelessAppModel: ObservableObject {
     }
 
     func presentQuickBar(trigger: String, captureMode: QuickBarCaptureMode = .manual) {
-        let selection = accessibilityBridge.captureSelectionContext()
-
-        quickBar.isPresented = true
-        quickBar.phase = .armed
-        quickBar.captureMode = captureMode
-        quickBar.triggerLabel = trigger
-        quickBar.targetAppName = selection.focusedAppName.isEmpty ? "任意输入框" : selection.focusedAppName
-        quickBar.targetBundleIdentifier = selection.bundleIdentifier
-        quickBar.selectedContextPreview = selection.selectedText.isEmpty ? selection.surroundingText : selection.selectedText
-        quickBar.transcriptDraft = captureMode == .holdToTalk ? "" : selection.selectedText
-        quickBar.partialTranscript = ""
-        quickBar.transcriptSourceLabel = ""
-        quickBar.generatedText = ""
-        quickBar.generatedSourceLabel = ""
-        quickBar.hasDetectedSpeech = false
-        quickBar.capturedDuration = 0
-        quickBar.holdDuration = 0
-        quickBar.statusText = statusTextForPresentation(trigger: trigger, captureMode: captureMode)
-
+        voiceFlowEngine.preparePresentation(
+            trigger: trigger,
+            mode: quickBar.mode,
+            captureMode: captureMode,
+            providerConfig: providerConfig
+        )
+        quickBar = voiceFlowEngine.quickBar
         floatingBarManager.present()
     }
 
     func dismissQuickBar() {
-        quickBar.phase = .idle
-        quickBar.captureMode = .manual
-        quickBar.isPresented = false
-        quickBar.isRecording = false
-        quickBar.hasDetectedSpeech = false
-        quickBar.capturedDuration = 0
-        quickBar.holdDuration = 0
-        quickBar.partialTranscript = ""
-        quickBar.transcriptSourceLabel = ""
-        streamingTranscriptEngine.stop(finalize: false)
+        voiceFlowEngine.dismiss()
+        audioMonitor.setStreamingCallback(nil)
         audioMonitor.stopMonitoring()
         floatingBarManager.dismiss()
     }
@@ -212,12 +203,9 @@ final class TypelessAppModel: ObservableObject {
         Task {
             let granted = await audioMonitor.startMonitoring()
             if granted {
-                quickBar.isRecording = true
-                quickBar.phase = .recording
-                quickBar.hasDetectedSpeech = false
-                quickBar.capturedDuration = 0
-                quickBar.statusText = statusTextForRecording()
-                beginStreamingTranscript()
+                voiceFlowEngine.handleRecordingStarted(providerConfig: providerConfig)
+                audioMonitor.setStreamingCallback(voiceFlowEngine.realtimeAudioConsumer)
+                quickBar = voiceFlowEngine.quickBar
                 floatingBarManager.present()
             } else {
                 refreshPermissions()
@@ -240,159 +228,69 @@ final class TypelessAppModel: ObservableObject {
 
             let wavData = await self.audioMonitor.collectWAVData()
             Self.log("stopRecording: WAV data=\(wavData?.count ?? 0) bytes, canUseSTT=\(self.providerRuntime.canUseOpenAITranscribe)")
-            let finalTranscript = self.streamingTranscriptEngine.stop()
+            self.audioMonitor.setStreamingCallback(nil)
             self.audioMonitor.stopMonitoring()
-            self.quickBar.isRecording = false
             self.quickBar.holdDuration = holdDuration
-            self.quickBar.capturedDuration = holdDuration
-
-            if self.quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-               !finalTranscript.isEmpty {
-                self.quickBar.transcriptDraft = finalTranscript
-            }
 
             if activeCaptureMode == .holdToTalk && !hadSpeech && self.quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 self.dismissQuickBar()
                 return
             }
 
-            // If we have real provider and audio data, trigger transcription
-            if let wavData, self.providerRuntime.canUseOpenAITranscribe {
-                self.quickBar.phase = .processing
-                self.quickBar.statusText = "正在转写录音..."
-                self.floatingBarManager.present()
-                self.streamingTranscriptEngine.start(
-                    mode: self.quickBar.mode,
-                    selection: SelectionContext(
-                        focusedAppName: self.quickBar.targetAppName,
-                        bundleIdentifier: self.quickBar.targetBundleIdentifier,
-                        selectedText: self.quickBar.transcriptDraft,
-                        surroundingText: self.quickBar.selectedContextPreview,
-                        capturedAt: .now
-                    ),
-                    providerRuntime: self.providerRuntime
-                ) { [weak self] update in
-                    guard let self else { return }
-                    Self.log("ASR update: isFinal=\(update.isFinal), text=\(update.text.prefix(80))")
-                    self.quickBar.partialTranscript = update.text
-                    self.quickBar.transcriptSourceLabel = update.source.title
-                    if update.isFinal {
-                        let trimmed = update.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                        let isError = trimmed.hasPrefix("转写失败") || trimmed.hasPrefix("未检测")
-                        if !trimmed.isEmpty && !isError {
-                            Self.log("ASR success: \(trimmed.prefix(80))")
-                            self.quickBar.transcriptDraft = trimmed
-                            self.quickBar.statusText = "转写完成，正在处理..."
-                            // Auto-run quick action after transcription
-                            self.runQuickAction()
-                        } else {
-                            Self.log("ASR empty or error: \(trimmed.prefix(80))")
-                            // Go to ready state for manual input
-                            self.quickBar.phase = .ready
-                            self.quickBar.statusText = isError ? trimmed : "未检测到语音内容，可以手动输入"
-                            self.floatingBarManager.present()
-                        }
-                    }
-                }
-                self.streamingTranscriptEngine.transcribeAudio(wavData: wavData)
-            } else {
-                // No provider -- go to ready for manual editing
-                self.quickBar.phase = .ready
-                self.quickBar.statusText = self.statusTextForStop(captureMode: activeCaptureMode, hadSpeech: hadSpeech)
-                self.floatingBarManager.present()
-            }
+            await self.voiceFlowEngine.stopRecording(
+                wavData: wavData,
+                hadSpeech: hadSpeech,
+                holdDuration: holdDuration,
+                settings: self.settings,
+                providerRuntime: self.providerRuntime,
+                providerConfig: self.providerConfig
+            )
+            self.quickBar = self.voiceFlowEngine.quickBar
+            self.floatingBarManager.present()
         }
     }
 
     func runQuickAction() {
         Self.log("runQuickAction: mode=\(quickBar.mode), draft=\(quickBar.transcriptDraft.prefix(60))")
-        quickBar.phase = .processing
         if quickBar.transcriptDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             quickBar.transcriptDraft = quickBar.partialTranscript.isEmpty ? inferredDraft() : quickBar.partialTranscript
         }
 
-        let mode = quickBar.mode
-        let draft = quickBar.transcriptDraft
-        let currentSettings = settings
-        let runtime = providerRuntime
-        let context = SelectionContext(
-            focusedAppName: quickBar.targetAppName,
-            bundleIdentifier: quickBar.targetBundleIdentifier,
-            selectedText: quickBar.transcriptDraft,
-            surroundingText: quickBar.selectedContextPreview,
-            capturedAt: .now
-        )
-
         Task { @MainActor [weak self] in
             guard let self else { return }
-
-            let execution: QuickActionExecutionResult
-            if runtime.canUseOpenAI {
-                self.quickBar.statusText = "正在通过 OpenAI 生成结果..."
-                execution = await self.quickActionEngine.executeAsync(
-                    mode: mode,
-                    draft: draft,
-                    settings: currentSettings,
-                    providerRuntime: runtime,
-                    context: context
-                )
+            await self.voiceFlowEngine.runQuickAction(
+                settings: self.settings,
+                providerRuntime: self.providerRuntime,
+                providerConfig: self.providerConfig
+            )
+            self.quickBar = self.voiceFlowEngine.quickBar
+            if self.quickBar.isPresented {
+                self.floatingBarManager.present()
             } else {
-                execution = self.quickActionEngine.execute(
-                    mode: mode,
-                    draft: draft,
-                    settings: currentSettings,
-                    providerRuntime: runtime
-                )
+                self.floatingBarManager.dismiss()
             }
-
-            self.quickBar.generatedText = execution.text
-            self.quickBar.generatedSourceLabel = execution.source.title
-            self.quickBar.phase = .ready
-            self.quickBar.statusText = "正在把结果写回到 \(self.quickBar.targetAppName.isEmpty ? "当前输入框" : self.quickBar.targetAppName)…"
-
-            Self.log("LLM done: \(execution.text.prefix(100))... source=\(execution.source.title)")
-
-            let sessionSnapshot = DictationSession(
-                createdAt: .now,
-                sourceAppName: self.quickBar.targetAppName,
-                mode: self.quickBar.mode,
-                transcriptPreview: self.quickBar.transcriptDraft,
-                finalText: self.quickBar.generatedText,
-                durationSeconds: self.effectiveCapturedDuration,
-                words: self.quickBar.generatedText.split(whereSeparator: \.isWhitespace).count,
-                savedMinutes: max(1, Double(self.quickBar.generatedText.count) / 38),
-                feedback: .accepted
-            )
-
-            let generatedText = self.quickBar.generatedText
-            let targetBundleIdentifier = self.quickBar.targetBundleIdentifier
-            let targetAppName = self.quickBar.targetAppName
-
-            self.floatingBarManager.dismiss()
-
-            Self.log("Inserting into \(targetAppName) (\(targetBundleIdentifier))...")
-            let insertionResult = await self.accessibilityBridge.insert(
-                text: generatedText,
-                preferredBundleIdentifier: targetBundleIdentifier
-            )
-            Self.log("Insert result: success=\(insertionResult.success), method=\(insertionResult.method), detail=\(insertionResult.detail)")
-
-            let insertionAttempt = InsertionAttempt(
-                createdAt: .now,
-                appName: insertionResult.appName.isEmpty ? targetAppName : insertionResult.appName,
-                bundleIdentifier: insertionResult.bundleIdentifier.isEmpty ? targetBundleIdentifier : insertionResult.bundleIdentifier,
-                method: insertionResult.method,
-                success: insertionResult.success,
-                detail: insertionResult.detail
-            )
-
-            self.insertionCompatibilityStore.append(insertionAttempt)
-            self.insertionAttempts = self.insertionCompatibilityStore.loadAttempts()
-            self.transcriptStore.append(sessionSnapshot)
-            self.sessions = self.transcriptStore.loadSessions()
-            self.recomputeDashboard()
-            self.dismissQuickBar()
         }
+    }
+
+    func retryDelivery() {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.voiceFlowEngine.retryDelivery(providerConfig: self.providerConfig)
+            self.quickBar = self.voiceFlowEngine.quickBar
+            if self.quickBar.isPresented {
+                self.floatingBarManager.present()
+            } else {
+                self.floatingBarManager.dismiss()
+            }
+        }
+    }
+
+    func copyRecoveryText() {
+        guard quickBar.canCopyRecovery, !quickBar.generatedText.isEmpty else { return }
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(quickBar.generatedText, forType: .string)
+        quickBar.statusText = "结果已复制，你可以手动粘贴。"
     }
 
     func openSystemPrivacySettings() {
@@ -448,33 +346,65 @@ final class TypelessAppModel: ObservableObject {
         refreshReadiness()
     }
 
+    private func bindVoiceFlowEngine() {
+        flowCancellables.removeAll()
+
+        voiceFlowEngine.$quickBar
+            .receive(on: RunLoop.main)
+            .sink { [weak self] quickBar in
+                guard let self else { return }
+                self.quickBar = quickBar
+                if quickBar.isPresented {
+                    self.floatingBarManager.present()
+                } else {
+                    self.floatingBarManager.dismiss()
+                }
+            }
+            .store(in: &flowCancellables)
+
+        voiceFlowEngine.onPersistenceUpdate = { [weak self] update in
+            guard let self else { return }
+            if let session = update.session {
+                self.transcriptStore.append(session)
+                self.sessions = self.transcriptStore.loadSessions()
+            }
+            if let insertionAttempt = update.insertionAttempt {
+                self.insertionCompatibilityStore.append(insertionAttempt)
+                self.insertionAttempts = self.insertionCompatibilityStore.loadAttempts()
+            }
+            self.recomputeDashboard()
+        }
+    }
+
     private func refreshQuickBarBindings() {
-        cancellables.removeAll()
+        audioCancellables.removeAll()
 
         audioMonitor.$level
             .combineLatest(audioMonitor.$smoothedLevel, audioMonitor.$isSpeaking)
             .receive(on: RunLoop.main)
             .sink { [weak self] level, smoothedLevel, isSpeaking in
                 guard let self else { return }
-                self.quickBar.liveLevel = level
-                self.quickBar.smoothedLevel = smoothedLevel
-                self.quickBar.isSpeaking = isSpeaking
-                self.streamingTranscriptEngine.updateSpeechActivity(isSpeaking: isSpeaking)
-                if isSpeaking {
-                    self.quickBar.hasDetectedSpeech = true
-                }
+                self.voiceFlowEngine.syncAudioMetrics(
+                    level: level,
+                    smoothedLevel: smoothedLevel,
+                    isSpeaking: isSpeaking,
+                    elapsedSeconds: self.audioMonitor.elapsedSeconds
+                )
             }
-            .store(in: &cancellables)
+            .store(in: &audioCancellables)
 
         audioMonitor.$elapsedSeconds
             .receive(on: RunLoop.main)
             .sink { [weak self] elapsedSeconds in
                 guard let self else { return }
-                if self.quickBar.isRecording {
-                    self.quickBar.capturedDuration = elapsedSeconds
-                }
+                self.voiceFlowEngine.syncAudioMetrics(
+                    level: self.audioMonitor.level,
+                    smoothedLevel: self.audioMonitor.smoothedLevel,
+                    isSpeaking: self.audioMonitor.isSpeaking,
+                    elapsedSeconds: elapsedSeconds
+                )
             }
-            .store(in: &cancellables)
+            .store(in: &audioCancellables)
     }
 
     private func startHotkeyMonitoringIfPossible() {
@@ -572,57 +502,6 @@ final class TypelessAppModel: ObservableObject {
             stopRecording(for: .holdToTalk)
         } else if quickBar.isPresented && quickBar.phase == .armed {
             dismissQuickBar()
-        }
-    }
-
-    private var effectiveCapturedDuration: Double {
-        if quickBar.capturedDuration > 0 {
-            return quickBar.capturedDuration
-        }
-
-        if audioMonitor.elapsedSeconds > 0 {
-            return audioMonitor.elapsedSeconds
-        }
-
-        return quickBar.holdDuration
-    }
-
-    private func statusTextForPresentation(trigger: String, captureMode: QuickBarCaptureMode) -> String {
-        switch captureMode {
-        case .manual:
-            return trigger == "Fn" ? "已捕获目标输入框，开始说话即可。" : "已打开快速口述条。"
-        case .tapToggle:
-            return "轻点 Fn 开始，再点一次 Fn 结束。"
-        case .holdToTalk:
-            return "按住 Fn 说话，松开后结束本次口述。"
-        case .handsFree:
-            return "已进入 hands-free，再双击 Fn 可结束。"
-        }
-    }
-
-    private func statusTextForRecording() -> String {
-        switch quickBar.captureMode {
-        case .manual:
-            return "正在听你说话…"
-        case .tapToggle:
-            return "正在录音，再点一次 Fn 结束。"
-        case .holdToTalk:
-            return "松开 Fn 即可结束本次口述。"
-        case .handsFree:
-            return "hands-free 录音中，再双击 Fn 结束。"
-        }
-    }
-
-    private func statusTextForStop(captureMode: QuickBarCaptureMode, hadSpeech: Bool) -> String {
-        switch captureMode {
-        case .manual:
-            return quickBar.transcriptDraft.isEmpty ? "录音结束，可以直接运行。" : "已停止录音，可以继续编辑文本。"
-        case .tapToggle:
-            return hadSpeech ? "已结束本次录音，可以继续编辑或点击运行。" : "没有检测到明显语音，你可以继续手动输入。"
-        case .holdToTalk:
-            return hadSpeech ? "已结束本次口述。当前还是本地原型，可继续编辑或点击运行。" : "没有检测到明显语音，你可以继续手动输入。"
-        case .handsFree:
-            return hadSpeech ? "hands-free 已结束，可以继续编辑或点击运行。" : "hands-free 已结束，但没有检测到明显语音。"
         }
     }
 
@@ -725,34 +604,6 @@ final class TypelessAppModel: ObservableObject {
         return true
     }
 
-    private func beginStreamingTranscript() {
-        let selection = SelectionContext(
-            focusedAppName: quickBar.targetAppName,
-            bundleIdentifier: quickBar.targetBundleIdentifier,
-            selectedText: quickBar.transcriptDraft,
-            surroundingText: quickBar.selectedContextPreview,
-            capturedAt: .now
-        )
-
-        streamingTranscriptEngine.start(
-            mode: quickBar.mode,
-            selection: selection,
-            providerRuntime: providerRuntime
-        ) { [weak self] update in
-            guard let self else { return }
-            self.quickBar.partialTranscript = update.text
-            self.quickBar.transcriptSourceLabel = update.source.title
-
-            if self.quickBar.isRecording {
-                self.quickBar.transcriptDraft = update.text
-            }
-
-            if update.isFinal, !update.text.isEmpty {
-                self.quickBar.transcriptDraft = update.text
-            }
-        }
-    }
-
     private func refreshReadiness() {
         let permissionItems = [
             readinessItem(
@@ -840,5 +691,4 @@ final class TypelessAppModel: ObservableObject {
         return ReadinessItem(title: title, detail: detail, level: level)
     }
 
-    private var cancellables: Set<AnyCancellable> = []
 }

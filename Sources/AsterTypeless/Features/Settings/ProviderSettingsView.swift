@@ -7,6 +7,34 @@ struct ProviderSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Provider 预设")
+                        .font(.headline)
+                        .foregroundStyle(AppTheme.ink)
+                    Spacer()
+                    Text(model.providerConfig.selectedPreset.displayName)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.accent)
+                }
+
+                Text("先选一组模型组合，再按需手工覆盖 endpoint、key 和 model。")
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.muted)
+
+                Picker("Preset", selection: $model.providerConfig.selectedPreset) {
+                    ForEach(ModelPreset.allCases) { preset in
+                        Text(preset.displayName).tag(preset)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: model.providerConfig.selectedPreset) { _, preset in
+                    model.providerConfig.applyPreset(preset)
+                    model.saveProviderConfig()
+                }
+            }
+            .cardSurface()
+
             // LLM Provider
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
@@ -27,7 +55,7 @@ struct ProviderSettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                .onChange(of: model.providerConfig.selectedLLM) { _ in
+                .onChange(of: model.providerConfig.selectedLLM) { _, _ in
                     ensureLLMConfigExists()
                     model.saveProviderConfig()
                 }
@@ -61,7 +89,7 @@ struct ProviderSettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                .onChange(of: model.providerConfig.selectedSTT) { _ in
+                .onChange(of: model.providerConfig.selectedSTT) { _, _ in
                     ensureSTTConfigExists()
                     model.saveProviderConfig()
                 }

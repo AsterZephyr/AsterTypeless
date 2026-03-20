@@ -150,6 +150,19 @@ struct FloatingBarView: View {
                 }
                 .insetSurface()
             }
+
+            if !model.quickBar.deliveryFailureDetail.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("写回兜底")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.warning)
+                    Text(model.quickBar.deliveryFailureDetail)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.muted)
+                        .lineLimit(3)
+                }
+                .insetSurface()
+            }
         }
     }
 
@@ -170,6 +183,25 @@ struct FloatingBarView: View {
             .buttonBorderShape(.roundedRectangle)
             .controlSize(.large)
             .tint(AppTheme.accent)
+            .disabled(model.quickBar.isRecording || model.quickBar.phase == .processing)
+
+            if model.quickBar.canRetryDelivery {
+                Button("重试写回") {
+                    model.retryDelivery()
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle)
+                .controlSize(.large)
+            }
+
+            if model.quickBar.canCopyRecovery {
+                Button("复制") {
+                    model.copyRecoveryText()
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle)
+                .controlSize(.large)
+            }
 
             Button("关闭") {
                 model.dismissQuickBar()

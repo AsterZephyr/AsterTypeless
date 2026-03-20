@@ -48,7 +48,7 @@ final class DeepgramStreamingClient: NSObject, @unchecked Sendable {
         self.onTranscript = onTranscript
         self.onError = onError
 
-        var params = [
+        let params = [
             "model=\(model)",
             "language=\(language)",
             "encoding=linear16",

@@ -17,5 +17,10 @@ let package = Package(
             name: "AsterTypeless",
             path: "Sources/AsterTypeless"
         ),
+        .testTarget(
+            name: "AsterTypelessTests",
+            dependencies: ["AsterTypeless"],
+            path: "Tests/AsterTypelessTests"
+        ),
     ]
 )

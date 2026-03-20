@@ -72,7 +72,8 @@ final class QuickActionEngine {
         draft: String,
         settings: RuntimeSettings,
         providerRuntime: ProviderRuntimeStatus,
-        context: SelectionContext
+        context: VoiceFlowContext,
+        policy: PromptPolicy
     ) async -> QuickActionExecutionResult {
         guard providerRuntime.canUseOpenAI,
               let client = providerRuntime.makeOpenAIClient()
@@ -85,7 +86,7 @@ final class QuickActionEngine {
             return execute(mode: mode, draft: draft, settings: settings, providerRuntime: providerRuntime)
         }
 
-        let systemPrompt = buildSystemPrompt(mode: mode, settings: settings, context: context)
+        let systemPrompt = buildSystemPrompt(mode: mode, settings: settings, context: context, policy: policy)
         let messages: [ChatMessage] = [
             ChatMessage(role: "system", content: systemPrompt),
             ChatMessage(role: "user", content: base),
@@ -117,16 +118,28 @@ final class QuickActionEngine {
         }
     }
 
-    private func buildSystemPrompt(mode: QuickActionMode, settings: RuntimeSettings, context: SelectionContext) -> String {
-        let appName = context.focusedAppName.isEmpty ? "未知 App" : context.focusedAppName
+    private func buildSystemPrompt(
+        mode: QuickActionMode,
+        settings: RuntimeSettings,
+        context: VoiceFlowContext,
+        policy: PromptPolicy
+    ) -> String {
+        let appName = context.displayAppName
         let lang = settings.outputLanguage
         let noThink = "不要输出思考过程，不要使用<think>标签，直接输出最终结果。"
+        let windowTitle = context.windowTitle.isEmpty ? "" : "\n当前窗口标题: \(context.windowTitle)"
+        let surroundingContext = context.surroundingText.isEmpty
+            ? ""
+            : "\n当前附近上下文: \(String(context.surroundingText.prefix(500)))"
 
         switch mode {
         case .dictate:
             return """
             你是一个语音转文字助手。用户通过语音口述了一段内容，请把它整理成更自然、更适合直接发送的文字。
-            保留用户的原意和语气，修正口语化的表达，使其更流畅。
+            保留用户的原意和语气，修正口语化的表达，使其更流畅。\(windowTitle)\(surroundingContext)
+            风格要求: \(policy.styleInstruction)
+            格式要求: \(policy.formattingInstruction)
+            上下文要求: \(policy.contextInstruction)
             目标 App: \(appName)
             输出语言: \(lang)
             只输出整理后的文本，不要添加任何解释或前缀。\(noThink)
@@ -134,7 +147,10 @@ final class QuickActionEngine {
         case .rewrite:
             return """
             你是一个文本改写助手。请把用户提供的文本改写得更简洁、更利落，同时保留原意和语气。
-            减少冗余表达，让文本更像专业写作而不是口语。
+            减少冗余表达，让文本更像专业写作而不是口语。\(windowTitle)\(surroundingContext)
+            风格要求: \(policy.styleInstruction)
+            格式要求: \(policy.formattingInstruction)
+            上下文要求: \(policy.contextInstruction)
             目标 App: \(appName)
             输出语言: \(lang)
             只输出改写后的文本，不要添加任何解释或前缀。\(noThink)
@@ -142,14 +158,19 @@ final class QuickActionEngine {
         case .translate:
             return """
             你是一个翻译助手。请把用户提供的内容翻译成 \(lang)。
-            保持原文的语气、重点和格式。翻译要自然流畅，不要生硬直译。
+            保持原文的语气、重点和格式。翻译要自然流畅，不要生硬直译。\(windowTitle)\(surroundingContext)
+            风格要求: \(policy.styleInstruction)
+            格式要求: \(policy.formattingInstruction)
+            上下文要求: \(policy.contextInstruction)
             只输出翻译后的文本，不要添加任何解释或前缀。\(noThink)
             """
         case .ask:
-            let surroundingContext = context.surroundingText.isEmpty ? "" : "\n当前附近上下文: \(String(context.surroundingText.prefix(500)))"
             return """
             你是一个智能助手。用户基于当前输入上下文提出了一个问题或请求。
-            请给出简洁、有用的回答。\(surroundingContext)
+            请给出简洁、有用的回答。\(windowTitle)\(surroundingContext)
+            风格要求: \(policy.styleInstruction)
+            格式要求: \(policy.formattingInstruction)
+            上下文要求: \(policy.contextInstruction)
             目标 App: \(appName)
             输出语言: \(lang)
             直接回答问题，不要重复问题本身。\(noThink)

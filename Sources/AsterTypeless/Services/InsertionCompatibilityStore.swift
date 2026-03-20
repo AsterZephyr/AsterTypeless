@@ -33,6 +33,16 @@ final class InsertionCompatibilityStore {
         saveAttempts(attempts)
     }
 
+    func preferredMethod(for bundleIdentifier: String, preferStableDelivery: Bool) -> InsertionMethod? {
+        guard preferStableDelivery, !bundleIdentifier.isEmpty else {
+            return nil
+        }
+
+        return loadAttempts()
+            .first(where: { $0.bundleIdentifier == bundleIdentifier && $0.success })?
+            .method
+    }
+
     private func saveAttempts(_ attempts: [InsertionAttempt]) {
         let url = storeURL()
 
